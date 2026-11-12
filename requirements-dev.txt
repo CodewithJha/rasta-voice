@@ -1,0 +1,5 @@
+-e ./gnani_client
+-e ./backend
+-e ./benchmark
+pytest>=8
+ruff>=0.8
