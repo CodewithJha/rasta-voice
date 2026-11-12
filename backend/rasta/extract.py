@@ -102,39 +102,47 @@ class _Rule:
         return False
 
 
-# Failed contact is a phrase in which the failure term is bound to the
-# phone / line / number / call channel, or an inherently contact-failure
-# phrase. Success counts only as successful customer contact: the success
-# verb is bound, in the same clause, to that channel and/or to the
-# customer as actor. Clause boundaries are comma, semicolon, period, and
-# the connectives aur, lekin, par (not "phone par"), but, ab, and phir.
-# A bare "confirm kar di" (address, packing, entry, or an unspecified
-# actor) is not contact success. A rider saying they themselves are busy
-# is never a failed call. Latest-state comparison is only between a
-# bound failure span and a bound success span.
+# Contact state for the rules fallback is fail-safe: a missed
+# customer_unreachable escalation is worse than a false one that a
+# dispatcher can glance at and dismiss. The LLM path handles nuance.
+#
+# A channel-bound (or inherently contact) failure span makes the event
+# customer_unreachable unless a later, non-overlapping SUCCESS CONSTRUCT
+# starts after that failure ends. A success construct is one contiguous
+# pattern: either the customer actor is grammatically linked to a
+# contact-success verb by only a small, fixed filler set (case markers
+# se/ne/ka/ki/ko/ke, an optional channel word, and optional pe/par), or
+# the phrase is explicitly about the call connecting (call connect ho
+# gaya, call lag gaya). Bare "confirm kar di", bare "baat ho gayi", and
+# talk with a restaurant, guard, rider, shop, or "maine" are not
+# customer contact. There is no clause splitting and no bag-of-words
+# check. Punctuation is normalised to spaces before matching, so a
+# comma must not change the result.
 _CHANNEL = r"(?:phone|mobile|call|line|number)"
-# At most five tokens between the channel word and the failure term.
-_GAP = r"(?:\W+\w+){0,5}"
+# Auxiliaries that may sit between a channel word and a failure verb.
+# This is a closed set, not an arbitrary token window, so a later phrase
+# cannot donate its channel word to an earlier failure.
+_AUX = r"(?:hai|hain|ho|aa|raha|rahi|rahe|kar|tha|thi|the)"
+_FILLED = rf"(?:\s+{_AUX}){{0,3}}"
 _UTHA_FAIL = r"(?:nahi\s+utha\w*|utha(?:ya|ta|te)?\s+nahi)"
 
 _FAILED_CONTACT: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("channel_busy", re.compile(rf"\b{_CHANNEL}{_GAP}\W+busy\b")),
-    ("busy_channel", re.compile(rf"\bbusy{_GAP}\W+{_CHANNEL}\b")),
-    ("switched_off", re.compile(r"\bswitch(?:ed)?\s+off\b")),
-    ("channel_off", re.compile(rf"\b{_CHANNEL}{_GAP}\W+off\b")),
+    ("channel_busy", re.compile(rf"\b{_CHANNEL}{_FILLED}\s+busy\b")),
+    ("busy_channel", re.compile(rf"\bbusy{_FILLED}\s+{_CHANNEL}\b")),
+    ("switched_off", re.compile(r"\bswi(?:tch|ch)(?:ed)?\s+off\b")),
+    ("channel_off", re.compile(rf"\b{_CHANNEL}{_FILLED}\s+off\b")),
     (
         "channel_band",
-        re.compile(r"\b(?:phone|mobile|number)(?:\W+\w+){0,3}\W+band\b"),
+        re.compile(rf"\b(?:phone|mobile|number){_FILLED}\s+band\b"),
     ),
-    ("line_not_found", re.compile(r"\bline\b(?:\W+\w+){0,3}\W+nahi\s+mil")),
-    ("not_connecting", re.compile(rf"\b{_CHANNEL}{_GAP}\W+nahi\s+lag")),
+    ("line_not_found", re.compile(rf"\bline{_FILLED}\s+nahi\s+mil")),
+    ("not_connecting", re.compile(rf"\b{_CHANNEL}{_FILLED}\s+nahi\s+lag")),
     (
         "channel_not_picking_up",
         re.compile(
-            rf"\b{_CHANNEL}{_GAP}\W+{_UTHA_FAIL}"
-            rf"|\b{_UTHA_FAIL}{_GAP}\W+{_CHANNEL}\b"
-            rf"|\bpickup\s+nahi(?:\W+\w+){{0,3}}\W+{_CHANNEL}"
-            rf"|\b{_CHANNEL}(?:\W+\w+){{0,3}}\W+pickup\s+nahi"
+            rf"\b{_CHANNEL}{_FILLED}\s+{_UTHA_FAIL}"
+            rf"|\bpickup\s+nahi{_FILLED}\s+{_CHANNEL}\b"
+            rf"|\b{_CHANNEL}{_FILLED}\s+pickup\s+nahi"
         ),
     ),
     (
@@ -147,31 +155,58 @@ _FAILED_CONTACT: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("receive_failed", re.compile(r"\breceive\s+(?:hi\s+)?nahi\b|\breceive\s+ki\s+nahi\b")),
     (
         "ring_unanswered",
-        re.compile(r"\bring\s+ja\s+rahi(?:\W+\w+){0,6}\W+utha\s+nahi"),
+        re.compile(r"\bring\s+ja\s+rahi(?:\s+hai)?\s+utha\s+nahi"),
     ),
 )
 
-_SUCCESS_CONTACT: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("baat_ho_gayi", re.compile(r"\bbaat\s+ho\s+(?:gayi|gai|gaya|chuki|chuka)\b")),
+# Fixed fillers that may appear between the customer and the verb.
+_CASE = r"(?:se|ne|ka|ki|ko|ke)"
+_ON = r"(?:pe|par(?:\s+se)?)"
+_CUSTOMER_LINK = rf"customer(?:\s+{_CASE})?(?:\s+{_CHANNEL})?(?:\s+{_ON})?"
+_BAAT_OK = r"baat\s+ho\s+(?:gayi|gai|gaya|chuki|chuka)|baat\s+hui"
+_RECEIVE_OK = r"receive\s+(?:kar\s+liya|kar\s+li|kiya|ki)(?!\s+nahi)"
+_UTHA_OK = rf"(?:{_CHANNEL}\s+)?utha\s+liya"
+_PICK_OK = r"pick(?:\s+up|\s+kar)?\s+liya"
+_CONNECT_OK = r"connect(?:ed)?\s+ho\s+gaya"
+_CONFIRM_OK = r"confirm\s+kar\s+d(?:i|iya|iye)"
+
+_CUSTOMER_SUCCESS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("customer_baat", re.compile(rf"\b{_CUSTOMER_LINK}\s+{_BAAT_OK}\b")),
     (
-        "receive_ok",
-        re.compile(r"\breceive\s+(?:kar\s+liya|kar\s+li|kiya|ki)\b(?!\s+nahi)"),
+        "customer_receive",
+        re.compile(rf"\b{_CUSTOMER_LINK}\s+(?:{_CHANNEL}\s+)?{_RECEIVE_OK}\b"),
     ),
-    ("utha_liya", re.compile(r"\butha\s+liya\b")),
-    ("call_connected", re.compile(r"\b(?:call\s+)?connect(?:ed)?\s+ho\s+gaya\b")),
-    ("confirm_kar_di", re.compile(r"\bconfirm\s+kar\s+d(?:i|iya|iye)\b")),
+    ("customer_utha_liya", re.compile(rf"\b{_CUSTOMER_LINK}\s+{_UTHA_OK}\b")),
+    ("customer_pick", re.compile(rf"\b{_CUSTOMER_LINK}\s+{_PICK_OK}\b")),
+    ("customer_connect", re.compile(rf"\b{_CUSTOMER_LINK}\s+{_CONNECT_OK}\b")),
+    (
+        "customer_confirm",
+        re.compile(
+            rf"\bcustomer\s+ne(?:\s+{_CHANNEL}\s+{_ON})?"
+            rf"(?:\s+(?:location|address))?\s+{_CONFIRM_OK}\b"
+        ),
+    ),
+)
+_CHANNEL_SUCCESS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "call_connected",
+        re.compile(rf"\b(?:call|phone|mobile)\s+(?:{_CONNECT_OK}|lag\s+gaya)\b"),
+    ),
 )
 
 # First-person "I am busy", not a busy phone line.
 _RIDER_BUSY = re.compile(
     r"\bmain\b(?:\W+\w+){0,8}\W+busy\s+(?:hoon|hun|hu)\b|\bbusy\s+(?:hoon|hun|hu)\b"
 )
-_CUSTOMER_ACTOR = re.compile(r"\bcustomer\b")
-_CHANNEL_WORD = re.compile(rf"\b{_CHANNEL}\b")
-# "par" is a contrastive connective, except in "phone par" / "call par".
-_CLAUSE_BOUNDARY = re.compile(
-    r",|;|\.(?:\s+|$)|\b(?:aur|lekin|but|ab|phir)\b|\bpar\b"
+_NON_CUSTOMER_LEAD = re.compile(
+    r"(?:restaurant|guard|maine|rider|shop|store|merchant|security|\bmain\b)"
+    rf"(?:\s+{_CASE})?(?:\s+{_CHANNEL})?(?:\s+{_ON})?\s+$"
 )
+
+
+def _normalize_contact_text(text: str) -> str:
+    """Strip punctuation so commas cannot change contact matching."""
+    return re.sub(r"\s+", " ", re.sub(r"[^\w\s]+", " ", text)).strip()
 
 
 def _spans_overlap(left: tuple[int, int], right: tuple[int, int]) -> bool:
@@ -184,72 +219,50 @@ def _is_rider_self_busy(haystack: str, match: re.Match[str]) -> bool:
     )
 
 
-def _mask_channel_par(haystack: str) -> str:
-    """Keep 'phone par' as one token so 'par' is not a clause boundary."""
-    return re.sub(rf"\b({_CHANNEL}) par\b", lambda m: f"{m.group(1)}_par", haystack)
-
-
-def _clause_spans(haystack: str) -> tuple[tuple[int, int], ...]:
-    """Return inclusive-exclusive character spans for each clause."""
-    masked = _mask_channel_par(haystack)
+def _failure_spans(text: str) -> list[tuple[int, int]]:
+    """Return character spans of channel-bound or contact-failure phrases."""
     spans: list[tuple[int, int]] = []
-    start = 0
-    for match in _CLAUSE_BOUNDARY.finditer(masked):
-        if match.start() > start:
-            spans.append((start, match.start()))
-        start = match.end()
-    if start < len(haystack):
-        spans.append((start, len(haystack)))
-    return tuple(spans) if spans else ((0, len(haystack)),)
-
-
-def _clause_at(haystack: str, index: int, spans: tuple[tuple[int, int], ...]) -> str:
-    for start, end in spans:
-        if start <= index < end:
-            return haystack[start:end]
-    return haystack
-
-
-def _success_is_bound(name: str, clause: str) -> bool:
-    """True when the clause itself binds the success verb to contact."""
-    has_channel = _CHANNEL_WORD.search(clause) is not None
-    has_customer = _CUSTOMER_ACTOR.search(clause) is not None
-    if name == "confirm_kar_di":
-        # Address/packing/entry confirms need both actor and channel.
-        return has_channel and has_customer
-    if name == "call_connected":
-        return has_channel
-    return has_channel or has_customer
-
-
-def _contact_spans(haystack: str) -> tuple[list[int], list[int]]:
-    """Return end indexes of bound failure and bound success contact matches."""
-    failures: list[int] = []
     for name, pattern in _FAILED_CONTACT:
-        for match in pattern.finditer(haystack):
-            if name in {"channel_busy", "busy_channel"} and _is_rider_self_busy(
-                haystack, match
-            ):
+        for match in pattern.finditer(text):
+            if name in {"channel_busy", "busy_channel"} and _is_rider_self_busy(text, match):
                 continue
-            failures.append(match.end())
-    clauses = _clause_spans(haystack)
-    successes: list[int] = []
-    for name, pattern in _SUCCESS_CONTACT:
-        for match in pattern.finditer(haystack):
-            clause = _clause_at(haystack, match.start(), clauses)
-            if _success_is_bound(name, clause):
-                successes.append(match.end())
-    return failures, successes
+            spans.append(match.span())
+    return spans
+
+
+def _success_spans(text: str) -> list[tuple[int, int]]:
+    """Return spans of contiguous customer- or call-connect success constructs."""
+    spans: list[tuple[int, int]] = []
+    for _, pattern in _CUSTOMER_SUCCESS:
+        for match in pattern.finditer(text):
+            spans.append(match.span())
+    for _, pattern in _CHANNEL_SUCCESS:
+        for match in pattern.finditer(text):
+            if _NON_CUSTOMER_LEAD.search(text[: match.start()]) is not None:
+                continue
+            spans.append(match.span())
+    return spans
 
 
 def _is_failed_contact(haystack: str) -> bool:
-    """True when the latest bound contact state is a failure."""
-    failures, successes = _contact_spans(haystack)
+    """True unless a later, non-overlapping success construct overrides a failure.
+
+    Once a failure span exists, the rules fallback stays on
+    customer_unreachable unless an explicit success construct starts after
+    that failure ends and does not overlap it.
+    """
+    text = _normalize_contact_text(haystack)
+    failures = _failure_spans(text)
     if not failures:
         return False
-    if not successes:
-        return True
-    return max(failures) > max(successes)
+    latest_failure_end = max(end for _start, end in failures)
+    for start, end in _success_spans(text):
+        if start < latest_failure_end:
+            continue
+        if any(_spans_overlap((start, end), failure) for failure in failures):
+            continue
+        return False
+    return True
 
 
 # Needles are general Hinglish / transliterated English paraphrases a rider

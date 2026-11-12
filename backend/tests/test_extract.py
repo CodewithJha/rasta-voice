@@ -274,7 +274,7 @@ def test_contact_state_classes(text, intent, urgency):
         assert event.confidence == 0.0
 
 
-# Every reproduction from the three reviews of this pull request.
+# Every reproduction from the four reviews of this pull request.
 @pytest.mark.parametrize(
     ("text", "intent", "urgency"),
     [
@@ -308,6 +308,26 @@ def test_contact_state_classes(text, intent, urgency):
             "customer_unreachable",
             "high",
         ),
+        (
+            "customer phone nahi utha raha address confirm kar diya hai",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer ka phone switch off hai restaurant ne packing confirm kar di",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer phone nahi utha raha maine address confirm kar diya hai",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer ka phone switch off hai restaurant se baat ho gayi",
+            "customer_unreachable",
+            "high",
+        ),
     ],
     ids=[
         "review1_receive_kar_liya",
@@ -316,6 +336,10 @@ def test_contact_state_classes(text, intent, urgency):
         "review2_baat_ho_gayi_then_rider_busy_sorting",
         "review3_no_answer_then_address_confirm",
         "review3_switch_off_then_packing_confirm",
+        "review4_no_comma_address_confirm",
+        "review4_no_comma_packing_confirm",
+        "review4_no_comma_rider_confirm",
+        "review4_no_comma_restaurant_baat",
     ],
 )
 def test_himanshu_review_repros(text, intent, urgency):
@@ -323,3 +347,218 @@ def test_himanshu_review_repros(text, intent, urgency):
     assert event.intent.value == intent
     assert event.urgency.value == urgency
 
+
+# Generated contact-state matrix. Extend these lists to add coverage;
+# do not add one-off repros without also adding the class here.
+CONTACT_FAILURE_PHRASES = (
+    "phone nahi utha raha",
+    "customer phone nahi utha raha",
+    "phone switch off hai",
+    "customer ka phone switch off hai",
+    "number band hai",
+    "customer ka number band hai",
+    "phone busy aa raha",
+    "customer ka phone busy aa raha",
+    "call receive nahi kiya",
+    "customer ka call receive nahi kiya",
+)
+NON_CONTACT_FOLLOWUPS = (
+    "address confirm kar diya hai",
+    "restaurant ne packing confirm kar di",
+    "maine address confirm kar diya hai",
+    "guard ne entry confirm kar di",
+    "restaurant se baat ho gayi",
+    "main packing mein busy hoon",
+)
+CUSTOMER_SUCCESS_FOLLOWUPS = (
+    "ab customer se baat ho gayi",
+    "phir customer ne call utha liya",
+    "customer ne phone pe location confirm kar di",
+    "ab call connect ho gaya",
+)
+CONTACT_JOINERS = ("", ", ", " aur ", " ab ", " phir ", ". ")
+
+
+def _joined(left: str, joiner: str, right: str) -> str:
+    # An empty joiner means no punctuation, not a glued token. Speech
+    # transcripts still have a space between the two phrases.
+    if not joiner.strip():
+        joiner = " "
+    return " ".join(f"{left}{joiner}{right}".split())
+
+
+def _failure_then_non_contact_cases():
+    for failure in CONTACT_FAILURE_PHRASES:
+        for follow in NON_CONTACT_FOLLOWUPS:
+            for joiner in CONTACT_JOINERS:
+                yield _joined(failure, joiner, follow), "customer_unreachable", "high"
+
+
+def _failure_then_success_cases():
+    for failure in CONTACT_FAILURE_PHRASES:
+        for follow in CUSTOMER_SUCCESS_FOLLOWUPS:
+            for joiner in CONTACT_JOINERS:
+                yield _joined(failure, joiner, follow), "other", "low"
+
+
+def _success_then_failure_cases():
+    successes = (
+        "customer se baat hui thi",
+        "customer ne call receive kar liya",
+    )
+    failures = (
+        "phone switch off hai",
+        "phone nahi utha raha",
+    )
+    for success in successes:
+        for failure in failures:
+            for joiner in CONTACT_JOINERS:
+                yield _joined(success, joiner, failure), "customer_unreachable", "high"
+
+
+def _success_only_cases():
+    for follow in CUSTOMER_SUCCESS_FOLLOWUPS:
+        yield follow, "other", "low"
+    yield "customer se call connect ho gaya", "other", "low"
+    yield "customer ne phone receive kar liya", "other", "low"
+
+
+def _matrix_id(prefix: str, text: str) -> str:
+    return prefix + "_" + "_".join(text.split())[:80]
+
+
+CONTACT_MATRIX_CASES = (
+    list(_failure_then_non_contact_cases())
+    + list(_failure_then_success_cases())
+    + list(_success_then_failure_cases())
+    + list(_success_only_cases())
+)
+
+
+@pytest.mark.parametrize(
+    ("text", "intent", "urgency"),
+    CONTACT_MATRIX_CASES,
+    ids=[_matrix_id("matrix", text) for text, _intent, _urgency in CONTACT_MATRIX_CASES],
+)
+def test_contact_state_matrix(text, intent, urgency):
+    event = extract_event(text, provider="rules")
+    assert event.intent.value == intent
+    assert event.urgency.value == urgency
+
+
+# Variants tried in self-review of the fail-safe policy, including
+# missing punctuation, spelling variants, and a customer token in the
+# wrong place. Unrecognised success spellings must not clear a failure.
+ADVERSARIAL_CONTACT_CASES = (
+    (
+        "customer phone nahi utha raha address confirm kar diya hai",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "customer ka phone switch off hai restaurant ne packing confirm kar di",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "customer phone nahi utha raha maine address confirm kar diya hai",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "customer ka phone switch off hai restaurant se baat ho gayi",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "phone nahi uthaa raha address confirm kar diya hai",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "customer ka phone swich off hai address confirm kar diya hai",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "customer phone nahi utha raha ab baat hogyi",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "phone nahi utha raha baat ho gayi customer se",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "baat ho gayi customer se phone nahi utha raha",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "customer se baat ho gayi phone nahi utha raha",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "phone switch off hai security ne entry confirm kar di",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "shop ne packing confirm kar di customer phone nahi utha raha",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "customer phone nahi utha raha rider ne address confirm kar diya",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "customer phone nahi utha raha store se baat ho gayi",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "customer phone nahi utha raha,, address confirm kar diya hai",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "merchant se baat ho gayi phone busy aa raha",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "customer phone nahi utha raha ab customer se baat ho gayi",
+        "other",
+        "low",
+    ),
+    (
+        "customer ne phone pe location confirm kar di",
+        "other",
+        "low",
+    ),
+    (
+        "phone nahi utha raha customer address confirm kar diya",
+        "customer_unreachable",
+        "high",
+    ),
+    (
+        "customer phone pe location confirm kar di phone nahi utha raha",
+        "customer_unreachable",
+        "high",
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    ("text", "intent", "urgency"),
+    ADVERSARIAL_CONTACT_CASES,
+    ids=[_matrix_id("adv", text) for text, _intent, _urgency in ADVERSARIAL_CONTACT_CASES],
+)
+def test_contact_adversarial_variants(text, intent, urgency):
+    event = extract_event(text, provider="rules")
+    assert event.intent.value == intent
+    assert event.urgency.value == urgency
