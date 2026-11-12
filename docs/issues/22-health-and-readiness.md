@@ -71,3 +71,12 @@ curl -s http://127.0.0.1:8000/api/health | python -m json.tool
 curl -s -o /tmp/ready.json -w "%{http_code}\n" http://127.0.0.1:8000/api/ready
 python -m json.tool /tmp/ready.json
 ```
+
+<!-- rasta-voice-production-2026-11-12 -->
+
+### Production: breaker, schema, and errors
+
+- [ ] `/api/ready` also reports `schema_version` (issue 19), circuit-breaker state (issue 29), and `events_in_store`. Missing pieces are `"not_deployed"` rather than a lie.
+- [ ] Ready stays 503 only when the process should leave rotation (database not writable, or a required migrator failed). An open breaker or a spent credit budget is 200 with flags set, as already specified, so the host does not flap.
+- [ ] `/api/health` stays cheap and does not touch SQLite or Gnani.
+- [ ] Error counts since boot may appear here or only on `/api/admin/usage` (issue 25); do not fork two counters.

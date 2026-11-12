@@ -59,3 +59,12 @@ Each doc is prose plus, for architecture, one mermaid `flowchart` that a reviewe
 ## How to test
 
 Read the three files against `git ls-tree -r HEAD` and a walk of the running app (`/api/health`, `/api/ready`, a sample ingest if a key is present). Confirm the README links resolve.
+
+<!-- rasta-voice-production-2026-11-12 -->
+
+### Production: point at the ops pack
+
+- [ ] `docs/ARCHITECTURE.md` links this register (`docs/PRODUCTION_READINESS.md`) and, once they exist, the ADRs and the runbook from issue 34. Do not duplicate the runbook here.
+- [ ] `docs/SECURITY.md` includes headers/CSP (27), CSRF and lockout (20, 27), retention and deletion (28), and the reporting path already required. Stay truthful about what has merged.
+- [ ] `docs/CONTRIBUTING.md` mentions the PR template, CODEOWNERS, and the coverage/type gates when issue 32/33 have landed, and restates "no mock mode in app code".
+- [ ] LICENSE, CHANGELOG, CODE_OF_CONDUCT, and RUNBOOK are issue 34's files; this issue only has to leave hooks in the README if 34 is late.

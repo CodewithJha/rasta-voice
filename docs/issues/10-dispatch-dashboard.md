@@ -86,3 +86,14 @@ At 360 px wide the rider chit and the slate stack; the slate remains readable, S
 - [ ] Empty, first-load, 401, 503, 502, and 429 states are implemented and distinguishable. Polling backs off on 429.
 - [ ] Keyboard and contrast checks above pass. `npm run check` still passes.
 - [ ] The look follows the brief. No template kit, no copied ops-console shell, no chart library.
+
+<!-- rasta-voice-production-2026-11-12 -->
+
+### Production: hooks for workflow and alerts
+
+Issue 25 owns ack/resolve, the SOS tone, and the usage strip. This issue should not paint itself into a corner:
+
+- [ ] Render a `state` field if the envelope has one, and leave room in the row for later Ack/Resolve buttons without a layout rewrite. If 25 has not merged, ignore unknown envelope keys rather than crashing.
+- [ ] `aria-live` on the board (hardening section) must be compatible with an assertive SOS update in 25.
+- [ ] Polling backs off on 401 (show the unlock prompt from issue 20) and on 429, and never tight-loops.
+- [ ] Do not display unredacted long digit runs if issue 28 has already replaced them; do not invent your own redaction here.

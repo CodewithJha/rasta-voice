@@ -91,3 +91,17 @@ Then, with `GNANI_API_KEY` set, `uvicorn` and `npm run dev`: click **Stream a sa
 - [ ] An integration test proves upstream receives audio *before* the browser commit frame; a real manual mic run records time to first transcript and final event (do not invent latency).
 - [ ] Throttle the Timbre sample's PCM frames to realistic elapsed playback time when the video claims live streaming; do not treat a rapid batch send as proof of live latency.
 
+
+<!-- rasta-voice-production-2026-11-12 -->
+
+### Production: websocket lifecycle
+
+The audit section already requires a live pump, backpressure, and cleanup. Production adds hard limits and origin checks (SEC-14, REL-06, FE-05):
+
+- [ ] Enforce Prisma's 15-minute session cap and a 60 s idle timeout on both sockets; close cleanly with an error frame the UI can show.
+- [ ] Cap concurrent `/api/stream` sessions (`RASTA_MAX_STREAMS`, default 2). A third caller gets an immediate error frame or a 429 close, and no upstream socket is opened.
+- [ ] Check `Origin` against the same allow list as issue 27. Missing or foreign origins are closed before `getUserMedia` audio is forwarded.
+- [ ] Apply issue 13's credit budget to every stream (open plus elapsed time if that is how 13 counts). An exhausted budget does not start a Gnani socket.
+- [ ] Server shutdown (issue 29) closes browser and upstream sockets and cancels the pump. Tests or a documented shutdown hook prove no leaked tasks.
+- [ ] Ping/pong or an application heartbeat so a half-open TCP session cannot sit until the 15-minute cap.
+- [ ] Secure-context warning and mic-blocked copy may live in issue 30; this issue at least must not crash when `getUserMedia` is missing and must not put the Gnani key in any browser frame.

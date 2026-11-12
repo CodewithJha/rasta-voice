@@ -49,14 +49,29 @@ If a client bug blocks you, one small fix in `gnani_client/` is allowed in your 
 | 22 | [Health and readiness](issues/22-health-and-readiness.md) | B | 3 | 13, 19 |
 | 23 | [Docs pack](issues/23-docs-pack.md) | A | 3 | 19, 20, 21, 22 |
 | 24 | [End-to-end smoke test](issues/24-e2e-smoke-test.md) | A | 3 | 13, 20 |
+| 25 | [Dispatcher workflow, SOS, and audit](issues/25-dispatcher-workflow.md) | B | 3 | 10, 19, 20 |
+| 26 | [API contract](issues/26-api-contract.md) | B | 3 | 19, 21 |
+| 27 | [Security hardening](issues/27-security-hardening.md) | B | 3 | 13, 20 |
+| 28 | [Privacy, retention, and deletion](issues/28-privacy-retention.md) | B | 3 | 19 |
+| 29 | [Upstream resilience](issues/29-upstream-resilience.md) | B | 2 (land early) | skeleton |
+| 30 | [Frontend production quality](issues/30-frontend-production.md) | B | 3 | 09, 10 |
+| 31 | [Load tests and latency budgets](issues/31-load-tests.md) | A | 3 | 13, 22 |
+| 32 | [Quality gates](issues/32-quality-gates.md) | A | 3 | 09, 10, 24 |
+| 33 | [CI/CD and supply chain](issues/33-cicd-supply-chain.md) | A | 3 | 13, 32 |
+| 34 | [Operations and legal docs](issues/34-ops-and-legal-docs.md) | A | 3 | 23 |
+| 35 | [Post-contest operations stretch](issues/35-post-contest-ops.md) | A | post-contest | P0 merged, 13 |
 
 Load balance (12 Nov): 08 and 15 moved from B to A, so B can give 07 (true live streaming), 13 (credit and abuse limits) and 18 (the video) their full time. A lands 08 early on Day 2 with a narrow change in `backend/rasta/`, flagged in the PR body.
 
-Hardening (12 Nov, later): 19–22 go to B (store, passcode, logs, ready). 23 and 24 go to A (docs pack and the live smoke script). The count is even (12 and 12); A's added work is lighter so B still has time for 07, 13, and 18.
+Hardening (12 Nov, later): 19–22 go to B (store, passcode, logs, ready). 23 and 24 go to A (docs pack and the live smoke script).
 
-Day 2 note for Member B: finish 07, and wait for A's 08, before opening 09. 10 can land beside 07 because it only touches `frontend/src/dispatch.ts` and a new stylesheet. Do not both edit `frontend/src/rider.ts`. Land 19 early, once 04 is in, and keep the issue 04 JSON so 10 does not wait on sqlite. Land 21 in parallel with 19 if you are not both rewriting `main.py`. Land 20 only after 10's slate is mergeable; 20 is the other Day 2 edit to `dispatch.ts`.
+Production (12 Nov, later still): the 01–24 plan is an MVP, not a production system. Gaps and the definition of done live in [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md). New work: 25–30 to B (workflow, API, security, privacy, resilience, frontend quality — UI stays with B). 31–34 to A (k6, quality gates, CI/CD, ops and legal docs). 35 is post-contest, also A. In-contest counts are then A 16, B 18. The heavier P0 app work is B's; the heavier CI and docs work is A's.
+
+Day 2 note for Member B: finish 07, and wait for A's 08, before opening 09. 10 can land beside 07 because it only touches `frontend/src/dispatch.ts` and a new stylesheet. Do not both edit `frontend/src/rider.ts`. Land 19 early, once 04 is in, and keep the issue 04 JSON so 10 does not wait on sqlite. Land 21 in parallel with 19 if you are not both rewriting `main.py`. Land 20 only after 10's slate is mergeable; 20 is the other Day 2 edit to `dispatch.ts`. Land 29 early as well (shared HTTP client, retries, breaker, no event-loop stall); 02, 07, and 08 should use that client rather than opening their own.
 
 Day 3 note: 15 needs the public working-app video from 18 (a photo is not enough), but does not wait on 12. If the chart is merged, quote one number. If it is not, quote the live sample result from the README (Timbre line → Prisma transcript, word for word) and say the scored run follows before the deadline. Publish by 14 Nov 18:00 IST anyway. 22 waits for 13 and 19. 23 waits for 19–22 and describes only what has actually merged. 24 waits for 13 and 20; 16's checklist runs `scripts/smoke.py` against the public URL.
+
+Production cut line on Day 3: P0 issues and the production sections on 07, 13, 19, 20, 21, 27, 28, 29, and 25 must merge before the public URL is shared widely and before anyone calls the app production-ready. P1 (30–34, 26, 31, 32) should land in the same window if they do not delay the video or the form. If time runs out, ship the P0 desk, record an honest demo, and leave P1 boxes open in the register. Issue 35 (staging, off-site backups, a self-hosted error tracker, automated tag-to-prod) is explicitly after 15 Nov 2026, 18:00 IST. The form and the video still win over a late P1 patch.
 
 ## Rules that apply to every issue
 

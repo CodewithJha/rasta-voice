@@ -77,3 +77,13 @@ curl -s -b /tmp/rasta-cookie http://127.0.0.1:8000/api/events
 ```
 
 Open the desk in a browser, unlock once, refresh, and confirm the list still loads from the cookie. Confirm the rider chit in the same window never asked for the passcode.
+
+<!-- rasta-voice-production-2026-11-12 -->
+
+### Production: CSRF, lockout, and actor identity
+
+- [ ] Unlock is rate-limited: after 5 wrong attempts from one address in 10 minutes, return 429 and do not compare further in a tight loop. A test covers the fifth failure.
+- [ ] CSRF for desk POSTs is implemented here if issue 27 has not already, or is wired to 27's token. A passcode cookie alone must not be enough to ack or wipe.
+- [ ] Support a synthetic dispatcher actor (`d_` token) on the cookie after unlock, for issue 25's audit. Do not use personal names or emails as the default actor.
+- [ ] Document passcode rotation in `docs/DEPLOY.md` (change the secret, restart, existing cookies fail closed and must unlock again).
+- [ ] Still no passcode in frontend source, logs, health, or ready payloads.

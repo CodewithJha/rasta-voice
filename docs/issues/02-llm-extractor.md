@@ -117,3 +117,15 @@ The free tier can hang. Do not let that block ingest.
 - [ ] `extractor_source` is `llm` or `rules` on the API envelope, not inside `event`.
 - [ ] `shared/rider_event.schema.json`, `backend/rasta/schema.py`, and `frontend/src/types.ts` are unchanged.
 - [ ] The timeout-path test exists and passes without a live key.
+
+<!-- rasta-voice-production-2026-11-12 -->
+
+### Production: bounded LLM calls
+
+Issue 29 owns retries, the shared client, and the breaker. This issue still has to be a safe caller:
+
+- [ ] The 4 s timeout (or `LLM_TIMEOUT_SECONDS`) is applied on the shared client once 29 lands, not on a one-off `httpx.Client` that 29 then cannot close.
+- [ ] Do not retry the LLM more than once, and never retry after a 401/403. A second failure falls back to rules and sets `extractor_source` to `rules`.
+- [ ] Open-breaker on the LLM (issue 29) is a rules fallback, not a 500 and not a hung ingest.
+- [ ] Prompts and model text are not written to logs. Issue 21's default stays "no full transcript".
+- [ ] A test covers "LLM times out once, rules succeed, envelope source is `rules`".

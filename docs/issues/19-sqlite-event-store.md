@@ -59,3 +59,14 @@ RASTA_DB_PATH=/tmp/rasta-events.sqlite uvicorn rasta.main:app --port 8000
 # ingest once (needs GNANI_API_KEY for /api/ingest/sample), restart uvicorn, then:
 curl -s http://127.0.0.1:8000/api/events | python -m json.tool
 ```
+
+<!-- rasta-voice-production-2026-11-12 -->
+
+### Production: migrations, indexes, and shutdown
+
+- [ ] A `schema_version` (or `schema_migrations`) table and a small stdlib migrator run at boot. Adding a column later must not crash an existing file. A test opens a v1 file and migrates it.
+- [ ] Indexes on `created_at` and `id`. `PRAGMA busy_timeout` is set (at least 3000 ms). WAL is on, with a comment that this is still one writer process.
+- [ ] Shutdown (issue 29) closes the connection cleanly. `RASTA_DB_PATH` is writable by the non-root container user (issue 13).
+- [ ] A passcode-protected export, `GET /api/admin/export`, downloads a copy of the database or a JSON dump (transcripts already redacted once 28 has landed). Document that this is not an off-site backup (issue 35).
+- [ ] Cap-200 eviction prefers `resolved` rows and does not silently drop a live SOS (issue 28). Until 28 lands, log evictions.
+- [ ] Envelope extras (`extractor_source`, later `state` and `version`) still survive a round trip (already an acceptance line above).

@@ -75,3 +75,14 @@ Open the site in a browser, run **Speak a sample line**, toggle noisy, and confi
 - [ ] Smoke-test on the actual HTTPS public origin: `/` loads, `/api/health` is JSON, a live noisy sample reaches Prisma, Timbre confirmation plays, and a **secure-context microphone/WebSocket** flow works if #07 shipped.
 - [ ] Document what happens when Gnani credit is exhausted or a public endpoint is rate-limited. No fake offline fallback.
 
+
+<!-- rasta-voice-production-2026-11-12 -->
+
+### Production: container, config, and topology
+
+- [ ] Multi-stage Dockerfile, pinned base tags (or digests), a non-root user, and a `HEALTHCHECK` against `/api/ready` (or `/api/health` if 22 is late). `.dockerignore` excludes `.env`, `.git`, tests' large fixtures, and `benchmark/data/audio`.
+- [ ] The process listens on the documented port, one worker only. The image does not contain `.env`, API keys, or the SQLite data file.
+- [ ] `RASTA_ENV`, `CORS_ALLOW_ORIGINS`, `RASTA_ALLOWED_HOSTS`, `RASTA_DB_PATH` (a writable path for the non-root user), `DISPATCH_PASSCODE`, budgets, and TTL are listed in `docs/DEPLOY.md` and `.env.example`. Boot validates required prod vars (`DISPATCH_PASSCODE`, `GNANI_API_KEY` may still be missing so the app can 503 loudly).
+- [ ] Production is same-origin: the API serves the built UI, and CORS is not `*`. `TrustedHostMiddleware` is on in prod (issue 27 may add it; do not fight that PR).
+- [ ] Credit budget and per-IP limits, including `/api/stream` and `/api/reply/{id}`, remain as in the audit section. Document how to set the budget to 0 to pause public speech (runbook in issue 34).
+- [ ] Rollback is a documented "deploy the previous tag or commit" step. CD wiring is issue 33.

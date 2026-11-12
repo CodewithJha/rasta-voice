@@ -71,3 +71,13 @@ python scripts/smoke.py --base-url http://127.0.0.1:8000; echo exit:$?
 ```
 
 Run it once against the issue 13 public URL before calling this done, if the URL is already live. Paste the printed ids in the PR, never the secrets.
+
+<!-- rasta-voice-production-2026-11-12 -->
+
+### Production: assert the contract, not only the happy path
+
+- [ ] The script checks `X-Request-ID`, the issue 26 error envelope on a deliberate missing-key call (or on a 401 to the desk without a passcode), and `/api/ready`.
+- [ ] When 27 has landed, assert `Content-Security-Policy` and `X-Content-Type-Options` on `/` and `/api/health`.
+- [ ] When 20 has landed, the desk fetch still uses the passcode and fails closed without it.
+- [ ] Credit spend stays within the existing cap (preferably two Gnani calls). Do not add speech retries.
+- [ ] Playwright coverage lives in issue 32; do not duplicate a browser suite here.

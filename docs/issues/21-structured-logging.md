@@ -71,3 +71,12 @@ curl -sD - -X POST http://127.0.0.1:8000/api/ingest/sample -o /tmp/sample.json
 ```
 
 Confirm the response header and the process stdout have the same request id, and that the Prisma `request_id` in the JSON body matches `gnani_request_id` in the log. Paste those two ids in the PR, never the API key.
+
+<!-- rasta-voice-production-2026-11-12 -->
+
+### Production: redaction and volume
+
+- [ ] After issue 28, logs must not print unredacted 8+ digit runs or full transcripts even if a debug flag is later added in non-prod. Prod refuses that flag.
+- [ ] Bound log line size. Do not log request bodies, wav base64, cookies, or CSRF tokens.
+- [ ] Retry attempts from issue 29 share the same `request_id` and add an `attempt` field (already asked in 29). This issue's formatter must not drop unknown extra keys.
+- [ ] A test asserts a log record of a redacted transcript, if 28 has landed, does not contain `9876543210`.

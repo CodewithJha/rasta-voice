@@ -46,3 +46,10 @@ Each JSON result row contains an anonymized `id`, `source` (`phone` or `mic`), `
 
 Run `pytest benchmark/tests/test_field_validation.py -q`, compare scores with `rasta_bench.score`, inspect the local recordings by ear with permission, and check `git diff --cached` for accidental media or identity leakage.
 
+
+<!-- rasta-voice-production-2026-11-12 -->
+
+### Production: keep field audio off the host
+
+- [ ] Consented recordings stay off the app host and out of the Space image. Do not add an upload path that stores those wavs in SQLite or in `RASTA_DB_PATH`.
+- [ ] If a clip is ever used in a live demo, it is still invented speech, redacted by issue 28 if transcribed on the desk, and labelled as field audio, not as a customer call.

@@ -92,3 +92,12 @@ Manual, after 09 wires the button: play the reply in the browser and confirm the
 - [ ] An `other` or uncertain intent does not falsely tell the rider it is safe to continue. A human-review instruction is preferable to unverified assurance.
 - [ ] Test emergency and uncertain replies for natural Hindi/Hinglish pronunciation, audibility and absence of fabricated dispatch promises.
 
+
+<!-- rasta-voice-production-2026-11-12 -->
+
+### Production: reply spending and state
+
+- [ ] Timeouts and retries follow issue 29 (no unbounded Timbre retries; 402 is not retried).
+- [ ] A second `POST /api/reply/{id}` for the same event, within 10 minutes, may reuse cached audio (bytes in SQLite or a process cache) or honour an `Idempotency-Key` from issue 26, so "Hear dispatch" twice does not spend two TTS credits. A test with a swapped transport asserts a single upstream call.
+- [ ] The accident template still does not claim help is on the way unless issue 25's envelope `state` is `acked` or later. If 25 has not merged, keep the cautious wording for every accident reply.
+- [ ] The route is a rider-facing, rate-limited path (issue 13), not a desk-only path. Do not require the dispatch passcode, and do not accept a client-supplied `text`.

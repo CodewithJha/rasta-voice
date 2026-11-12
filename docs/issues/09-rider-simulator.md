@@ -111,3 +111,14 @@ States, all in `rider.ts` / `rider.css`:
 - [ ] Empty, loading, 503, 502, and 429 states are implemented and distinguishable.
 - [ ] Keyboard: tab order is sensible, focus is visible, controls have names. `npm run check` still passes.
 - [ ] The look follows the brief above. No template kit, no copied shell, no new webfont.
+
+<!-- rasta-voice-production-2026-11-12 -->
+
+### Production: spend safety and residual UI
+
+Issue 30 owns i18n, Lighthouse, and the human (non-JSON) chit. This issue still has to be safe to click:
+
+- [ ] The loading state added in the hardening section disables the sample and upload buttons until the response finishes, including 4xx/5xx, so a double click cannot start two Timbre+Prisma pairs. Prefer also sending `Idempotency-Key` (issue 26) once that header exists.
+- [ ] `fetch` for these POSTs uses an abort timeout (20 s, or whatever issue 30 standardises) and never auto-retries a credit-spending call.
+- [ ] 429 and 402/credit-exhausted copy stays distinct from a generic 502, once issue 26 maps those codes.
+- [ ] At 360 px the new states still hold. Leave locale work to issue 30.
