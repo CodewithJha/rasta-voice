@@ -32,4 +32,9 @@ export interface IngestResult {
   event: RiderEvent;
   /** Only on /api/ingest/sample: the exact line Timbre spoke. */
   sample_text?: string;
+  /** Present when the event store stamped the record (ingest and /api/stream). */
+  id?: string;
+  created_at?: string;
+  extractor_source?: string;
+  fallback_reason?: string | null;
 }

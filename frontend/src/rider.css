@@ -1,0 +1,18 @@
+.rider-live {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+  margin: 0.85rem 0 0;
+}
+
+.rider-live[data-state="live"] {
+  box-shadow: inset 4px 0 0 var(--stamp);
+  padding-left: 0.7rem;
+}
+
+button.talk[aria-pressed="true"] {
+  background: var(--stamp);
+  color: var(--paper);
+  letter-spacing: 0.03em;
+}
