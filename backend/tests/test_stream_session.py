@@ -12,7 +12,7 @@ import pytest
 from starlette.websockets import WebSocketState
 from test_routes_stream import FRAME, FakeConnect
 
-from rasta.settings import get_settings
+from rasta.settings import clear_settings_cache, get_settings
 from rasta.store import attach_event_store
 from rasta.stream_session import StreamSession
 
@@ -39,6 +39,15 @@ class FakeBrowser:
     def hang_up(self) -> None:
         self.client_state = WebSocketState.DISCONNECTED
         self._incoming.put_nowait({"type": "websocket.disconnect", "code": 1000})
+
+
+@pytest.fixture(autouse=True)
+def _api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    # SttStream still requires a key even when connect is injected.
+    monkeypatch.setenv("GNANI_API_KEY", "test-key")
+    clear_settings_cache()
+    yield
+    clear_settings_cache()
 
 
 def _pending() -> set[asyncio.Task]:
