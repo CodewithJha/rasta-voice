@@ -274,7 +274,7 @@ def test_contact_state_classes(text, intent, urgency):
         assert event.confidence == 0.0
 
 
-# Every reproduction from the four reviews of this pull request.
+# Every reproduction from the five reviews of this pull request.
 @pytest.mark.parametrize(
     ("text", "intent", "urgency"),
     [
@@ -328,6 +328,16 @@ def test_contact_state_classes(text, intent, urgency):
             "customer_unreachable",
             "high",
         ),
+        (
+            "customer phone nahi utha raha restaurant se baat hui",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer phone nahi utha raha guard se baat hui",
+            "customer_unreachable",
+            "high",
+        ),
     ],
     ids=[
         "review1_receive_kar_liya",
@@ -340,6 +350,8 @@ def test_contact_state_classes(text, intent, urgency):
         "review4_no_comma_packing_confirm",
         "review4_no_comma_rider_confirm",
         "review4_no_comma_restaurant_baat",
+        "review5_restaurant_se_baat_hui",
+        "review5_guard_se_baat_hui",
     ],
 )
 def test_himanshu_review_repros(text, intent, urgency):
@@ -369,12 +381,19 @@ NON_CONTACT_FOLLOWUPS = (
     "guard ne entry confirm kar di",
     "restaurant se baat ho gayi",
     "main packing mein busy hoon",
+    "restaurant se baat hui",
+    "guard se baat hui",
+    "shop se baat hui",
+    "store se baat hui",
+    "baat hui",
+    "restaurant se baat hui thi",
 )
 CUSTOMER_SUCCESS_FOLLOWUPS = (
     "ab customer se baat ho gayi",
     "phir customer ne call utha liya",
     "customer ne phone pe location confirm kar di",
     "ab call connect ho gaya",
+    "customer se baat hui",
 )
 CONTACT_JOINERS = ("", ", ", " aur ", " ab ", " phir ", ". ")
 

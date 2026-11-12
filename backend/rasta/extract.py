@@ -44,7 +44,7 @@ _TENS = {
     "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
     "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
 }
-_NUMBER_WORD = "|".join(sorted([*_ONES, *_TENS], key=len, reverse=True))
+_NUMBER_WORD = "(?:" + "|".join(sorted([*_ONES, *_TENS], key=len, reverse=True)) + ")"
 _NUMBER = rf"(\d{{1,6}}|(?:{_NUMBER_WORD})(?:[\s-]+(?:{_NUMBER_WORD}))?)"
 _ORDER = re.compile(rf"\border\s*(?:no\.?|number|#)?\s*{_NUMBER}\b", re.IGNORECASE)
 _ETA = re.compile(
@@ -163,7 +163,7 @@ _FAILED_CONTACT: tuple[tuple[str, re.Pattern[str]], ...] = (
 _CASE = r"(?:se|ne|ka|ki|ko|ke)"
 _ON = r"(?:pe|par(?:\s+se)?)"
 _CUSTOMER_LINK = rf"customer(?:\s+{_CASE})?(?:\s+{_CHANNEL})?(?:\s+{_ON})?"
-_BAAT_OK = r"baat\s+ho\s+(?:gayi|gai|gaya|chuki|chuka)|baat\s+hui"
+_BAAT_OK = r"(?:baat\s+ho\s+(?:gayi|gai|gaya|chuki|chuka)|baat\s+hui)"
 _RECEIVE_OK = r"receive\s+(?:kar\s+liya|kar\s+li|kiya|ki)(?!\s+nahi)"
 _UTHA_OK = rf"(?:{_CHANNEL}\s+)?utha\s+liya"
 _PICK_OK = r"pick(?:\s+up|\s+kar)?\s+liya"
