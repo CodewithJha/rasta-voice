@@ -1,9 +1,10 @@
 import json
 
 import httpx
+import pytest
 
 from gnani_client.batch import PrismaBatch, batch_config
-from gnani_client.stt import MOCK_TRANSCRIPT
+from gnani_client.errors import MissingApiKeyError
 
 
 def test_v3_config_keeps_keyterms_and_denoise():
@@ -43,7 +44,6 @@ def test_create_job_posts_config_as_json():
 
     client = PrismaBatch(
         key="test-key",
-        mock=False,
         base="https://api.vachana.ai",
         client=httpx.Client(transport=httpx.MockTransport(handler)),
     )
@@ -65,11 +65,40 @@ def test_create_job_posts_config_as_json():
     assert json.dumps(config).encode() in body or b'"with_denoise": true' in body
 
 
-def test_mock_batch_completes_offline():
-    client = PrismaBatch(key="", mock=True)
-    created = client.create_job([("clip.wav", b"x")], {"model": "prisma-v3.0"})
-    assert created["status"] == "CREATED"
-    assert client.start_job(created["job_id"])["status"] == "STARTING"
-    assert client.get_job(created["job_id"])["status"] == "COMPLETED"
-    files = client.list_files(created["job_id"])
-    assert files["files"][0]["full_transcript"] == MOCK_TRANSCRIPT
+def test_missing_key_fails_loudly(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("GNANI_API_KEY", raising=False)
+    with pytest.raises(MissingApiKeyError):
+        PrismaBatch()
+
+
+def test_files_then_presigned_transcript():
+    seen: list[tuple[str, str | None]] = []
+    signed = "https://results.example/job-9/file-1.json?X-Amz-Expires=3600"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((str(request.url), request.headers.get("X-API-Key-ID")))
+        if request.url.path.endswith("/files"):
+            return httpx.Response(
+                200,
+                json={
+                    "job_id": "job-9",
+                    "data": [
+                        {"file_id": "file-1", "status": "COMPLETED", "transcript_url": signed}
+                    ],
+                    "pagination": {"has_more": False, "next_cursor": None, "total_count": 1},
+                },
+            )
+        return httpx.Response(200, json={"full_transcript": "order 4 mein ek item missing"})
+
+    client = PrismaBatch(
+        key="test-key",
+        base="https://api.vachana.ai",
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    files = client.list_files("job-9")
+    url = files["data"][0]["transcript_url"]
+    doc = client.fetch_transcript(url)
+    assert doc["full_transcript"] == "order 4 mein ek item missing"
+    files_url = "https://api.vachana.ai/stt/v3/batch/jobs/job-9/files?status=COMPLETED"
+    assert seen[0] == (files_url, "test-key")
+    assert seen[1] == (signed, None)

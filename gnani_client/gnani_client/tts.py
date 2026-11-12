@@ -11,15 +11,13 @@ case-sensitive and match the catalog, including the space in
 
 from __future__ import annotations
 
-import json
 from contextlib import nullcontext
 from typing import Any
 
 import httpx
 
-from gnani_client.env import api_key, base_url, mock_enabled
-from gnani_client.errors import GnaniError
-from gnani_client.wav import tone_wav
+from gnani_client.env import base_url, require_api_key
+from gnani_client.errors import GnaniError, error_message
 
 # Catalog from https://docs.gnani.ai/api/TTS/tts-audio-tags (timbre-v3.0).
 AUDIO_TAGS = (
@@ -44,12 +42,10 @@ class TimbreTTS:
         self,
         key: str | None = None,
         *,
-        mock: bool | None = None,
         base: str | None = None,
         client: httpx.Client | None = None,
     ):
-        self.api_key = api_key() if key is None else key.strip()
-        self.mock = mock_enabled(mock, self.api_key)
+        self.api_key = require_api_key(key)
         self.base = (base or base_url()).rstrip("/")
         self._client = client
 
@@ -67,14 +63,11 @@ class TimbreTTS:
         """Return a WAV (or other container) byte string.
 
         ``language="hi-en"`` is the Hinglish code from the TTS docs.
-        Mock mode returns a short tone and does not speak the text.
+        Timbre streams WAV with placeholder sizes in the header; use
+        :func:`gnani_client.wav.wav_duration_seconds` to measure it.
         """
         if not text.strip():
             raise ValueError("TTS text is empty")
-        if self.mock:
-            return tone_wav()
-        if not self.api_key:
-            raise GnaniError("GNANI_API_KEY is empty and mock mode is off")
         payload: dict[str, Any] = {
             "text": text,
             "voice": voice,
@@ -99,8 +92,12 @@ class TimbreTTS:
                 json=payload,
             )
         if response.status_code != 200:
-            message = _tts_error(response)
-            raise GnaniError(message, status=response.status_code, body=response.text[:500])
+            message = error_message(response.text, f"TTS failed ({response.status_code})")
+            raise GnaniError(
+                f"Timbre TTS {response.status_code}: {message}",
+                status=response.status_code,
+                body=response.text[:500],
+            )
         if not response.content:
             raise GnaniError("TTS returned an empty body", status=response.status_code)
         return response.content
@@ -110,16 +107,3 @@ class TimbreTTS:
             return nullcontext(self._client)
         return httpx.Client(timeout=60.0)
 
-
-def _tts_error(response: httpx.Response) -> str:
-    try:
-        body = response.json()
-    except json.JSONDecodeError:
-        return response.text[:300] or f"TTS failed ({response.status_code})"
-    if isinstance(body, dict):
-        if isinstance(body.get("message"), str):
-            return body["message"]
-        detail = body.get("detail")
-        if isinstance(detail, dict) and isinstance(detail.get("message"), str):
-            return detail["message"]
-    return response.text[:300]

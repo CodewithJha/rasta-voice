@@ -1,9 +1,11 @@
 import json
 
 import httpx
+import pytest
 
+from gnani_client.errors import GnaniError, MissingApiKeyError
 from gnani_client.tts import AUDIO_TAGS, TimbreTTS
-from gnani_client.wav import tone_wav
+from gnani_client.wav import wav_duration_seconds
 
 
 def test_tag_catalog_matches_the_docs():
@@ -13,24 +15,46 @@ def test_tag_catalog_matches_the_docs():
     assert len(AUDIO_TAGS) == 13
 
 
-def test_mock_returns_a_wav():
-    audio = TimbreTTS(key="", mock=True).synthesize("gate band hai <whispers> order 18")
-    assert audio.startswith(b"RIFF")
-    assert b"WAVE" in audio[:16]
+def test_missing_key_fails_loudly(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("GNANI_API_KEY", raising=False)
+    with pytest.raises(MissingApiKeyError):
+        TimbreTTS()
 
 
-def test_live_body_matches_the_docs():
+def test_tts_error_is_raised_with_status():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            400,
+            json={"success": False, "message": "Model 'x' is not supported", "status_code": 400},
+        )
+
+    client = TimbreTTS(key="k", client=httpx.Client(transport=httpx.MockTransport(handler)))
+    with pytest.raises(GnaniError, match="400: Model 'x' is not supported") as info:
+        client.synthesize("order aa gaya")
+    assert info.value.status == 400
+
+
+def test_duration_survives_a_streaming_header(make_wav):
+    audio = bytearray(make_wav(seconds=1.0, rate=16000))
+    assert wav_duration_seconds(bytes(audio)) == 1.0
+    audio[4:8] = b"\xff\xff\xff\xff"
+    data_at = audio.index(b"data")
+    audio[data_at + 4 : data_at + 8] = b"\xff\xff\xff\xff"
+    assert wav_duration_seconds(bytes(audio)) == 1.0
+    assert wav_duration_seconds(b"not a wav") is None
+
+
+def test_live_body_matches_the_docs(make_wav):
     seen: dict[str, object] = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
         seen["url"] = str(request.url)
         seen["key"] = request.headers["X-API-Key-ID"]
         seen["json"] = json.loads(request.content)
-        return httpx.Response(200, content=tone_wav(), headers={"content-type": "audio/wav"})
+        return httpx.Response(200, content=make_wav(), headers={"content-type": "audio/wav"})
 
     client = TimbreTTS(
         key="test-key",
-        mock=False,
         base="https://api.vachana.ai",
         client=httpx.Client(transport=httpx.MockTransport(handler)),
     )
@@ -48,8 +72,5 @@ def test_live_body_matches_the_docs():
 
 
 def test_empty_text_rejected():
-    try:
-        TimbreTTS(key="", mock=True).synthesize("   ")
-    except ValueError:
-        return
-    raise AssertionError("expected ValueError")
+    with pytest.raises(ValueError):
+        TimbreTTS(key="k").synthesize("   ")

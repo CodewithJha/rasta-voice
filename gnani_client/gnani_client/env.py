@@ -2,6 +2,8 @@
 
 import os
 
+from gnani_client.errors import MissingApiKeyError
+
 DEFAULT_BASE_URL = "https://api.vachana.ai"
 
 
@@ -9,24 +11,19 @@ def api_key() -> str:
     return os.environ.get("GNANI_API_KEY", "").strip()
 
 
+def require_api_key(explicit: str | None = None) -> str:
+    """Return the key or raise. Every client calls the live API, always."""
+    key = api_key() if explicit is None else explicit.strip()
+    if not key:
+        raise MissingApiKeyError(
+            "GNANI_API_KEY is not set. Rasta Voice only talks to the real Gnani "
+            "APIs: put your key in .env or the environment and restart."
+        )
+    return key
+
+
 def base_url() -> str:
     return os.environ.get("GNANI_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
-
-
-def mock_enabled(explicit: bool | None, key: str) -> bool:
-    """Mock when asked, when GNANI_MOCK=1, or when no key is available.
-
-    GNANI_MOCK=0 forces live calls. A missing key in that mode still fails
-    at request time, which is what we want once credits arrive.
-    """
-    if explicit is not None:
-        return explicit
-    flag = os.environ.get("GNANI_MOCK", "").strip().lower()
-    if flag in {"1", "true", "yes"}:
-        return True
-    if flag in {"0", "false", "no"}:
-        return False
-    return not key
 
 
 def ws_base(http_base: str) -> str:

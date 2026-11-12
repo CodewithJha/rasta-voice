@@ -1,21 +1,31 @@
-"""Tiny PCM WAV writer. Stdlib only, so mock mode needs no audio library."""
+"""WAV helpers. Stdlib only."""
 
-import io
-import math
 import struct
-import wave
 
 
-def tone_wav(seconds: float = 0.3, rate: int = 8000, freq: float = 440.0) -> bytes:
-    n = max(1, int(seconds * rate))
-    frames = bytearray()
-    for i in range(n):
-        sample = int(6000 * math.sin(2 * math.pi * freq * i / rate))
-        frames += struct.pack("<h", sample)
-    buf = io.BytesIO()
-    with wave.open(buf, "wb") as handle:
-        handle.setnchannels(1)
-        handle.setsampwidth(2)
-        handle.setframerate(rate)
-        handle.writeframes(frames)
-    return buf.getvalue()
+def wav_duration_seconds(blob: bytes) -> float | None:
+    """Duration of a PCM WAV, tolerant of streaming headers.
+
+    Timbre streams its WAV, so the RIFF and ``data`` sizes in the header are
+    placeholders (0xFFFFFFFF). ``wave`` trusts them and reports hours. This
+    walks the chunks, reads ``fmt``, and measures the bytes actually present.
+    Returns None for anything that is not a PCM WAV.
+    """
+    if len(blob) < 12 or blob[:4] != b"RIFF" or blob[8:12] != b"WAVE":
+        return None
+    pos = 12
+    byte_rate = 0
+    while pos + 8 <= len(blob):
+        chunk_id = blob[pos : pos + 4]
+        size = struct.unpack("<I", blob[pos + 4 : pos + 8])[0]
+        body = pos + 8
+        if chunk_id == b"fmt " and body + 16 <= len(blob):
+            byte_rate = struct.unpack("<I", blob[body + 8 : body + 12])[0]
+        elif chunk_id == b"data":
+            if not byte_rate:
+                return None
+            available = len(blob) - body
+            data_len = available if size in (0, 0xFFFFFFFF) else min(size, available)
+            return round(data_len / byte_rate, 3)
+        pos = body + size + (size & 1)
+    return None

@@ -3,16 +3,21 @@ import json
 import httpx
 import pytest
 
-from gnani_client.errors import GnaniError
-from gnani_client.stt import MOCK_TRANSCRIPT, PrismaSTT, stream_headers
+from gnani_client.errors import GnaniError, MissingApiKeyError
+from gnani_client.stt import PrismaSTT, stream_headers
 
 
-def test_mock_skips_the_network():
-    client = PrismaSTT(key="", mock=True)
-    result = client.transcribe(b"not-audio")
-    assert result.mock is True
-    assert result.transcript == MOCK_TRANSCRIPT
-    assert result.model == "prisma-v3.0"
+def test_missing_key_fails_loudly(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("GNANI_API_KEY", raising=False)
+    with pytest.raises(MissingApiKeyError, match="GNANI_API_KEY is not set"):
+        PrismaSTT()
+    with pytest.raises(MissingApiKeyError):
+        PrismaSTT(key="   ")
+
+
+def test_key_comes_from_the_environment(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("GNANI_API_KEY", " env-key ")
+    assert PrismaSTT().api_key == "env-key"
 
 
 def test_rest_request_matches_the_docs():
@@ -36,7 +41,6 @@ def test_rest_request_matches_the_docs():
 
     client = PrismaSTT(
         key="test-key",
-        mock=False,
         base="https://api.vachana.ai",
         client=httpx.Client(transport=httpx.MockTransport(handler)),
     )
@@ -55,7 +59,6 @@ def test_rest_request_matches_the_docs():
     assert b"codemix" in body
     assert b"order" in body
     assert result.transcript == "order 4 mein ek item missing"
-    assert result.mock is False
     assert result.request_id == "req-1"
 
 
@@ -68,11 +71,24 @@ def test_rest_error_raises():
 
     client = PrismaSTT(
         key="test-key",
-        mock=False,
         client=httpx.Client(transport=httpx.MockTransport(handler)),
     )
-    with pytest.raises(GnaniError, match="too long"):
+    with pytest.raises(GnaniError, match="INVALID_CONTEXT: too long") as info:
         client.transcribe(b"RIFFfake")
+    assert info.value.status == 400
+
+
+def test_auth_error_shape_is_readable():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            401,
+            json={"detail": {"error_code": "INVALID_API_KEY", "message": "Unauthorized"}},
+        )
+
+    client = PrismaSTT(key="bad", client=httpx.Client(transport=httpx.MockTransport(handler)))
+    with pytest.raises(GnaniError, match="401: INVALID_API_KEY: Unauthorized") as info:
+        client.transcribe(b"RIFFfake")
+    assert info.value.status == 401
 
 
 def test_telephony_stream_headers():
@@ -86,5 +102,5 @@ def test_telephony_stream_headers():
 
 
 def test_stream_url():
-    client = PrismaSTT(key="", mock=True, base="https://api.vachana.ai")
+    client = PrismaSTT(key="k", base="https://api.vachana.ai")
     assert client.stream_url == "wss://api.vachana.ai/stt/v3/stream"

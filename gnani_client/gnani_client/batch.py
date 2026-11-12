@@ -3,9 +3,9 @@
 Flow from the docs: create ``POST /stt/v3/batch/jobs``, then
 ``POST /stt/v3/batch/jobs/{id}/start``, poll
 ``GET /stt/v3/batch/jobs/{id}``, then
-``GET /stt/v3/batch/jobs/{id}/files``. Transcript text is behind each
-file's ``transcript_url`` on the live API. Mock mode returns
-``full_transcript`` directly so the benchmark can run with no key.
+``GET /stt/v3/batch/jobs/{id}/files``. The files list carries a pre-signed
+``transcript_url`` per file, not the text: :meth:`PrismaBatch.fetch_transcript`
+downloads it (no API key, the URL expires after an hour).
 
 ``with_denoise`` cleans noisy audio before transcription. It exists on
 batch only. Leave it off for clean clips.
@@ -19,9 +19,8 @@ from typing import Any
 
 import httpx
 
-from gnani_client.env import api_key, base_url, mock_enabled
-from gnani_client.errors import GnaniError
-from gnani_client.stt import MOCK_TRANSCRIPT
+from gnani_client.env import base_url, require_api_key
+from gnani_client.errors import GnaniError, error_message
 
 
 def batch_config(
@@ -64,12 +63,10 @@ class PrismaBatch:
         self,
         key: str | None = None,
         *,
-        mock: bool | None = None,
         base: str | None = None,
         client: httpx.Client | None = None,
     ):
-        self.api_key = api_key() if key is None else key.strip()
-        self.mock = mock_enabled(mock, self.api_key)
+        self.api_key = require_api_key(key)
         self.base = (base or base_url()).rstrip("/")
         self._client = client
 
@@ -78,8 +75,6 @@ class PrismaBatch:
         clips: list[tuple[str, bytes]],
         config: dict[str, Any],
     ) -> dict[str, Any]:
-        if self.mock:
-            return {"job_id": "mock-job", "status": "CREATED", "mock": True}
         files: list[tuple[str, tuple[Any, ...]]] = [
             ("config", (None, json.dumps(config), "application/json")),
         ]
@@ -88,33 +83,33 @@ class PrismaBatch:
         return self._json("POST", "/stt/v3/batch/jobs", files=files)
 
     def start_job(self, job_id: str) -> dict[str, Any]:
-        if self.mock:
-            return {"job_id": job_id, "status": "STARTING", "mock": True}
         return self._json("POST", f"/stt/v3/batch/jobs/{job_id}/start")
 
     def get_job(self, job_id: str) -> dict[str, Any]:
-        if self.mock:
-            return {"job_id": job_id, "status": "COMPLETED", "mock": True}
         return self._json("GET", f"/stt/v3/batch/jobs/{job_id}")
 
-    def list_files(self, job_id: str) -> dict[str, Any]:
-        if self.mock:
-            return {
-                "job_id": job_id,
-                "mock": True,
-                "files": [
-                    {
-                        "name": "clip.wav",
-                        "status": "COMPLETED",
-                        "full_transcript": MOCK_TRANSCRIPT,
-                    }
-                ],
-            }
-        return self._json("GET", f"/stt/v3/batch/jobs/{job_id}/files")
+    def list_files(self, job_id: str, status: str | None = "COMPLETED") -> dict[str, Any]:
+        """Per-file rows under ``data``. Each completed row has ``transcript_url``."""
+        params = {"status": status} if status else None
+        return self._json("GET", f"/stt/v3/batch/jobs/{job_id}/files", params=params)
+
+    def fetch_transcript(self, transcript_url: str) -> dict[str, Any]:
+        """Download the transcript document (``full_transcript``, ``segments``)."""
+        with self._http() as http:
+            response = http.get(transcript_url)
+        if response.status_code != 200:
+            raise GnaniError(
+                f"Transcript download {response.status_code}: the URL may have expired, "
+                "call list_files again for a fresh one",
+                status=response.status_code,
+                body=response.text[:500],
+            )
+        try:
+            return response.json()
+        except json.JSONDecodeError as exc:
+            raise GnaniError("Transcript document is not JSON", body=response.text[:500]) from exc
 
     def _json(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
-        if not self.api_key:
-            raise GnaniError("GNANI_API_KEY is empty and mock mode is off")
         with self._http() as http:
             response = http.request(
                 method,
@@ -131,8 +126,12 @@ class PrismaBatch:
                 body=response.text[:500],
             ) from exc
         if response.status_code not in {200, 201, 202}:
-            message = body.get("message") if isinstance(body, dict) else response.text
-            raise GnaniError(str(message), status=response.status_code, body=response.text[:500])
+            message = error_message(response.text, f"Batch failed ({response.status_code})")
+            raise GnaniError(
+                f"Prisma batch {method} {path} {response.status_code}: {message}",
+                status=response.status_code,
+                body=response.text[:500],
+            )
         return body
 
     def _http(self):

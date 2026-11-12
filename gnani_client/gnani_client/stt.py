@@ -23,11 +23,8 @@ from typing import Any
 
 import httpx
 
-from gnani_client.env import api_key, base_url, mock_enabled, ws_base
-from gnani_client.errors import GnaniError
-
-# Fixed line so the hello path is deterministic with no API credits.
-MOCK_TRANSCRIPT = "bhaiya gate band hai, customer phone nahi utha raha, order 18"
+from gnani_client.env import base_url, require_api_key, ws_base
+from gnani_client.errors import GnaniError, error_message
 
 RIDER_KEYTERMS = ["order", "gate", "customer", "item", "accident", "traffic"]
 RIDER_TOPIC = (
@@ -52,7 +49,6 @@ class SttResult:
     model: str
     request_id: str | None
     detected_language_code: str | None
-    mock: bool
     success: bool
     processing_time: float | None = None
 
@@ -97,12 +93,10 @@ class PrismaSTT:
         self,
         key: str | None = None,
         *,
-        mock: bool | None = None,
         base: str | None = None,
         client: httpx.Client | None = None,
     ):
-        self.api_key = api_key() if key is None else key.strip()
-        self.mock = mock_enabled(mock, self.api_key)
+        self.api_key = require_api_key(key)
         self.base = (base or base_url()).rstrip("/")
         self._client = client
 
@@ -121,18 +115,6 @@ class PrismaSTT:
         keyterms: list[str] | None = None,
         topic: str | None = None,
     ) -> SttResult:
-        if self.mock:
-            return SttResult(
-                transcript=MOCK_TRANSCRIPT,
-                model=model,
-                request_id="mock-stt",
-                detected_language_code="hi-IN",
-                mock=True,
-                success=True,
-                processing_time=0.0,
-            )
-        if not self.api_key:
-            raise GnaniError("GNANI_API_KEY is empty and mock mode is off")
         safe_name = Path(filename).name or "clip.wav"
         form: dict[str, str] = {"model": model, "language_code": language_code}
         if output_format:
@@ -180,16 +162,17 @@ def _parse_stt(response: httpx.Response, requested_model: str) -> SttResult:
             body=text[:500],
         ) from exc
     if response.status_code != 200 or not body.get("success"):
-        err = body.get("error") or {}
-        message = err.get("message") if isinstance(err, dict) else None
-        message = message or body.get("message") or text[:300]
-        raise GnaniError(str(message), status=response.status_code, body=text[:500])
+        message = error_message(text, f"STT failed ({response.status_code})")
+        raise GnaniError(
+            f"Prisma STT {response.status_code}: {message}",
+            status=response.status_code,
+            body=text[:500],
+        )
     return SttResult(
         transcript=str(body.get("transcript") or ""),
         model=str(body.get("model") or requested_model),
         request_id=body.get("request_id"),
         detected_language_code=body.get("detected_language_code"),
-        mock=False,
         success=True,
         processing_time=body.get("processing_time"),
     )
