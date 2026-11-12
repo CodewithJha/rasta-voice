@@ -82,6 +82,8 @@ API:
 uvicorn rasta.main:app --reload --port 8000
 curl -s http://127.0.0.1:8000/api/health          # gnani_key_set must be true
 curl -s -X POST http://127.0.0.1:8000/api/ingest/sample | python -m json.tool
+curl -s http://127.0.0.1:8000/api/events | python -m json.tool
+# later polls: /api/events?since=<last created_at>
 ```
 
 Web (proxies `/api` to port 8000):
@@ -101,7 +103,7 @@ curl -s -X POST http://127.0.0.1:8000/api/ingest \
   -F audio_file=@clip.wav
 ```
 
-Every upload is a live Prisma REST call (30 seconds max). The response includes `request_id`, `processing_time` and `audio_seconds`.
+Every upload is a live Prisma REST call (30 seconds max). The response includes `request_id`, `processing_time` and `audio_seconds`, plus an `id` and UTC `created_at`. `GET /api/events` lists stored ingest records (oldest first); `?since=` returns only newer ones. The list lives in process memory and clears on restart.
 
 ## Event
 

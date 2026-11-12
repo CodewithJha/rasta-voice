@@ -13,6 +13,8 @@ from gnani_client.env import api_key
 from gnani_client.errors import GnaniError, MissingApiKeyError
 from rasta.extract import extract_event
 from rasta.pipeline import SAMPLE_LINE, ClipTooLarge, EmptyClip, ingest, speak_sample
+from rasta.routes_events import events_router
+from rasta.store import attach_event_store
 
 # Real env vars win over .env, so a deploy secret is never shadowed.
 load_dotenv()
@@ -20,9 +22,10 @@ log = logging.getLogger("rasta")
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(app: FastAPI):
     if not api_key():
         log.error("GNANI_API_KEY is not set. Every speech request will fail with 503.")
+    attach_event_store(app, replace=True)
     try:
         yield
     finally:
@@ -43,6 +46,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(events_router)
 
 
 @app.get("/api/health")
@@ -60,7 +64,10 @@ async def ingest_upload(audio_file: UploadFile = File(...)) -> dict:
     filename = audio_file.filename or "clip.wav"
     # The pipeline is still sync (Prisma and Timbre clients are sync). Run it
     # in a worker thread so an LLM or STT wait cannot block the event loop.
-    return await asyncio.to_thread(_guard, lambda: ingest(data, filename))
+    return await asyncio.to_thread(
+        _guard,
+        lambda: attach_event_store(app).append(ingest(data, filename)),
+    )
 
 
 @app.post("/api/ingest/sample")
@@ -73,9 +80,9 @@ async def ingest_sample() -> dict:
 
     def run() -> dict:
         audio = speak_sample()
-        result = ingest(audio, "sample.wav")
-        result["sample_text"] = SAMPLE_LINE
-        return result
+        stamped = attach_event_store(app).append(ingest(audio, "sample.wav"))
+        stamped["sample_text"] = SAMPLE_LINE
+        return stamped
 
     return await asyncio.to_thread(_guard, run)
 
