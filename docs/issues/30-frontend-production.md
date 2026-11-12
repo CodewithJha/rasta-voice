@@ -1,7 +1,7 @@
 # 30 — Frontend production quality
 
 - **Labels:** `area:app`, `day:3`, `ui`
-- **Owner:** Member B: app & realtime
+- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
 - **Target day:** Day 3 (14–15 Nov 2026), after 09 and 10 so you are upgrading the real screens, not the skeleton. Closes FE-01, FE-02, FE-03, FE-04, FE-05, FE-06, FE-07, PROD-08 (with 25), SEC-10 (with 27).
 - **Depends on:** issues 09 and 10. Self-hosted fonts must stay as issue 27 left them. If 27 has not merged, self-host the fonts here and tell 27 to set CSP accordingly — do not leave the Google CDN in.
 

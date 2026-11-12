@@ -1,7 +1,7 @@
 # 32 — Quality gates: types, coverage, Playwright, contract tests
 
 - **Labels:** `day:3`, `test`
-- **Owner:** Member A: benchmark & audio
+- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio
 - **Target day:** Day 3 (14–15 Nov 2026). Can land in parallel with 33 (CI wiring). Closes TEST-01, TEST-02, TEST-03, TEST-04, TEST-05, FE-06 (CI hook), CICD-01 (with 33).
 - **Depends on:** issues 09, 10, and 24. Playwright covers the screens those issues built. If 20 or 25 have merged, include unlock and ack; if not, skip those cases with a clear comment.
 

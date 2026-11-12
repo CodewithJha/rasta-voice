@@ -15,9 +15,9 @@ body:
     attributes:
       label: Owner
       options:
-        - "Member A: benchmark and audio"
-        - "Member B: app and realtime"
-        - Both (split in the description)
+        - "Member A: Himanshu (@himanshu748), benchmark and audio"
+        - "Member B: Prakhar (@CodewithJha), app, realtime, and UI"
+        - Both (split in the description; still only these two people)
     validations:
       required: true
   - type: input

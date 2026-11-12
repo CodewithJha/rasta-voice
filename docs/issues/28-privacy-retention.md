@@ -1,7 +1,7 @@
 # 28 — Privacy, redaction, retention, and deletion
 
 - **Labels:** `area:app`, `day:3`, `security`
-- **Owner:** Member B: app & realtime
+- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
 - **Target day:** Day 3 (14–15 Nov 2026), after the SQLite store exists. Closes PRIV-01, PRIV-02, PRIV-03, PRIV-04, PRIV-05, PRIV-06, DATA-04, PROD-05 (with 25).
 - **Depends on:** issue 19. Passcode protection from 20 applies to delete and export routes. Audit rows from 25 should record deletes if 25 has landed; if not, write a local audit or a log line in the issue 21 JSON format and let 25 attach the table later.
 

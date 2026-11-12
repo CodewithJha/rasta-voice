@@ -6,7 +6,9 @@ Today in this repo is the skeleton (live Prisma STT and Timbre TTS, rule extract
 
 ## Owners
 
-| | Member A: benchmark & audio | Member B: app & realtime |
+The team is exactly these two people. There is no third contributor.
+
+| | Member A: Himanshu (@himanshu748), benchmark & audio | Member B: Prakhar (@CodewithJha), app, realtime & UI |
 | --- | --- | --- |
 | Trees | `benchmark/`, `docs` benchmark section, `docs/SUBMISSION.md` | `backend/rasta/` (except the frozen schema), `frontend/`, `Dockerfile` |
 | Frozen for both | `gnani_client/` (call it, don't rewrite it), `shared/rider_event.schema.json`, `backend/rasta/schema.py`, `frontend/src/types.ts`, `frontend/src/main.ts`, `frontend/src/styles.css` | same |
@@ -61,13 +63,13 @@ If a client bug blocks you, one small fix in `gnani_client/` is allowed in your 
 | 34 | [Operations and legal docs](issues/34-ops-and-legal-docs.md) | A | 3 | 23 |
 | 35 | [Post-contest operations stretch](issues/35-post-contest-ops.md) | A | post-contest | P0 merged, 13 |
 
-Load balance (12 Nov): 08 and 15 moved from B to A, so B can give 07 (true live streaming), 13 (credit and abuse limits) and 18 (the video) their full time. A lands 08 early on Day 2 with a narrow change in `backend/rasta/`, flagged in the PR body.
+Load balance (12 Nov): 08 and 15 moved from Prakhar (B) to Himanshu (A), so Prakhar can give 07 (true live streaming), 13 (credit and abuse limits) and 18 (the video) their full time. Himanshu lands 08 early on Day 2 with a narrow change in `backend/rasta/`, flagged in the PR body.
 
-Hardening (12 Nov, later): 19–22 go to B (store, passcode, logs, ready). 23 and 24 go to A (docs pack and the live smoke script).
+Hardening (12 Nov, later): 19–22 go to Prakhar (B) (store, passcode, logs, ready). 23 and 24 go to Himanshu (A) (docs pack and the live smoke script).
 
-Production (12 Nov, later still): the 01–24 plan is an MVP, not a production system. Gaps and the definition of done live in [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md). New work: 25–30 to B (workflow, API, security, privacy, resilience, frontend quality — UI stays with B). 31–34 to A (k6, quality gates, CI/CD, ops and legal docs). 35 is post-contest, also A. In-contest counts are then A 16, B 18. The heavier P0 app work is B's; the heavier CI and docs work is A's.
+Production (12 Nov, later still): the 01–24 plan is an MVP, not a production system. Gaps and the definition of done live in [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md). New work: 25–30 to Prakhar (B) (workflow, API, security, privacy, resilience, frontend quality — UI stays with Prakhar). 31–34 to Himanshu (A) (k6, quality gates, CI/CD, ops and legal docs). 35 is post-contest, also Himanshu. In-contest counts are then A 16, B 18. The heavier P0 app work is Prakhar's; the heavier CI and docs work is Himanshu's.
 
-Day 2 note for Member B: finish 07, and wait for A's 08, before opening 09. 10 can land beside 07 because it only touches `frontend/src/dispatch.ts` and a new stylesheet. Do not both edit `frontend/src/rider.ts`. Land 19 early, once 04 is in, and keep the issue 04 JSON so 10 does not wait on sqlite. Land 21 in parallel with 19 if you are not both rewriting `main.py`. Land 20 only after 10's slate is mergeable; 20 is the other Day 2 edit to `dispatch.ts`. Land 29 early as well (shared HTTP client, retries, breaker, no event-loop stall); 02, 07, and 08 should use that client rather than opening their own.
+Day 2 note for Prakhar (Member B): finish 07, and wait for Himanshu's (Member A) 08, before opening 09. 10 can land beside 07 because it only touches `frontend/src/dispatch.ts` and a new stylesheet. Do not both edit `frontend/src/rider.ts`. Land 19 early, once 04 is in, and keep the issue 04 JSON so 10 does not wait on sqlite. Land 21 in parallel with 19 if you are not both rewriting `main.py`. Land 20 only after 10's slate is mergeable; 20 is the other Day 2 edit to `dispatch.ts`. Land 29 early as well (shared HTTP client, retries, breaker, no event-loop stall); 02, 07, and 08 should use that client rather than opening their own.
 
 Day 3 note: 15 needs the public working-app video from 18 (a photo is not enough), but does not wait on 12. If the chart is merged, quote one number. If it is not, quote the live sample result from the README (Timbre line → Prisma transcript, word for word) and say the scored run follows before the deadline. Publish by 14 Nov 18:00 IST anyway. 22 waits for 13 and 19. 23 waits for 19–22 and describes only what has actually merged. 24 waits for 13 and 20; 16's checklist runs `scripts/smoke.py` against the public URL.
 

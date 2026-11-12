@@ -1,7 +1,7 @@
 # 14 — 60-second demo video script
 
 - **Labels:** `area:app`, `day:3`, `demo`
-- **Owner:** Member B: app & realtime
+- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
 - **Target day:** Day 3 (14–15 Nov 2026). Write it as soon as issue 09 is demoable so a phone camera can roll on the 14th.
 - **Depends on:** issue 09. If issue 12 has merged, the last beat points at the chart. If it has not, the script says "the scored table is in the README" and does not invent a WER.
 
@@ -21,7 +21,7 @@ Beats:
 
 Do not show a terminal full of keys, a `.env` file, or a phone number. Do not claim a WER the JSON does not contain.
 
-Add a shot list under the beats: which URL, which button, which file to have open. A teammate who was not in the room should be able to record it.
+Add a shot list under the beats: which URL, which button, which file to have open. Himanshu (Member A) should be able to record it from the shot list even if he was not in the room.
 
 ## Files to touch
 
@@ -45,7 +45,7 @@ The markdown file has the five beats with target seconds and measured seconds, t
 
 ## How to test
 
-Read the script with a timer. A second person (Member A) reads it once without having seen the app and lists any step they cannot perform. Fix the shot list until that list is empty.
+Read the script with a timer. Himanshu (Member A) reads it once without having seen the app and lists any step they cannot perform. Fix the shot list until that list is empty.
 
 <!-- rasta-voice-audit-2026-11-12 -->
 

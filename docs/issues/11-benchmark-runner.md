@@ -1,7 +1,7 @@
 # 11 — Benchmark runner
 
 - **Labels:** `area:benchmark`, `day:3`, `award`
-- **Owner:** Member A: benchmark & audio
+- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio
 - **Target day:** Day 3 (14–15 Nov 2026). Start as soon as issue 06 is in, including late on 13 Nov if the telephony manifest exists. The chart issue needs this file.
 - **Depends on:** issue 06 (`phone_manifest.jsonl`). Uses `extract_event` as it stands; do not wait on the LLM, and do not change its signature.
 

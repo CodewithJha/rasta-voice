@@ -1,13 +1,13 @@
 # 09 — Rider page clean/noisy toggle
 
 - **Labels:** `area:app`, `day:2`, `ui`
-- **Owner:** Member B: app & realtime
+- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
 - **Target day:** Day 2 (13–14 Nov 2026)
 - **Depends on:** issues 07 and 08. You own `rider.ts`; don't open this until those two have merged, or you will fight yourself.
 
 ## Description
 
-The demo has to show the same utterance twice: once clean, once wrecked by the road. The scored wreckage lives in Member A's benchmark. This toggle is the on-screen version, and it is allowed to be a smaller mix. Label it that way in the UI so nobody quotes it as the award table: a line of small type, "Demo dirt. The scored mixes are in the benchmark."
+The demo has to show the same utterance twice: once clean, once wrecked by the road. The scored wreckage lives in Himanshu's (Member A) benchmark. This toggle is the on-screen version, and it is allowed to be a smaller mix. Label it that way in the UI so nobody quotes it as the award table: a line of small type, "Demo dirt. The scored mixes are in the benchmark."
 
 Backend, new file `backend/rasta/simulate.py`, route in `backend/rasta/routes_sim.py`:
 

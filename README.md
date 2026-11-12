@@ -2,20 +2,27 @@
 
 A noise-robust voice copilot for delivery riders. The rider speaks Hinglish on a phone-quality line ("bhaiya gate band hai, customer phone nahi utha raha"). Gnani Prisma transcribes it, a small extractor turns it into a dispatch event, and Gnani Timbre will speak a short confirmation back.
 
-This repository is the skeleton: one working path from an audio upload to that event, on the real Gnani APIs. There is no mock or offline mode. Without `GNANI_API_KEY` the speech routes answer `503` with a clear message. The rest of the product is sequenced in [docs/PLAN.md](docs/PLAN.md). An honest production-readiness register, including the definition of done, is in [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md). How two people open branches and pull requests is in [CONTRIBUTING.md](CONTRIBUTING.md).
+This repository is the skeleton: one working path from an audio upload to that event, on the real Gnani APIs. There is no mock or offline mode. Without `GNANI_API_KEY` the speech routes answer `503` with a clear message. The rest of the product is sequenced in [docs/PLAN.md](docs/PLAN.md). An honest production-readiness register, including the definition of done, is in [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md). How Himanshu and Prakhar open branches and pull requests is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Built for Gnani AI's Great Indian AI Internship Challenge. Target award: **Noise Canceller**. Speech is synthetic. No real phone numbers, calls, or customer records.
 
+## Team
+
+The team is exactly these two people. No one else is a contributor.
+
+- Member A, benchmark and audio: [Himanshu](https://github.com/himanshu748) (`@himanshu748`)
+- Member B, app, realtime, and UI: [Prakhar](https://github.com/CodewithJha) (`@CodewithJha`)
+
 ## Layout
 
-Two people can work in parallel if they stay inside their trees.
+Himanshu and Prakhar can work in parallel if they stay inside their trees.
 
 | Path | Who | What |
 | --- | --- | --- |
 | `gnani_client/` | shared, treat as frozen | Prisma STT, batch jobs, Timbre TTS |
-| `backend/rasta/` | Member B | FastAPI hello path and, later, the live desk |
-| `frontend/` | Member B | Rider chit and dispatch slate |
-| `benchmark/` | Member A | WER/CER now; noise, telephony, and the scored run later |
+| `backend/rasta/` | Member B: Prakhar (@CodewithJha) | FastAPI hello path and, later, the live desk |
+| `frontend/` | Member B: Prakhar (@CodewithJha) | Rider chit and dispatch slate |
+| `benchmark/` | Member A: Himanshu (@himanshu748) | WER/CER now; noise, telephony, and the scored run later |
 | `shared/rider_event.schema.json` | frozen | Event contract. Matching types live in `backend/rasta/schema.py` and `frontend/src/types.ts` |
 | `docs/issues/` | both | One file per remaining slice of work |
 

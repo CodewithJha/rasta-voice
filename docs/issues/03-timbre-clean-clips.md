@@ -1,7 +1,7 @@
 # 03 — Clean clips from Timbre
 
 - **Labels:** `area:benchmark`, `day:1`, `tts`
-- **Owner:** Member A: benchmark & audio
+- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio
 - **Target day:** Day 1 (12–13 Nov 2026)
 - **Depends on:** issue 01 (the jsonl must exist).
 

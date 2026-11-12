@@ -1,7 +1,7 @@
 # 34 — Operations and legal docs
 
 - **Labels:** `docs`, `day:3`
-- **Owner:** Member A: benchmark & audio
+- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio
 - **Target day:** Day 3 (14–15 Nov 2026), after 23 so you can link, not rewrite, architecture and security. Closes DOC-01, DOC-02, DOC-03, DOC-04 (link), OPS-01, OPS-02, OPS-03, OPS-04, OPS-06, ARCH-04, DATA-03 (document), SEC-15 (branch protection *policy*), CFG (operator list of env vars).
 - **Depends on:** issue 23. Write only what is true on `main` the day you merge, same rule as 23. If 25–33 have not all landed, say so.
 
@@ -9,7 +9,7 @@
 
 Give operators and judges the documents a public production repo is expected to have.
 
-`LICENSE` at the repo root. A standard free licence (MIT or Apache-2.0) is enough. Both teammates must be comfortable with the choice; if they have not picked, use MIT and name the copyright holders as the two people already on the project (the GitHub account names are enough). Do not invent a third owner.
+`LICENSE` at the repo root. A standard free licence (MIT or Apache-2.0) is enough. Himanshu and Prakhar must both be comfortable with the choice; if they have not picked, use MIT and name the copyright holders as Himanshu (@himanshu748) and Prakhar (@CodewithJha). Do not invent a third owner.
 
 `CHANGELOG.md` following Keep a Changelog, with an `Unreleased` section and, once a tag exists (issue 33), a `0.1.0` or `0.2.0` entry. Credit-impacting changes get a line.
 
@@ -58,4 +58,4 @@ A newcomer can follow README → RUNBOOK and know how to start the app, where se
 
 ## How to test
 
-Read the RUNBOOK against a local boot and against `docs/DEPLOY.md`. Click every README link. Ask the other member to skim LICENSE and the conduct file before merging.
+Read the RUNBOOK against a local boot and against `docs/DEPLOY.md`. Click every README link. Ask Prakhar (Member B) to skim LICENSE and the conduct file before merging.

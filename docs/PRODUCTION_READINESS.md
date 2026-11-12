@@ -195,7 +195,7 @@ Citations are to the tree at `866712c` unless a later issue already names the fi
 | ID | Gap | Why it matters | Sev | Issue |
 | --- | --- | --- | --- | --- |
 | DOC-01 | No `LICENSE`. | The repo is public; nobody knows if a judge or a fork can reuse it. | P0 | 34 |
-| DOC-02 | No `CHANGELOG`, no `CODE_OF_CONDUCT`. | Releases and conduct for a two-person public repo. | P1 | 34 |
+| DOC-02 | No `CHANGELOG`, no `CODE_OF_CONDUCT`. | Releases and conduct for Himanshu and Prakhar's public repo. | P1 | 34 |
 | DOC-03 | No ADRs. Decisions (SQLite, shared passcode, frozen schema, no mock mode) live in issue text that will rot. | Future us will re-litigate them under deadline pressure. | P1 | 34 |
 | DOC-04 | No written API reference besides default Swagger. | API-03. | P1 | 26, 34 |
 | DOC-05 | `ARCHITECTURE.md`, `SECURITY.md`, and `CONTRIBUTING.md` are planned in issue 23 and are not in the tree. | Judges and operators have only the README and the issue folder. | P0 | 23 |

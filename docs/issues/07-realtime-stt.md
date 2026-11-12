@@ -1,7 +1,7 @@
 # 07 — Prisma realtime WebSocket
 
 - **Labels:** `area:app`, `day:2`, `stt`
-- **Owner:** Member B: app & realtime
+- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
 - **Target day:** Day 2 (13–14 Nov 2026)
 - **Depends on:** issue 04, only so the transcript you emit can be stored with the same `append`. If 04 has not merged, land this behind it the same day. Do not start issue 09 until this is merged.
 

@@ -1,7 +1,7 @@
 # 17 - Consented real-world noisy speech validation
 
 - **Labels:** `member-a`, `area:benchmark`, `day:3`, `award`
-- **Owner:** Member A: benchmark & audio
+- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio
 - **Target day:** Day 3 (14-15 Nov 2026), ideally before the final chart and demo.
 - **Depends on:** #06 for a synthetic telephony baseline and #11 for scoring. A small REST check may start earlier.
 - **Purpose:** Provide evidence for the Noise Canceller award beyond procedural noise. This is a separate field-validation set, not a replacement for the reproducible synthetic benchmark.

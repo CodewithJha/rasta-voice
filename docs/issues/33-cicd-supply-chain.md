@@ -1,7 +1,7 @@
 # 33 — CI/CD and supply chain
 
 - **Labels:** `day:3`, `deploy`
-- **Owner:** Member A: benchmark & audio
+- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio
 - **Target day:** Day 3 (14–15 Nov 2026). Hook the gates from issues 13 and 32. Closes SEC-06, SEC-07, SEC-08, SEC-09, SEC-15, CFG-04, CICD-01, CICD-02, CICD-03, CICD-04.
 - **Depends on:** issue 13 for a Dockerfile to build and scan. Issue 32 for the exact test commands. If 13 has not landed, still add secret scanning, audits, pinning, Dependabot, the PR template, and `CODEOWNERS`; leave the Docker job commented or skipped with a clear `if:`.
 
@@ -19,9 +19,9 @@ CI additions to `.github/workflows/ci.yml` (or a small workflow family):
 - Pin Actions to a full commit SHA, with the tag in a comment (`actions/checkout@<sha> # v4.x.x`).
 - `concurrency` groups so a new push cancels the previous run on the same branch. No secrets in logs (`secrets` are already masked; still do not `echo` env).
 
-Dependabot: `.github/dependabot.yml` for `pip` (root or the three packages), `npm` (`/frontend`), and `github-actions`, weekly, so the two people can merge bumps.
+Dependabot: `.github/dependabot.yml` for `pip` (root or the three packages), `npm` (`/frontend`), and `github-actions`, weekly, so Himanshu and Prakhar can merge bumps.
 
-PR template: `.github/PULL_REQUEST_TEMPLATE.md` with a checklist (issue number, trees touched, tests, no secrets, no mock flag, credit impact, schema freeze). `CODEOWNERS`: Member A for `benchmark/`, `docs/`, `.github/`; Member B for `backend/rasta/`, `frontend/`, `Dockerfile`. The GitHub accounts are `CodewithJha` and the teammate's login if it is already on the repo; if the teammate login is not certain, assign both trees to `CodewithJha` and leave a comment in the file to add the second owner.
+PR template: `.github/PULL_REQUEST_TEMPLATE.md` with a checklist (issue number, trees touched, tests, no secrets, no mock flag, credit impact, schema freeze). `CODEOWNERS` already lists both @CodewithJha (Prakhar, Member B) and @himanshu748 (Himanshu, Member A) on every path, so the reviewer is always the other person. Do not remove either name, even on a tree one of them owns: a path owned only by the pull request author cannot be approved.
 
 CD: a workflow that, on a tag `v*` or on a manual dispatch from `main`, rebuilds the image and prints the steps to update the Space or Render service (`docs/DEPLOY.md`). Auto-push to the host is allowed only with already-stored host secrets and a documented rollback (redeploy the previous tag). If host tokens are not available, the job stops at "image built and scanned" and the runbook (issue 34) has the click path. Do not put `GNANI_API_KEY` in the workflow file.
 

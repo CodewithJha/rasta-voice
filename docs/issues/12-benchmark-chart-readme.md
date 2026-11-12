@@ -1,7 +1,7 @@
 # 12 — Chart and README benchmark section
 
 - **Labels:** `area:benchmark`, `day:3`, `docs`
-- **Owner:** Member A: benchmark & audio
+- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio
 - **Target day:** Day 3 (14–15 Nov 2026), morning if you can, so the post can quote it.
 - **Depends on:** issue 11 (`benchmark/results/scores.json`).
 

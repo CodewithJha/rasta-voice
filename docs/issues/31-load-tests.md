@@ -1,7 +1,7 @@
 # 31 — Load tests and latency budgets
 
 - **Labels:** `day:3`, `test`, `area:benchmark`
-- **Owner:** Member A: benchmark & audio
+- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio
 - **Target day:** Day 3 (14–15 Nov 2026), after health/ready and the passcode exist so the script can hit cheap routes hard, and speech routes only under a tight cap. Closes PERF-02, TEST-06, CON-03 (for test traffic).
 - **Depends on:** issues 13 and 22. Prefer also 20 and 29 so unlock and the breaker are testable. Free tool only: k6 (preferred) or Locust. Do not use a paid load service.
 

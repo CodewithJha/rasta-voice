@@ -1,7 +1,7 @@
 # 21 — Structured logging and request IDs
 
 - **Labels:** `area:app`, `day:2`, `observability`
-- **Owner:** Member B: app & realtime
+- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
 - **Target day:** Day 2 (13–14 Nov 2026). Can land in parallel with 19 once you are not both editing `main.py` heavily. Feeds evidence for issues 17 and 18: a request id on the response and in the log is what the field report and the demo write-up quote.
 - **Depends on:** skeleton merged. Does not wait on 07 or 13.
 

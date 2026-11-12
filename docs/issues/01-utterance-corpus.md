@@ -1,7 +1,7 @@
 # 01 — Synthetic Hinglish rider corpus
 
 - **Labels:** `area:benchmark`, `day:1`, `synthetic-data`
-- **Owner:** Member A: benchmark & audio
+- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio
 - **Target day:** Day 1 (12–13 Nov 2026)
 - **Depends on:** skeleton merged. Nothing else.
 

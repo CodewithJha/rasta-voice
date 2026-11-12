@@ -1,7 +1,7 @@
 # 25 — Dispatcher workflow, SOS escalation, and audit trail
 
 - **Labels:** `area:app`, `day:3`, `api`, `ui`
-- **Owner:** Member B: app & realtime
+- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
 - **Target day:** Day 3 (14–15 Nov 2026). Land after 10, 19, and 20 so the slate, the store, and the passcode exist. This is P0 product work: without it the desk is a read-only log.
 - **Depends on:** issues 10, 19, and 20. Uses the envelope extension rule from issue 02 (do not add fields to frozen `RiderEvent`). Closes PROD-01, PROD-02, PROD-03, PROD-04, PROD-05, PROD-06, PROD-07, PROD-08, DATA-05, API-06, OBS-02, OBS-05, ARCH-05, ARCH-06, PRIV-05.
 

@@ -1,7 +1,7 @@
 # 20 — Dispatcher passcode
 
 - **Labels:** `area:app`, `day:2`, `api`, `security`
-- **Owner:** Member B: app & realtime
+- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
 - **Target day:** Day 2 (13–14 Nov 2026), after issue 10 has a working slate to protect.
 - **Depends on:** issue 10. The rider page stays public. Issue 13's rate limits still apply to the public speech routes.
 

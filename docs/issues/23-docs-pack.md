@@ -1,7 +1,7 @@
 # 23 — Docs pack
 
 - **Labels:** `docs`, `day:3`
-- **Owner:** Member A: benchmark & audio
+- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio
 - **Target day:** Day 3 (14–15 Nov 2026), after issues 19–22 have merged so the docs describe the running app, not the plan.
 - **Depends on:** issues 19, 20, 21, and 22. If one of those slips, write only what is actually on `main` and say what is still open. Do not document a feature as shipped because the issue exists.
 
@@ -26,7 +26,7 @@ Three short, truthful documents under `docs/`, linked from the README. Judges sk
 
 `docs/CONTRIBUTING.md`:
 
-- Trees and the one-owner-per-tree rule from `docs/PLAN.md` (Member A: `benchmark/` and benchmark docs; Member B: `backend/rasta/` except the frozen schema, `frontend/`, `Dockerfile`). Frozen files: `gnani_client/`, the shared schema, `schema.py`, `frontend/src/types.ts`. Do not restyle the other person's screen.
+- Trees and the one-owner-per-tree rule from `docs/PLAN.md` (Member A / Himanshu: `benchmark/` and benchmark docs; Member B / Prakhar: `backend/rasta/` except the frozen schema, `frontend/`, `Dockerfile`). Frozen files: `gnani_client/`, the shared schema, `schema.py`, `frontend/src/types.ts`. Do not restyle the other person's screen.
 - Branch and PR: one issue per PR, name the issue, wait for CI (`ruff`, `pytest`, `npm run check`) to go green, no secrets in the branch.
 - Commit messages: short imperative subject, optional body. The author is the person who did the work. No one-line dumps of the diff.
 - Tests may use `httpx.MockTransport` inside test files. App code has no mock mode.

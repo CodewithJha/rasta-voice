@@ -1,7 +1,7 @@
 # 18 - Publish a working demo video and verify final contest submission
 
 - **Labels:** `member-b`, `area:app`, `day:3`, `demo`, `contest`
-- **Owner:** Member B: app & realtime; Member A verifies benchmark claims
+- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI; Member A: Himanshu (@himanshu748) verifies benchmark claims
 - **Target day:** Public video and post by 14 Nov 2026, 18:00 IST; completed official submission before 15 Nov 2026, 18:00 IST.
 - **Depends on:** #09 (demoable rider UI) and #14 (script). Use #15's post copy and links. #12 (scores) and #13 (host) improve the video, but must not delay a truthful localhost recording.
 - **Official requirements:** https://www.gnani.ai/internship
@@ -22,13 +22,13 @@ Do not fake a response, swap samples silently, misrepresent generated noise as r
 
 Publish the **video** on LinkedIn and/or X using #15's copy. Tag Gnani AI and include **#GnaniAI** and **#GreatIndianAIInternshipChallenge**. Verify the video plays from the publicly shared post. Nominate a link for every social platform used in the official form.
 
-Complete and submit the official form with the project name/explanation, Gnani models/APIs, each teammate's contribution, video, and nominated post link(s). Capture a safe completion status or submission receipt without exposing personal form fields. A saved draft is not evidence of submission.
+Complete and submit the official form with the project name/explanation, Gnani models/APIs, each member's contribution (Himanshu and Prakhar), video, and nominated post link(s). Capture a safe completion status or submission receipt without exposing personal form fields. A saved draft is not evidence of submission.
 
 ## Files to touch
 
 - `docs/demo-evidence.md` (new; video URL, duration, recorded steps, Gnani model/request evidence, posted links, verified form status)
 - `docs/social-post.md` (fill published links in #15)
-- Coordinate with Member A on `docs/SUBMISSION.md` (#16)
+- Coordinate with Himanshu (Member A) on `docs/SUBMISSION.md` (#16)
 
 ## Do not touch
 
@@ -45,7 +45,7 @@ Benchmark or app code except for a tested bugfix necessary to reproduce the actu
 - [ ] Synthetic/field audio, limitations, and any benchmark claims are labeled truthfully.
 - [ ] The nominated post contains the video, Gnani mention/tag and both required hashtags.
 - [ ] The published post and video URLs work and match the links supplied in the official form.
-- [ ] The final form contains project details, Gnani models/APIs, teammate contributions, video and nominated posts.
+- [ ] The final form contains project details, Gnani models/APIs, Himanshu and Prakhar's contributions, video and nominated posts.
 - [ ] Final submission is confirmed by 15 Nov 2026, 18:00 IST; no 'done' check from an unsent draft.
 - [ ] #16 independently verifies the public links and confirmed submission status.
 

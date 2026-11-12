@@ -1,7 +1,7 @@
 # 22 — Health and readiness
 
 - **Labels:** `area:app`, `day:3`, `observability`, `deploy`
-- **Owner:** Member B: app & realtime
+- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
 - **Target day:** Day 3 (14–15 Nov 2026), once issue 13's limiter and issue 19's database exist to report on.
 - **Depends on:** issues 13 and 19. Read the counter and store those issues actually shipped; do not invent a second budget.
 

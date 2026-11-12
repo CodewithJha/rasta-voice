@@ -1,7 +1,7 @@
 # 24 — End-to-end smoke test
 
 - **Labels:** `day:3`, `test`, `api`
-- **Owner:** Member A: benchmark & audio
+- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio
 - **Target day:** Day 3 (14–15 Nov 2026), after the desk is authenticated (issue 20) and a public URL exists (issue 13). Issue 16 runs this script against the deployed URL and pastes the last lines into `docs/SUBMISSION.md`.
 - **Depends on:** issues 13 and 20. The noisy simulate route (issue 09) and the store (issues 04 and 19) must already be on the server you point at; if a step's route is missing, fail clearly, don't skip it as success.
 

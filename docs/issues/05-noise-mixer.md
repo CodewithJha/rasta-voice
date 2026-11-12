@@ -1,7 +1,7 @@
 # 05 — Procedural noise mixer
 
 - **Labels:** `area:benchmark`, `day:2`, `audio`
-- **Owner:** Member A: benchmark & audio
+- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio
 - **Target day:** Day 2 (13–14 Nov 2026)
 - **Depends on:** issue 03 (clean wavs and `clean_manifest.jsonl`).
 

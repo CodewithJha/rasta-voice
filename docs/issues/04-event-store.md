@@ -1,7 +1,7 @@
 # 04 — In-memory dispatch event store
 
 - **Labels:** `area:app`, `day:1`, `api`
-- **Owner:** Member B: app & realtime
+- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
 - **Target day:** Day 1 (12–13 Nov 2026)
 - **Depends on:** skeleton merged. Parallel with issue 02. Do not edit `extract.py` in this PR if 02 is also in flight; this issue only stores whatever `ingest` already returns.
 

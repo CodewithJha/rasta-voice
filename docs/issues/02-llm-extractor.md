@@ -1,7 +1,7 @@
 # 02 — Free-tier LLM extractor and intent eval
 
 - **Labels:** `area:app`, `day:1`, `llm`
-- **Owner:** Member B: app & realtime
+- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
 - **Target day:** Day 1 (12–13 Nov 2026)
 - **Depends on:** skeleton merged. Does not wait on issue 01. Keep the rule extractor as the fallback and as the CI path.
 
@@ -22,7 +22,7 @@ The prompt:
 
 Parse the JSON. Validate it with `RiderEvent`. On timeout, non-200, or invalid JSON, fall back to the rules and keep going. Do not let a flaky free tier 500 the rider. Do not log the API key. Do not put the key in the repo.
 
-Gold set: `backend/tests/fixtures/intent_gold.jsonl`, at least 20 lines, same fields as issue 01's corpus (you may write your own; do not block on Member A's file). A test runs `extract_event(text, provider="rules")` on the gold rows and reports accuracy, targeting at least 0.8 on an independent, locked holdout. Do not change gold labels or cherry-pick phrases to make rules pass. Include the stacked "gate band / nahi utha" case and adversarial distractors. A failed target is a genuine failure to fix or report, not a reason to rewrite the evaluation set.
+Gold set: `backend/tests/fixtures/intent_gold.jsonl`, at least 20 lines, same fields as issue 01's corpus (you may write your own; do not block on Himanshu's (Member A) file). A test runs `extract_event(text, provider="rules")` on the gold rows and reports accuracy, targeting at least 0.8 on an independent, locked holdout. Do not change gold labels or cherry-pick phrases to make rules pass. Include the stacked "gate band / nahi utha" case and adversarial distractors. A failed target is a genuine failure to fix or report, not a reason to rewrite the evaluation set.
 
 A second test calls the live provider only when the matching key is in the environment. Otherwise it skips. Do not record live transcripts that contain anything but your gold text.
 

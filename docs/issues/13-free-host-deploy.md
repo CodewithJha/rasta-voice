@@ -1,7 +1,7 @@
 # 13 — Free-host deploy
 
 - **Labels:** `area:app`, `day:3`, `deploy`
-- **Owner:** Member B: app & realtime
+- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
 - **Target day:** Day 3 (14–15 Nov 2026). A live URL makes the 14 Nov post better. If the host slips, the post still goes out with a note that the desk is in the repo, and you keep going until the URL works before the 15 Nov deadline.
 - **Depends on:** issues 09 and 10, so the deployed UI is the rider toggle and the live slate, not the skeleton alone. The Docker build must still succeed if you point it at the skeleton, but don't open the PR until 09 and 10 are merged.
 
