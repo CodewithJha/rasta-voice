@@ -1,8 +1,8 @@
 # 08 — Timbre Hinglish confirmation
 
 - **Labels:** `area:app`, `day:2`, `tts`
-- **Note:** this touches `backend/rasta/` (Prakhar's / Member B's tree). Keep the change to the reply route and its template module, and tell Prakhar (Member B) in the PR body. Land it early on Day 2, because #09 depends on it.
-- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio (moved from Member B / Prakhar on 12 Nov to balance load)
+- **Note:** this touches `backend/rasta/` (Priyanshu's / Member B's tree). Keep the change to the reply route and its template module, and tell Priyanshu (Member B) in the PR body. Land it early on Day 2, because #09 depends on it.
+- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio (moved from Member B / Priyanshu on 12 Nov to balance load)
 - **Target day:** Day 2 (13–14 Nov 2026)
 - **Depends on:** issue 04 (the stored event is what you reply to). Can be written beside issue 07. Do not edit `rider.ts` here if 07 is open; this issue's frontend change is a play button that can land after 07, or in issue 09. Prefer: this PR is backend-only, and issue 09 adds the play button. That keeps `rider.ts` in one person's hands one PR at a time.
 

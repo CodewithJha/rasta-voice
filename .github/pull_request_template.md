@@ -1,7 +1,7 @@
 ## Pull request
 
 - **Closes #**
-- **Owner:** A (Himanshu / @himanshu748) or B (Prakhar / @CodewithJha)
+- **Owner:** A (Himanshu / @himanshu748) or B (Priyanshu Jha / @CodewithJha)
 - **Files and trees touched:**
 
 ## Frozen contracts

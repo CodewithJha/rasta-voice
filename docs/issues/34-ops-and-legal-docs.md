@@ -9,7 +9,7 @@
 
 Give operators and judges the documents a public production repo is expected to have.
 
-`LICENSE` at the repo root. A standard free licence (MIT or Apache-2.0) is enough. Himanshu and Prakhar must both be comfortable with the choice; if they have not picked, use MIT and name the copyright holders as Himanshu (@himanshu748) and Prakhar (@CodewithJha). Do not invent a third owner.
+`LICENSE` at the repo root. A standard free licence (MIT or Apache-2.0) is enough. Himanshu and Priyanshu must both be comfortable with the choice; if they have not picked, use MIT and name the copyright holders as Himanshu (@himanshu748) and Priyanshu Jha (@CodewithJha). Do not invent a third owner.
 
 `CHANGELOG.md` following Keep a Changelog, with an `Unreleased` section and, once a tag exists (issue 33), a `0.1.0` or `0.2.0` entry. Credit-impacting changes get a line.
 
@@ -58,4 +58,4 @@ A newcomer can follow README → RUNBOOK and know how to start the app, where se
 
 ## How to test
 
-Read the RUNBOOK against a local boot and against `docs/DEPLOY.md`. Click every README link. Ask Prakhar (Member B) to skim LICENSE and the conduct file before merging.
+Read the RUNBOOK against a local boot and against `docs/DEPLOY.md`. Click every README link. Ask Priyanshu (Member B) to skim LICENSE and the conduct file before merging.

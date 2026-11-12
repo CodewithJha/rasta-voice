@@ -9,8 +9,8 @@ body:
     id: owner
     attributes:
       label: Owner
-      description: Who should take this? Member A, Himanshu (@himanshu748), benchmark and audio; or Member B, Prakhar (@CodewithJha), app, realtime, and UI.
-      placeholder: "Member A (Himanshu) or Member B (Prakhar)"
+      description: Who should take this? Member A, Himanshu (@himanshu748), benchmark and audio; or Member B, Priyanshu Jha (@CodewithJha), app, realtime, and UI.
+      placeholder: "Member A (Himanshu) or Member B (Priyanshu)"
     validations:
       required: true
   - type: textarea

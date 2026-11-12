@@ -1,7 +1,7 @@
 # 14 — 60-second demo video script
 
 - **Labels:** `area:app`, `day:3`, `demo`
-- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
+- **Owner:** Member B: Priyanshu Jha (@CodewithJha), app, realtime & UI
 - **Target day:** Day 3 (14–15 Nov 2026). Write it as soon as issue 09 is demoable so a phone camera can roll on the 14th.
 - **Depends on:** issue 09. If issue 12 has merged, the last beat points at the chart. If it has not, the script says "the scored table is in the README" and does not invent a WER.
 

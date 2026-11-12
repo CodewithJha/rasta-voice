@@ -1,7 +1,7 @@
 # 29 — Upstream resilience and graceful shutdown
 
 - **Labels:** `area:app`, `day:2`, `api`
-- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
+- **Owner:** Member B: Priyanshu Jha (@CodewithJha), app, realtime & UI
 - **Target day:** Day 2 (13–14 Nov 2026). Land early, once you are not mid-edit on `main.py` with 19 or 21. Other Day 3 issues assume a pooled client and a breaker. Closes ARCH-01, ARCH-02, REL-01, REL-02, REL-03, REL-05, PERF-01, PERF-03, CON-03, and part of ARCH-03.
 - **Depends on:** skeleton. If 19 has landed, persist nothing extra except maybe breaker state in memory. A one-process breaker is enough.
 

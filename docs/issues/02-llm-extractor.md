@@ -1,7 +1,7 @@
 # 02 — Free-tier LLM extractor and intent eval
 
 - **Labels:** `area:app`, `day:1`, `llm`
-- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
+- **Owner:** Member B: Priyanshu Jha (@CodewithJha), app, realtime & UI
 - **Target day:** Day 1 (12–13 Nov 2026)
 - **Depends on:** skeleton merged. Does not wait on issue 01. Keep the rule extractor as the fallback and as the CI path.
 

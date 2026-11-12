@@ -16,7 +16,7 @@ body:
       label: Owner
       options:
         - "Member A: Himanshu (@himanshu748), benchmark and audio"
-        - "Member B: Prakhar (@CodewithJha), app, realtime, and UI"
+        - "Member B: Priyanshu Jha (@CodewithJha), app, realtime, and UI"
         - Both (split in the description; still only these two people)
     validations:
       required: true

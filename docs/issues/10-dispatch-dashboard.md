@@ -1,7 +1,7 @@
 # 10 — Live dispatcher dashboard
 
 - **Labels:** `area:app`, `day:2`, `ui`
-- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
+- **Owner:** Member B: Priyanshu Jha (@CodewithJha), app, realtime & UI
 - **Target day:** Day 2 (13–14 Nov 2026)
 - **Depends on:** issue 04 (`GET /api/events`). Parallel with 07 and 08. Do not edit `rider.ts` or `rider.css`.
 

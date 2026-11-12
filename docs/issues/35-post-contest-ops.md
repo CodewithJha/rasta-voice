@@ -1,7 +1,7 @@
 # 35 — Post-contest operations stretch
 
 - **Labels:** `day:post-contest`, `docs`, `deploy`
-- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio (Member B: Prakhar (@CodewithJha) reviews anything that touches `backend/` or `frontend/`)
+- **Owner:** Member A: Himanshu (@himanshu748), benchmark & audio (Member B: Priyanshu Jha (@CodewithJha) reviews anything that touches `backend/` or `frontend/`)
 - **Target day:** After **15 Nov 2026, 18:00 IST**. Do not start this during the contest window if it would delay issues 16 or 18, or any P0. Closes OBS-03, the P2 half of OBS-04, FE-08, OPS-05, DATA-03's off-site half, CICD-03's automated release stretch.
 - **Depends on:** a production-ready `main` (P0 issues merged) and a live host from issue 13. This issue is optional for the contest score.
 

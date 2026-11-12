@@ -1,7 +1,7 @@
 # 19 — SQLite event store
 
 - **Labels:** `area:app`, `day:2`, `api`
-- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
+- **Owner:** Member B: Priyanshu Jha (@CodewithJha), app, realtime & UI
 - **Target day:** Day 2 (13–14 Nov 2026). Land this early on Day 2, once issue 04 is merged, so a refresh or a process bounce does not wipe the desk during the rest of the day's demos.
 - **Depends on:** issue 04. Keep the same store interface (`append`, `list_since`, cap 200, stamped `id` and `created_at`) so issue 10 and later routes do not change their JSON.
 

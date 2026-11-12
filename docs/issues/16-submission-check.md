@@ -26,7 +26,7 @@ Then confirm:
 | Deploy | `docs/DEPLOY.md` | Public URL returns `/api/health` with `"ok": true` |
 | Deadline | clock | Submitted before 15 Nov 2026, 18:00 IST |
 
-Fix only what this pass finds, and only if the fix is inside your trees (`benchmark/`, the benchmark README section, this doc). If a check fails in Prakhar's (Member B) tree, write the failure in the doc and point them at the file. Don't quietly rewrite the frontend on the last afternoon.
+Fix only what this pass finds, and only if the fix is inside your trees (`benchmark/`, the benchmark README section, this doc). If a check fails in Priyanshu's (Member B) tree, write the failure in the doc and point them at the file. Don't quietly rewrite the frontend on the last afternoon.
 
 ## Files to touch
 
@@ -61,7 +61,7 @@ Official programme page: https://www.gnani.ai/internship (deadline currently sho
 
 - [ ] Open and actually watch the **public working-app video**, rather than relying on `docs/demo-script.md` or a photo. Compare the audio sent to Prisma with the event shown on screen. No simulated outputs may masquerade as live Gnani output.
 - [ ] Verify video and nominated public post links, both mandatory hashtags and the Gnani tag; record safe evidence/URLs in `docs/SUBMISSION.md`.
-- [ ] Verify the **official form was submitted** with demo, written project explanation, actual models/APIs, contributions of both members (Himanshu and Prakhar) and nominated post link(s). Document confirmation/status, not just a saved draft.
+- [ ] Verify the **official form was submitted** with demo, written project explanation, actual models/APIs, contributions of both members (Himanshu and Priyanshu) and nominated post link(s). Document confirmation/status, not just a saved draft.
 - [ ] Confirm public demo credit protection is enforced before sharing the hosted URL.
 - [ ] Report separately whether field-validation audio came via a **real consented phone channel**, a noisy microphone, or synthetic 8 kHz/G.711 simulation. Do not conflate them.
 - [ ] Restrict the mock/canned grep to runtime paths and review matches manually; README prose, issue descriptions and test-only `MockTransport` do not prove app fake-path support.

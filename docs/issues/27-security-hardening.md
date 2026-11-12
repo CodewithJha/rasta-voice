@@ -1,7 +1,7 @@
 # 27 — Security hardening: headers, CSP, CSRF, uploads, CORS
 
 - **Labels:** `area:app`, `day:3`, `security`
-- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
+- **Owner:** Member B: Priyanshu Jha (@CodewithJha), app, realtime & UI
 - **Target day:** Day 3 (14–15 Nov 2026), after 13 and 20 so same-origin deploy and the desk cookie exist. You can land the header middleware earlier if you keep CORS defaults safe. Closes SEC-01, SEC-02, SEC-04, SEC-10, SEC-12, SEC-13, SEC-14, CFG-03, PERF-04, and the CSRF half of SEC-03.
 - **Depends on:** issues 13 and 20. Coordinate font self-hosting with issue 30 (this issue must land self-hosted files so CSP can drop Google Fonts; 30 may restyle but must not add the CDN back).
 

@@ -1,6 +1,6 @@
 # Contributing to Rasta Voice
 
-The team is exactly two people: Member A is Himanshu ([@himanshu748](https://github.com/himanshu748)) and owns `benchmark/` and the benchmark docs; Member B is Prakhar ([@CodewithJha](https://github.com/CodewithJha)) and owns `backend/rasta/` (except the frozen schema), `frontend/`, and `Dockerfile`, including all UI. There is no third contributor. Frozen for both: `gnani_client/`, `shared/rider_event.schema.json`, `backend/rasta/schema.py`, `frontend/src/types.ts`. Do not restyle the other person's screen. A later docs pack (issues 23 and 34) will extend this file; the workflow below is the rule now.
+The team is exactly two people: Member A is Himanshu ([@himanshu748](https://github.com/himanshu748)) and owns `benchmark/` and the benchmark docs; Member B is Priyanshu Jha ([@CodewithJha](https://github.com/CodewithJha)) and owns `backend/rasta/` (except the frozen schema), `frontend/`, and `Dockerfile`, including all UI. There is no third contributor. Frozen for both: `gnani_client/`, `shared/rider_event.schema.json`, `backend/rasta/schema.py`, `frontend/src/types.ts`. Do not restyle the other person's screen. A later docs pack (issues 23 and 34) will extend this file; the workflow below is the rule now.
 
 ## Workflow
 
@@ -17,10 +17,10 @@ The team is exactly two people: Member A is Himanshu ([@himanshu748](https://git
    cd frontend && npm run check
    ```
 
-6. **Contract changes go first.** A change to `shared/`, `backend/rasta/schema.py`, `frontend/src/types.ts`, `gnani_client/`, or `.github/` is a contract pull request. Keep it small. Himanshu and Prakhar should both agree on it before it merges, even though GitHub asks for one approving review. Then rebase the feature branch onto `main`.
+6. **Contract changes go first.** A change to `shared/`, `backend/rasta/schema.py`, `frontend/src/types.ts`, `gnani_client/`, or `.github/` is a contract pull request. Keep it small. Himanshu and Priyanshu should both agree on it before it merges, even though GitHub asks for one approving review. Then rebase the feature branch onto `main`.
 7. **Twice-daily sync.** At least twice a day, rebase onto `origin/main` and leave a one-line note on your open issue (what landed, what is blocked). That is enough for the other person to stay out of your files and not be surprised.
 8. **Squash merge.** Use GitHub's squash merge. The squash commit subject should be the pull request title, written as a conventional commit (`feat:`, `fix:`, `docs:`, `chore:`, `test:`, `ci:`). Delete the branch after the merge.
-9. **Commit identity.** Himanshu commits as @himanshu748 and Prakhar as @CodewithJha (each using their own `users.noreply.github.com` email). Do not add `Co-authored-by` trailers, and do not attribute a commit to anyone who did not make it.
+9. **Commit identity.** Himanshu commits as @himanshu748 and Priyanshu as @CodewithJha (each using their own `users.noreply.github.com` email). Do not add `Co-authored-by` trailers, and do not attribute a commit to anyone who did not make it.
 
 ## Trees
 

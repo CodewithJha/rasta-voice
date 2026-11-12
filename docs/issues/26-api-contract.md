@@ -1,7 +1,7 @@
 # 26 — API contract: errors, idempotency, pagination, OpenAPI
 
 - **Labels:** `area:app`, `day:3`, `api`
-- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
+- **Owner:** Member B: Priyanshu Jha (@CodewithJha), app, realtime & UI
 - **Target day:** Day 3 (14–15 Nov 2026). Can start as soon as 04/19 routes exist; land alongside 21 so every error carries a request id. Closes API-01, API-02, API-03, API-04, API-05, SEC-05, REL-04, REL-07, REL-08, TEST-04, DOC-04.
 - **Depends on:** issues 19 and 21. Does not wait on 25, but the error envelope and `If-Match` must not fight 25's 409 bodies.
 

@@ -1,7 +1,7 @@
 # 09 — Rider page clean/noisy toggle
 
 - **Labels:** `area:app`, `day:2`, `ui`
-- **Owner:** Member B: Prakhar (@CodewithJha), app, realtime & UI
+- **Owner:** Member B: Priyanshu Jha (@CodewithJha), app, realtime & UI
 - **Target day:** Day 2 (13–14 Nov 2026)
 - **Depends on:** issues 07 and 08. You own `rider.ts`; don't open this until those two have merged, or you will fight yourself.
 
