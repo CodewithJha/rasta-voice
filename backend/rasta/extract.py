@@ -1,7 +1,13 @@
-"""Placeholder extractor. Rules stand in until a free LLM is wired (issue 02).
+"""Transcript -> RiderEvent.
 
-The shape is the contract: transcript in, RiderEvent out. A non-mock
-LLM_PROVIDER fails closed so a half-set key cannot pretend to be a model.
+``LLM_PROVIDER=rules`` (the default) is a deterministic keyword extractor.
+It is the real fallback when no free LLM key is set, and issue 02 keeps it
+behind the Groq/Gemini path. Any other provider fails closed until issue 02
+wires it, so a half-set key cannot pretend to be a model.
+
+The pipeline asks Prisma for ``format=transliterate``, so transcripts arrive
+in Latin script with numbers spoken as words ("order eighteen", "das
+minute"). Both digits and number words are parsed.
 """
 
 import os
@@ -9,12 +15,32 @@ import re
 
 from rasta.schema import Intent, RiderEvent, Urgency
 
-_ORDER = re.compile(r"\border\s*#?\s*(\d{1,6})\b", re.IGNORECASE)
-_ETA = re.compile(r"\b(\d{1,3})\s*(?:min|mins|minute|minutes|mint)\b", re.IGNORECASE)
+_ONES = {
+    "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+    "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12,
+    "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16,
+    "seventeen": 17, "eighteen": 18, "nineteen": 19,
+    # Romanised Hindi, the way riders say minutes.
+    "ek": 1, "do": 2, "teen": 3, "char": 4, "chaar": 4, "paanch": 5, "panch": 5,
+    "chhe": 6, "che": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10,
+    "pandrah": 15, "pandra": 15, "bees": 20, "pachchis": 25, "pachees": 25,
+    "tees": 30, "chalis": 40, "chaalis": 40, "paintalis": 45, "pachas": 50,
+    "pachaas": 50, "saath": 60,
+}
+_TENS = {
+    "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
+    "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
+}
+_NUMBER_WORD = "|".join(sorted([*_ONES, *_TENS], key=len, reverse=True))
+_NUMBER = rf"(\d{{1,6}}|(?:{_NUMBER_WORD})(?:[\s-]+(?:{_NUMBER_WORD}))?)"
+_ORDER = re.compile(rf"\border\s*(?:no\.?|number|#)?\s*{_NUMBER}\b", re.IGNORECASE)
+_ETA = re.compile(
+    rf"\b{_NUMBER}\s*(?:min|mins|minute|minutes|mint|minat)\b", re.IGNORECASE
+)
 _LONG_DIGITS = re.compile(r"\d{8,}")
 
 # First match wins. accident and a missing item outrank a closed gate,
-# because the canned line "gate band … phone nahi utha" is a contact problem.
+# because "gate band … phone nahi utha" is a contact problem first.
 _RULES: tuple[tuple[Intent, Urgency, tuple[str, ...], str], ...] = (
     (
         Intent.accident_sos,
@@ -50,11 +76,11 @@ _RULES: tuple[tuple[Intent, Urgency, tuple[str, ...], str], ...] = (
 
 
 def extract_event(transcript: str, provider: str | None = None) -> RiderEvent:
-    name = provider if provider is not None else os.environ.get("LLM_PROVIDER", "mock")
-    if name != "mock":
+    name = provider if provider is not None else os.environ.get("LLM_PROVIDER", "rules")
+    if name != "rules":
         raise NotImplementedError(
-            f"LLM provider {name!r} is not in the skeleton. "
-            "Keep LLM_PROVIDER=mock until issue 02."
+            f"LLM provider {name!r} is not wired yet. "
+            "Use LLM_PROVIDER=rules until issue 02."
         )
     return _by_rules(transcript)
 
@@ -90,11 +116,26 @@ def _order_id(transcript: str) -> str | None:
     token = match.group(1)
     if _LONG_DIGITS.fullmatch(token):
         return None
-    return token
+    value = _to_int(token)
+    return None if value is None else str(value)
 
 
 def _eta(transcript: str) -> int | None:
     match = _ETA.search(transcript)
     if not match:
         return None
-    return int(match.group(1))
+    return _to_int(match.group(1))
+
+
+def _to_int(token: str) -> int | None:
+    if token.isdigit():
+        return int(token)
+    total = 0
+    for word in re.split(r"[\s-]+", token.lower()):
+        if word in _TENS:
+            total += _TENS[word]
+        elif word in _ONES:
+            total += _ONES[word]
+        else:
+            return None
+    return total

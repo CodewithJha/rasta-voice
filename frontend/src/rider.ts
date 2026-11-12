@@ -16,7 +16,7 @@ export function initRider(root: HTMLElement): void {
   const hint = document.createElement("p");
   hint.className = "hint";
   hint.textContent =
-    "Upload a short clip, or run the canned night drop. Mock mode does not listen to the file — it returns one fixed Hinglish line so the desk can be tried before API credits land.";
+    "Upload a short clip (30 s max), or let Timbre speak a synthetic rider line. Both are real Gnani Prisma calls.";
 
   const form = document.createElement("form");
   const row = document.createElement("div");
@@ -38,7 +38,7 @@ export function initRider(root: HTMLElement): void {
   const sample = document.createElement("button");
   sample.type = "button";
   sample.className = "ghost";
-  sample.textContent = "Canned night drop";
+  sample.textContent = "Speak a sample line";
 
   row.append(fileLabel, send, sample);
   form.append(row);
@@ -49,7 +49,7 @@ export function initRider(root: HTMLElement): void {
 
   const fine = document.createElement("p");
   fine.className = "fine";
-  fine.textContent = "Prisma REST · codemix · Hindi and English hints. No real phone numbers.";
+  fine.textContent = "Timbre v3.0 → Prisma v3.0 REST · transliterate · Hindi and English hints. No real phone numbers.";
 
   chit.append(sticker, title, hint, form, out, fine);
   root.append(chit);
@@ -58,7 +58,7 @@ export function initRider(root: HTMLElement): void {
     event.preventDefault();
     const picked = file.files?.[0];
     if (!picked) {
-      out.textContent = "Pick a clip first, or use the canned night drop.";
+      out.textContent = "Pick a clip first, or speak a sample line.";
       return;
     }
     const body = new FormData();

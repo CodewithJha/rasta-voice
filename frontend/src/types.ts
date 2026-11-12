@@ -24,9 +24,12 @@ export interface IngestResult {
   transcript: string;
   stt: {
     model: string;
-    mock: boolean;
     request_id: string | null;
     detected_language_code: string | null;
+    processing_time: number | null;
+    audio_seconds: number | null;
   };
   event: RiderEvent;
+  /** Only on /api/ingest/sample: the exact line Timbre spoke. */
+  sample_text?: string;
 }

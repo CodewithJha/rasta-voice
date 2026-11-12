@@ -26,9 +26,8 @@ export function initDispatch(root: HTMLElement): void {
 
 function paint(status: HTMLElement, list: HTMLElement, result: IngestResult): void {
   const event = result.event;
-  status.textContent = result.stt.mock
-    ? "Mock line. Credits are not on this request."
-    : `Live Prisma · ${result.stt.model}`;
+  const seconds = result.stt.audio_seconds === null ? "" : ` · ${result.stt.audio_seconds}s audio`;
+  status.textContent = `Live Prisma · ${result.stt.model}${seconds}`;
   list.hidden = false;
   list.replaceChildren();
   const rows: Array<[string, string]> = [

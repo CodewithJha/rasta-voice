@@ -1,16 +1,31 @@
-"""FastAPI shell. One ingest route, plus a sample clip for mock mode."""
+"""FastAPI app. Every speech call goes to the real Gnani APIs."""
 
+import logging
 import os
+from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-from gnani_client.stt import PrismaSTT
-from gnani_client.wav import tone_wav
+from gnani_client.env import api_key
+from gnani_client.errors import GnaniError, MissingApiKeyError
 from rasta.extract import extract_event
-from rasta.pipeline import ClipTooLarge, EmptyClip, ingest
+from rasta.pipeline import SAMPLE_LINE, ClipTooLarge, EmptyClip, ingest, speak_sample
 
-app = FastAPI(title="Rasta Voice", version="0.1.0")
+# Real env vars win over .env, so a deploy secret is never shadowed.
+load_dotenv()
+log = logging.getLogger("rasta")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    if not api_key():
+        log.error("GNANI_API_KEY is not set. Every speech request will fail with 503.")
+    yield
+
+
+app = FastAPI(title="Rasta Voice", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -24,44 +39,53 @@ app.add_middleware(
 
 @app.get("/api/health")
 def health() -> dict:
-    stt = PrismaSTT()
     return {
         "ok": True,
-        "stt_mock": stt.mock,
-        "llm_provider": os.environ.get("LLM_PROVIDER", "mock"),
+        "gnani_key_set": bool(api_key()),
+        "llm_provider": os.environ.get("LLM_PROVIDER", "rules"),
     }
 
 
 @app.post("/api/ingest")
 async def ingest_upload(audio_file: UploadFile = File(...)) -> dict:
     data = await audio_file.read()
-    return _run(data, audio_file.filename or "clip.wav")
+    return _guard(lambda: ingest(data, audio_file.filename or "clip.wav"))
 
 
 @app.post("/api/ingest/sample")
 def ingest_sample() -> dict:
-    """Silence-free tone plus the canned transcript, only while STT is mocked.
+    """Timbre speaks a synthetic rider line, then Prisma transcribes it.
 
-    The tone is not speech. A live Prisma call would return an empty
-    transcript, so this route refuses to burn a request on it.
+    Two real Gnani calls, no uploaded file needed. The response carries the
+    exact text Timbre was given so the transcript can be compared to it.
     """
-    if not PrismaSTT().mock:
-        raise HTTPException(
-            status_code=409,
-            detail="Sample clip is a tone, not speech. Upload a clip, or set GNANI_MOCK=1.",
-        )
-    return _run(tone_wav(), "sample.wav")
+
+    def run() -> dict:
+        audio = speak_sample()
+        result = ingest(audio, "sample.wav")
+        result["sample_text"] = SAMPLE_LINE
+        return result
+
+    return _guard(run)
 
 
-def _run(audio: bytes, filename: str) -> dict:
+def _guard(work):
     try:
-        return ingest(audio, filename)
+        return work()
     except EmptyClip as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ClipTooLarge as exc:
         raise HTTPException(status_code=413, detail=str(exc)) from exc
     except NotImplementedError as exc:
         raise HTTPException(status_code=501, detail=str(exc)) from exc
+    except MissingApiKeyError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except GnaniError as exc:
+        log.warning("Gnani call failed: %s", exc)
+        raise HTTPException(
+            status_code=502,
+            detail={"error": str(exc), "upstream_status": exc.status},
+        ) from exc
 
 
 # Imported so a schema drift test and callers share one extractor entry.
