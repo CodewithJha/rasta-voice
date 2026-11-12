@@ -1,0 +1,36 @@
+{"id":"b01","intent":"customer_unreachable","order_id":"51","eta_minutes":null,"text":"main doorbell press kar chuka hoon, koi response nahi aa raha, order 51"}
+{"id":"b02","intent":"customer_unreachable","order_id":"11","eta_minutes":null,"text":"customer ke number pe engaged aa raha hai baar baar, order eleven"}
+{"id":"b03","intent":"customer_unreachable","order_id":"4","eta_minutes":null,"text":"whatsapp pe tick nahi jaa raha, bande ne msg seen bhi nahi kiya, order 4"}
+{"id":"b04","intent":"customer_unreachable","order_id":"18","eta_minutes":null,"text":"yeh gali tight hai isliye corner se ring kar raha hoon, do rings ke baad call cut ho jaati hai, order 18"}
+{"id":"b05","intent":"customer_unreachable","order_id":"102","eta_minutes":null,"text":"society ke intercom se bhi koi uthata nahi, order 102"}
+{"id":"b06","intent":"customer_unreachable","order_id":"18","eta_minutes":null,"text":"map thoda off dikh raha hai, lekin pehle yeh suno customer ka number continuously busy hai, order eighteen"}
+{"id":"b07","intent":"address_issue","order_id":"51","eta_minutes":null,"text":"plot number match nahi kar raha, yeh dusra block lagta hai, order 51"}
+{"id":"b08","intent":"address_issue","order_id":"4","eta_minutes":null,"text":"google map yahan khet dikha raha hai, koi house nahi hai, order 4"}
+{"id":"b09","intent":"address_issue","order_id":"18","eta_minutes":null,"text":"tower C ke bajaye tower A aa gaya hoon, customer ka flat yahan nahi, order eighteen"}
+{"id":"b10","intent":"address_issue","order_id":"102","eta_minutes":null,"text":"gali ka naam board pe alag likha hai, confirm landmark chahiye, order 102"}
+{"id":"b11","intent":"address_issue","order_id":"18","eta_minutes":null,"text":"basement parking ka rasta close hai, main entrance se drop allowed nahi, order 18"}
+{"id":"b12","intent":"address_issue","order_id":"4","eta_minutes":null,"text":"customer ne sector teen bola, app mujhe sector terah ke drop pe le aaya, order chaar"}
+{"id":"b13","intent":"item_missing","order_id":"51","eta_minutes":null,"text":"box ke andar invoice pe teen items hain, haath mein do hi hain, order 51"}
+{"id":"b14","intent":"item_missing","order_id":"4","eta_minutes":null,"text":"cold drink ka can crush ho gaya tha, replace nahi mila bag mein, order 4"}
+{"id":"b15","intent":"item_missing","order_id":"102","eta_minutes":null,"text":"sauce sachet chhoot gaya packing se, kitchen walo ko bol dena, order 102"}
+{"id":"b16","intent":"item_missing","order_id":"18","eta_minutes":null,"text":"outer bag sealed hai, weight se andar ka burger khali feel ho raha hai, order eighteen"}
+{"id":"b17","intent":"item_missing","order_id":"7","eta_minutes":null,"text":"galat tower ke lobby mein khada hoon, saath hi bag mein dessert nahi rakha gaya, order 7"}
+{"id":"b18","intent":"item_missing","order_id":"4","eta_minutes":null,"text":"order 4 ka bill teen items ka hai, package mein sirf do pieces nikle"}
+{"id":"b19","intent":"delay","order_id":"51","eta_minutes":30,"text":"flyover pe bumper to bumper hai, pahunchne mein tees minute lagenge, order 51"}
+{"id":"b20","intent":"delay","order_id":"4","eta_minutes":20,"text":"puncture ho gaya tha, ab naya tyre lagake chal raha hoon, bees min late padunga, order 4"}
+{"id":"b21","intent":"delay","order_id":"102","eta_minutes":15,"text":"society gate pe security register lamba hai, fifteen minute lag rahe hain, order 102"}
+{"id":"b22","intent":"delay","order_id":"18","eta_minutes":10,"text":"railway crossing band hai, train nikalne ka wait hai, das minute ka farak padega, order eighteen"}
+{"id":"b23","intent":"delay","order_id":"18","eta_minutes":null,"text":"area mein diversion laga diya traffic police ne, time estimate abhi nahi de sakta, order 18"}
+{"id":"b24","intent":"delay","order_id":"4","eta_minutes":null,"text":"barsaat tez hai, dheere dheere jaa raha hoon, drop window nikalne wali hai, order chaar"}
+{"id":"b25","intent":"accident_sos","order_id":"51","eta_minutes":null,"text":"scooter skid karke divider se takrai, knee se khoon aa raha hai, order 51 rok do"}
+{"id":"b26","intent":"accident_sos","order_id":"4","eta_minutes":null,"text":"mere peeche wali car ne rear end kar diya, gardan mein dard, jaldi ambulance, order 4"}
+{"id":"b27","intent":"accident_sos","order_id":"18","eta_minutes":null,"text":"main nala mein phans gaya hoon, bike nikal nahi rahi, saans phool rahi hai, order 18"}
+{"id":"b28","intent":"accident_sos","order_id":"102","eta_minutes":null,"text":"helmet toot ke sir pe chot aayi, dizzy ho raha hoon, drop cancel karke madad bhejo, order 102"}
+{"id":"b29","intent":"accident_sos","order_id":"18","eta_minutes":null,"text":"dog ne kaat liya calf pe, bleeding band nahi ho rahi, hospital le jaana hai, order eighteen"}
+{"id":"b30","intent":"accident_sos","order_id":"18","eta_minutes":null,"text":"overtake karte waqt meri bike slide hui, traffic ke beech pada hoon, pair kaam nahi kar raha, order 18"}
+{"id":"b31","intent":"other","order_id":null,"eta_minutes":null,"text":"break le raha hoon, do minute mein wapas route pe hoon, koi problem nahi"}
+{"id":"b32","intent":"other","order_id":null,"eta_minutes":null,"text":"mere shoes geele ho gaye, dry karke nikalta hoon, order ready hai mere paas"}
+{"id":"b33","intent":"other","order_id":null,"eta_minutes":null,"text":"yaar app ka brightness badha do, dhoop mein screen nahi dikh rahi"}
+{"id":"b34","intent":"other","order_id":null,"eta_minutes":null,"text":"kal ki shift swap karni hai, roster mein mera naam check kar lena"}
+{"id":"b35","intent":"other","order_id":null,"eta_minutes":null,"text":"lunch break pe ek safety video dekh raha hoon, accident chapter chal raha tha, ab route pe nikalta hoon"}
+{"id":"b36","intent":"other","order_id":null,"eta_minutes":null,"text":"mere paas leftover packet hai kal ka, aaj ke bag se related nahi, bas locker mein rakh diya"}

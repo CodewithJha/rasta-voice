@@ -129,3 +129,21 @@ Issue 29 owns retries, the shared client, and the breaker. This issue still has 
 - [ ] Open-breaker on the LLM (issue 29) is a rules fallback, not a 500 and not a hung ingest.
 - [ ] Prompts and model text are not written to logs. Issue 21's default stays "no full transcript".
 - [ ] A test covers "LLM times out once, rules succeed, envelope source is `rules`".
+
+## Implementation notes (12 Nov 2026)
+
+The extractor infrastructure and evaluation harness landed in the Member B
+tree: typed settings in `backend/rasta/settings.py`, providers in
+`backend/rasta/llm.py` and `backend/rasta/extractors/`, the existing
+`_by_rules` fallback, gold, tuning, and blind holdout fixtures, and
+`scripts/eval_intent.py`. Frozen contracts were not touched. This does
+not close the issue. The 0.8 accuracy acceptance on the independent
+holdout remains open.
+
+The original 24-line holdout was used to guide rule expansion, so it is
+kept as a tuning/regression set. The independent test is
+`intent_blind_holdout.jsonl` (36 lines, frozen in `440bcda` before it
+was scored). Rules accuracy there is 8/36 = 0.222 after the
+channel-bound contact fix (earlier official runs were 6/36). The 6/36
+figure stays as a regression floor, distinct from the 0.8 target. The
+measured numbers are in [docs/EXTRACTOR.md](../EXTRACTOR.md).

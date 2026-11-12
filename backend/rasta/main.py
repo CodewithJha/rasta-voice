@@ -1,5 +1,6 @@
 """FastAPI app. Every speech call goes to the real Gnani APIs."""
 
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -25,7 +26,14 @@ async def lifespan(app: FastAPI):
     if not api_key():
         log.error("GNANI_API_KEY is not set. Every speech request will fail with 503.")
     attach_event_store(app, replace=True)
-    yield
+    try:
+        yield
+    finally:
+        # Issue 29 will own shutdown of the shared client; close it here until then
+        # so a one-off LLM client cannot outlive the process.
+        from rasta.llm import close_shared_client
+
+        close_shared_client()
 
 
 app = FastAPI(title="Rasta Voice", version="0.1.0", lifespan=lifespan)
@@ -53,13 +61,17 @@ def health() -> dict:
 @app.post("/api/ingest")
 async def ingest_upload(audio_file: UploadFile = File(...)) -> dict:
     data = await audio_file.read()
-    return _guard(
-        lambda: attach_event_store(app).append(ingest(data, audio_file.filename or "clip.wav"))
+    filename = audio_file.filename or "clip.wav"
+    # The pipeline is still sync (Prisma and Timbre clients are sync). Run it
+    # in a worker thread so an LLM or STT wait cannot block the event loop.
+    return await asyncio.to_thread(
+        _guard,
+        lambda: attach_event_store(app).append(ingest(data, filename)),
     )
 
 
 @app.post("/api/ingest/sample")
-def ingest_sample() -> dict:
+async def ingest_sample() -> dict:
     """Timbre speaks a synthetic rider line, then Prisma transcribes it.
 
     Two real Gnani calls, no uploaded file needed. The response carries the
@@ -72,7 +84,7 @@ def ingest_sample() -> dict:
         stamped["sample_text"] = SAMPLE_LINE
         return stamped
 
-    return _guard(run)
+    return await asyncio.to_thread(_guard, run)
 
 
 def _guard(work):
