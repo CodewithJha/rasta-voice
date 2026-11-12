@@ -70,10 +70,12 @@ def test_rules_is_the_default(monkeypatch):
     assert extract_event("order 4 mein ek item missing").intent.value == "item_missing"
 
 
-def test_live_provider_is_not_wired():
-    try:
-        extract_event("order 1", provider="groq")
-    except NotImplementedError as exc:
-        assert "issue 02" in str(exc)
-    else:
-        raise AssertionError("expected NotImplementedError")
+def test_missing_llm_key_falls_back_to_rules(monkeypatch):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    from rasta.settings import clear_settings_cache
+
+    clear_settings_cache()
+    event = extract_event("order 4 mein ek item missing", provider="groq")
+    assert event.intent.value == "item_missing"
+    assert event.confidence == 0.5

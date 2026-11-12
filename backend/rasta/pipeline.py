@@ -3,7 +3,7 @@
 from gnani_client.stt import RIDER_KEYTERMS, RIDER_TOPIC, PrismaSTT
 from gnani_client.tts import TimbreTTS
 from gnani_client.wav import wav_duration_seconds
-from rasta.extract import extract_event
+from rasta.extract import extract_event_with_source
 
 _MAX_BYTES = 2_000_000
 
@@ -41,7 +41,7 @@ def ingest(audio: bytes, filename: str = "clip.wav") -> dict:
         keyterms=RIDER_KEYTERMS,
         topic=RIDER_TOPIC,
     )
-    event = extract_event(result.transcript)
+    extracted = extract_event_with_source(result.transcript)
     return {
         "transcript": result.transcript,
         "stt": {
@@ -51,7 +51,9 @@ def ingest(audio: bytes, filename: str = "clip.wav") -> dict:
             "processing_time": result.processing_time,
             "audio_seconds": wav_duration_seconds(audio),
         },
-        "event": event.model_dump(mode="json"),
+        "event": extracted.event.model_dump(mode="json"),
+        "extractor_source": extracted.source,
+        "fallback_reason": extracted.fallback_reason,
     }
 
 
