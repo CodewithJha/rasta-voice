@@ -12,6 +12,7 @@ client must keep using for LLM calls.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from functools import lru_cache
 from os import environ
@@ -68,8 +69,8 @@ def _positive_float(name: str, default: float) -> float:
         value = float(raw)
     except ValueError as exc:
         raise SettingsError(f"{name} must be a positive number, got {raw!r}") from exc
-    if value <= 0:
-        raise SettingsError(f"{name} must be a positive number, got {raw!r}")
+    if not math.isfinite(value) or value <= 0:
+        raise SettingsError(f"{name} must be a positive finite number, got {raw!r}")
     return value
 
 
@@ -81,8 +82,8 @@ def _non_negative_float(name: str, default: float) -> float:
         value = float(raw)
     except ValueError as exc:
         raise SettingsError(f"{name} must be a number >= 0, got {raw!r}") from exc
-    if value < 0:
-        raise SettingsError(f"{name} must be a number >= 0, got {raw!r}")
+    if not math.isfinite(value) or value < 0:
+        raise SettingsError(f"{name} must be a finite number >= 0, got {raw!r}")
     return value
 
 

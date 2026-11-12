@@ -86,3 +86,40 @@ def test_shared_client_uses_the_configured_timeout(monkeypatch: pytest.MonkeyPat
     clear_settings_cache()
     client = get_shared_client()
     assert client.timeout.read == 3.5
+
+
+def test_non_finite_timeout_is_rejected(monkeypatch: pytest.MonkeyPatch):
+    for raw in ("nan", "NaN", "inf", "Infinity", "-inf", "-Infinity"):
+        monkeypatch.setenv("LLM_TIMEOUT_SECONDS", raw)
+        clear_settings_cache()
+        with pytest.raises(SettingsError, match="LLM_TIMEOUT_SECONDS"):
+            get_settings()
+
+
+def test_non_finite_backoff_is_rejected(monkeypatch: pytest.MonkeyPatch):
+    for raw in ("nan", "NaN", "inf", "Infinity", "-inf", "-Infinity"):
+        monkeypatch.setenv("LLM_RETRY_BACKOFF_SECONDS", raw)
+        clear_settings_cache()
+        with pytest.raises(SettingsError, match="LLM_RETRY_BACKOFF_SECONDS"):
+            get_settings()
+
+
+def test_zero_timeout_is_rejected_but_zero_backoff_is_allowed(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("LLM_TIMEOUT_SECONDS", "0")
+    clear_settings_cache()
+    with pytest.raises(SettingsError, match="LLM_TIMEOUT_SECONDS"):
+        get_settings()
+    monkeypatch.delenv("LLM_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.setenv("LLM_RETRY_BACKOFF_SECONDS", "0")
+    clear_settings_cache()
+    assert get_settings().llm_retry_backoff_seconds == 0.0
+
+
+def test_negative_backoff_is_rejected(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("LLM_RETRY_BACKOFF_SECONDS", "-0.1")
+    clear_settings_cache()
+    with pytest.raises(SettingsError, match="LLM_RETRY_BACKOFF_SECONDS"):
+        get_settings()
+
