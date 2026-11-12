@@ -1,3 +1,5 @@
+import pytest
+
 from rasta.extract import extract_event
 
 
@@ -81,35 +83,148 @@ def test_missing_llm_key_falls_back_to_rules(monkeypatch):
     assert event.confidence == 0.5
 
 
-def test_answered_call_is_not_unreachable():
-    event = extract_event(
-        "customer ne phone receive kar liya, address clear hai",
-        provider="rules",
-    )
-    assert event.intent.value == "other"
-    assert event.urgency.value == "low"
-    assert event.confidence == 0.0
-
-    event = extract_event(
-        "customer ne call receive ki aur location confirm kar di",
-        provider="rules",
-    )
-    assert event.intent.value == "other"
-    assert event.urgency.value == "low"
-    assert event.confidence == 0.0
-
-
-def test_failed_receive_and_busy_line_still_match():
-    event = extract_event("call receive hi nahi kar raha, order 18", provider="rules")
-    assert event.intent.value == "customer_unreachable"
-    assert event.urgency.value == "high"
-    assert event.order_id == "18"
-
-    event = extract_event("customer ka phone receive nahi ho raha, order 4", provider="rules")
-    assert event.intent.value == "customer_unreachable"
-    assert event.order_id == "4"
-
-    event = extract_event("customer ka mobile busy hai, order 102", provider="rules")
-    assert event.intent.value == "customer_unreachable"
-    assert event.order_id == "102"
+# Contact-state classes for the customer_unreachable rule. Latest state
+# wins when a success signal and a failure phrase both appear. A rider
+# saying they are busy is never a failed call.
+@pytest.mark.parametrize(
+    ("text", "intent", "urgency"),
+    [
+        (
+            "customer ka call receive kar liya, ab main packing mein busy hoon",
+            "other",
+            "low",
+        ),
+        (
+            "customer se phone par baat ho gayi, main parcel sort karne mein busy hoon",
+            "other",
+            "low",
+        ),
+        (
+            "customer ne phone receive kar liya, address clear hai",
+            "other",
+            "low",
+        ),
+        (
+            "customer ne call receive ki aur location confirm kar di",
+            "other",
+            "low",
+        ),
+        (
+            "customer se call connect ho gaya, order 4",
+            "other",
+            "low",
+        ),
+        (
+            "pehle phone nahi uthaya, ab baat ho gayi",
+            "other",
+            "low",
+        ),
+        (
+            "customer ka mobile busy hai, order 102",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer ka phone busy aa raha hai, order 18",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer ki line busy hai, order 4",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer ka mobile switch off hai, order chaar pe do baar try ho chuka",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "phone switched off hai, order 18",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer ka phone off hai, order 4",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer ka mobile band hai, order 18",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "order eighteen ke customer ko call kiya, not picking up",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "phone nahi utha raha, order 18",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "andar gate lock hai aur koi pickup nahi kar raha phone, order 18",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "call receive hi nahi kar raha, order 18",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer ka phone receive nahi ho raha, order 4",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "dispatch, is bande ko line nahi mil rahi mujhe, order eighteen",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer ki ring ja rahi hai, utha nahi raha, order 18",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "pehle baat ho gayi thi, ab phone nahi utha raha",
+            "customer_unreachable",
+            "high",
+        ),
+    ],
+    ids=[
+        "answered_call_rider_busy_packing",
+        "answered_call_rider_busy_sorting",
+        "answered_call_receive_kar_liya",
+        "answered_call_receive_ki_confirm",
+        "answered_call_connect_ho_gaya",
+        "latest_state_now_connected",
+        "phone_busy",
+        "phone_busy_aa_raha",
+        "line_busy",
+        "switched_off_mobile",
+        "switched_off_phone",
+        "phone_off",
+        "mobile_band",
+        "not_picking_up",
+        "phone_nahi_utha",
+        "pickup_nahi_phone",
+        "receive_hi_nahi",
+        "phone_receive_nahi",
+        "line_nahi_mil",
+        "ring_unanswered",
+        "latest_state_now_unreachable",
+    ],
+)
+def test_contact_state_classes(text, intent, urgency):
+    event = extract_event(text, provider="rules")
+    assert event.intent.value == intent
+    assert event.urgency.value == urgency
+    if intent == "customer_unreachable":
+        assert event.confidence == 0.5
+    else:
+        assert event.confidence == 0.0
 

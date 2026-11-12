@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import httpx
@@ -77,14 +78,21 @@ _ACTION = {
 
 @dataclass(frozen=True, slots=True)
 class _Rule:
-    """A keyword rule. ``any_of`` is a substring OR; ``all_groups`` is AND-of-ORs."""
+    """A keyword rule. ``any_of`` is a substring OR; ``all_groups`` is AND-of-ORs.
+
+    ``detect`` replaces both when set. The customer-unreachable rule uses it
+    so failure is bound to the phone channel instead of a bag of words.
+    """
 
     intent: Intent
     urgency: Urgency
     any_of: tuple[str, ...] = ()
     all_groups: tuple[tuple[str, ...], ...] = ()
+    detect: Callable[[str], bool] | None = None
 
     def matches(self, haystack: str) -> bool:
+        if self.detect is not None:
+            return self.detect(haystack)
         if self.any_of and any(needle in haystack for needle in self.any_of):
             return True
         if self.all_groups and all(
@@ -92,6 +100,104 @@ class _Rule:
         ):
             return True
         return False
+
+
+# Failed contact is a phrase in which the failure term is bound to the
+# phone / line / number / call channel, or an inherently contact-failure
+# phrase. It is not a bag of words. A rider saying they themselves are
+# busy is never a failed call. When a success signal and a failure phrase
+# both appear, the latest span (by end index) is the current state:
+# "pehle nahi uthaya, ab baat ho gayi" is a completed call; the reverse
+# is still unreachable.
+_CHANNEL = r"(?:phone|mobile|call|line|number)"
+# At most five tokens between the channel word and the failure term.
+_GAP = r"(?:\W+\w+){0,5}"
+_UTHA_FAIL = r"(?:nahi\s+utha\w*|utha(?:ya|ta|te)?\s+nahi)"
+
+_FAILED_CONTACT: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("channel_busy", re.compile(rf"\b{_CHANNEL}{_GAP}\W+busy\b")),
+    ("busy_channel", re.compile(rf"\bbusy{_GAP}\W+{_CHANNEL}\b")),
+    ("switched_off", re.compile(r"\bswitch(?:ed)?\s+off\b")),
+    ("channel_off", re.compile(rf"\b{_CHANNEL}{_GAP}\W+off\b")),
+    ("channel_band", re.compile(r"\b(?:phone|mobile)(?:\W+\w+){0,3}\W+band\b")),
+    ("line_not_found", re.compile(r"\bline\b(?:\W+\w+){0,3}\W+nahi\s+mil")),
+    ("not_connecting", re.compile(rf"\b{_CHANNEL}{_GAP}\W+nahi\s+lag")),
+    (
+        "channel_not_picking_up",
+        re.compile(
+            rf"\b{_CHANNEL}{_GAP}\W+{_UTHA_FAIL}"
+            rf"|\b{_UTHA_FAIL}{_GAP}\W+{_CHANNEL}\b"
+            rf"|\bpickup\s+nahi(?:\W+\w+){{0,3}}\W+{_CHANNEL}"
+            rf"|\b{_CHANNEL}(?:\W+\w+){{0,3}}\W+pickup\s+nahi"
+        ),
+    ),
+    (
+        "not_picking_up",
+        re.compile(
+            r"\b(?:nahi\s+utha\w*|utha(?:ya|ta|te)?\s+nahi|not\s+picking"
+            r"|not\s+answering|no\s+answer|unreachable|not\s+reachable)\b"
+        ),
+    ),
+    ("receive_failed", re.compile(r"\breceive\s+(?:hi\s+)?nahi\b|\breceive\s+ki\s+nahi\b")),
+    (
+        "ring_unanswered",
+        re.compile(r"\bring\s+ja\s+rahi(?:\W+\w+){0,6}\W+utha\s+nahi"),
+    ),
+)
+
+_SUCCESS_CONTACT: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("baat_ho_gayi", re.compile(r"\bbaat\s+ho\s+(?:gayi|gai|gaya|chuki|chuka)\b")),
+    (
+        "receive_ok",
+        re.compile(r"\breceive\s+(?:kar\s+liya|kar\s+li|kiya|ki)\b(?!\s+nahi)"),
+    ),
+    ("utha_liya", re.compile(r"\butha\s+liya\b")),
+    ("call_connected", re.compile(r"\b(?:call\s+)?connect(?:ed)?\s+ho\s+gaya\b")),
+    ("confirm_kar_di", re.compile(r"\bconfirm\s+kar\s+d(?:i|iya|iye)\b")),
+)
+
+# First-person "I am busy", not a busy phone line.
+_RIDER_BUSY = re.compile(
+    r"\bmain\b(?:\W+\w+){0,8}\W+busy\s+(?:hoon|hun|hu)\b|\bbusy\s+(?:hoon|hun|hu)\b"
+)
+
+
+def _spans_overlap(left: tuple[int, int], right: tuple[int, int]) -> bool:
+    return left[0] < right[1] and right[0] < left[1]
+
+
+def _is_rider_self_busy(haystack: str, match: re.Match[str]) -> bool:
+    return any(
+        _spans_overlap(match.span(), rider.span()) for rider in _RIDER_BUSY.finditer(haystack)
+    )
+
+
+def _contact_spans(haystack: str) -> tuple[list[int], list[int]]:
+    """Return end indexes of failure and success contact matches."""
+    failures: list[int] = []
+    for name, pattern in _FAILED_CONTACT:
+        for match in pattern.finditer(haystack):
+            if name in {"channel_busy", "busy_channel"} and _is_rider_self_busy(
+                haystack, match
+            ):
+                continue
+            failures.append(match.end())
+    successes = [
+        match.end()
+        for _, pattern in _SUCCESS_CONTACT
+        for match in pattern.finditer(haystack)
+    ]
+    return failures, successes
+
+
+def _is_failed_contact(haystack: str) -> bool:
+    """True when the latest contact state is a channel-bound failure."""
+    failures, successes = _contact_spans(haystack)
+    if not failures:
+        return False
+    if not successes:
+        return True
+    return max(failures) > max(successes)
 
 
 # Needles are general Hinglish / transliterated English paraphrases a rider
@@ -138,30 +244,7 @@ _RULES: tuple[_Rule, ...] = (
     _Rule(
         Intent.customer_unreachable,
         Urgency.high,
-        any_of=(
-            "nahi utha",
-            "phone nahi",
-            "not picking",
-            "unreachable",
-            "receive nahi",
-            "receive hi nahi",
-            "switch off",
-            "switched off",
-            "mobile off",
-            "phone off",
-            "line nahi mil",
-            "pickup nahi kar raha",
-            "not answering",
-            "no answer",
-            "mobile band",
-            "phone band",
-        ),
-        # "receive" alone is not a failure: "phone receive kar liya" is an
-        # answered call. Failure forms stay in any_of ("receive nahi").
-        all_groups=(
-            ("phone", "mobile", "call"),
-            ("switch off", "switched off", "line nahi", "busy"),
-        ),
+        detect=_is_failed_contact,
     ),
     _Rule(
         Intent.address_issue,
