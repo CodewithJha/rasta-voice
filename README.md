@@ -2,7 +2,7 @@
 
 A noise-robust voice copilot for delivery riders. The rider speaks Hinglish on a phone-quality line ("bhaiya gate band hai, customer phone nahi utha raha"). Gnani Prisma transcribes it, a small extractor turns it into a dispatch event, and Gnani Timbre will speak a short confirmation back.
 
-This repository is the skeleton: one working path from an audio upload to that event, on the real Gnani APIs. There is no mock or offline mode. Without `GNANI_API_KEY` the speech routes answer `503` with a clear message. The rest of the product is sequenced in [docs/PLAN.md](docs/PLAN.md). An honest production-readiness register, including the definition of done, is in [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md).
+This repository is the skeleton: one working path from an audio upload to that event, on the real Gnani APIs. There is no mock or offline mode. Without `GNANI_API_KEY` the speech routes answer `503` with a clear message. The rest of the product is sequenced in [docs/PLAN.md](docs/PLAN.md). An honest production-readiness register, including the definition of done, is in [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md). How two people open branches and pull requests is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Built for Gnani AI's Great Indian AI Internship Challenge. Target award: **Noise Canceller**. Speech is synthetic. No real phone numbers, calls, or customer records.
 

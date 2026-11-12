@@ -3,3 +3,4 @@
 -e ./benchmark
 pytest>=8
 ruff>=0.8
+jsonschema>=4

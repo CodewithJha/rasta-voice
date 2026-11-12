@@ -1,0 +1,43 @@
+name: Bug
+description: Something is broken in the app, benchmark, or docs.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Use this form for a defect. For planned work, use the Task template."
+  - type: input
+    id: owner
+    attributes:
+      label: Owner
+      description: Who should take this? Member A (benchmark and audio) or Member B (app and realtime).
+      placeholder: "Member A or Member B"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is wrong, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: Commands, clicks, and the environment (local or the public host). Do not paste API keys or passcodes.
+    validations:
+      required: true
+  - type: textarea
+    id: files
+    attributes:
+      label: Files to touch
+      description: Paths you think need to change. Leave blank if you are not sure.
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Rules
+      options:
+        - label: The report contains no secrets and no real personal data.
+          required: true
+        - label: This is a real defect, not a request to add a mock or offline mode.
+          required: true

@@ -1,0 +1,15 @@
+# Both teammates are owners of every path, so a pull request always
+# requests a review from the other person. An author cannot approve
+# their own pull request.
+
+* @CodewithJha @himanshu748
+
+# Shared contracts. Changes here can break both trees at once. Land
+# them in their own pull request and wait for both people to agree
+# before merging, even though GitHub only requires one approving review.
+
+/shared/ @CodewithJha @himanshu748
+/backend/rasta/schema.py @CodewithJha @himanshu748
+/frontend/src/types.ts @CodewithJha @himanshu748
+/gnani_client/ @CodewithJha @himanshu748
+/.github/ @CodewithJha @himanshu748
