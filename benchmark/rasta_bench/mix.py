@@ -6,18 +6,15 @@ SNR labels describe signal/noise power before PCM clipping, not recorded noise.
 
 import argparse
 import hashlib
-import io
 import json
 import math
-import os
 import random
 import re
 import sys
-import tempfile
-import wave
-from array import array
 from dataclasses import dataclass
 from pathlib import Path
+
+from rasta_bench.wavio import atomic_write, pcm_wav, read_pcm
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "benchmark/data"
@@ -105,16 +102,8 @@ def mix_samples(signal: list[float], noise: list[float], snr_db: float) -> list[
 
 
 def wav_bytes(samples: list[float], sample_rate: int) -> bytes:
-    pcm = array("h", (max(-32768, min(32767, round(value * 32768))) for value in samples))
-    if sys.byteorder != "little":
-        pcm.byteswap()
-    output = io.BytesIO()
-    with wave.open(output, "wb") as wav:
-        wav.setnchannels(1)
-        wav.setsampwidth(2)
-        wav.setframerate(sample_rate)
-        wav.writeframes(pcm.tobytes())
-    return output.getvalue()
+    return pcm_wav((max(-32768, min(32767, round(value * 32768))) for value in samples),
+                   sample_rate)
 
 
 @dataclass
@@ -142,42 +131,16 @@ def _load_clips(manifest: Path) -> list[CleanClip]:
             blob = path.read_bytes()
             if "sha256" in row and hashlib.sha256(blob).hexdigest() != row["sha256"]:
                 raise ValueError("source SHA-256 does not match clean manifest")
-            with wave.open(io.BytesIO(blob), "rb") as wav:
-                rate = wav.getframerate()
-                if wav.getnchannels() != 1 or wav.getsampwidth() != 2:
-                    raise ValueError("source must be mono 16-bit PCM WAV")
-                # Timbre uses placeholder frame counts. Read the bytes actually present.
-                raw = wav.readframes(len(blob) // 2 + 1)
-            if not raw or len(raw) % 2 or row["sample_rate"] != rate:
+            pcm, rate = read_pcm(blob)
+            if row["sample_rate"] != rate:
                 raise ValueError("source PCM data or sample rate is inconsistent")
-            pcm = array("h")
-            pcm.frombytes(raw)
-            if sys.byteorder != "little":
-                pcm.byteswap()
             clips.append(CleanClip(row, path, blob, [sample / 32768 for sample in pcm], rate))
             seen.add(row["id"])
-        except (ValueError, KeyError, TypeError, OSError, wave.Error, EOFError) as exc:
+        except (ValueError, KeyError, TypeError, OSError) as exc:
             raise ValueError(f"clean manifest line {number}: {exc}") from exc
     if not clips:
         raise ValueError("clean manifest is empty")
     return clips
-
-
-def _write_atomic(path: Path, blob: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as file:
-        temporary = Path(file.name)
-        try:
-            file.write(blob)
-            file.flush()
-            os.fsync(file.fileno())
-        except BaseException:
-            temporary.unlink(missing_ok=True)
-            raise
-    try:
-        temporary.replace(path)
-    finally:
-        temporary.unlink(missing_ok=True)
 
 
 def generate_mixes(
@@ -205,7 +168,7 @@ def generate_mixes(
     def emit(clip: CleanClip, kind: str, snr: int | None, seed: int | None,
              blob: bytes, **details) -> None:
         path = audio_dir / f"{clip.row['id']}__{kind}__{snr if snr is not None else 'clean'}.wav"
-        _write_atomic(path, blob)
+        atomic_write(path, blob)
         rows.append({
             "id": clip.row["id"], "noise": kind, "snr_db": snr,
             "path": path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else str(path),
@@ -236,7 +199,7 @@ def generate_mixes(
                 emit(clip, kind, snr, seed, wav_bytes(mixed, clip.rate),
                      snr_basis="pre_clip", clipped_samples=clipped, **details)
         print(f"{clip.row['id']}: 1 clean copy and 15 synthetic mixes", flush=True)
-    _write_atomic(manifest, "".join(json.dumps(row, ensure_ascii=False) + "\n"
+    atomic_write(manifest, "".join(json.dumps(row, ensure_ascii=False) + "\n"
                                     for row in rows).encode("utf-8"))
     return rows
 
