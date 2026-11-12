@@ -9,13 +9,9 @@ successful live run should be committed as benchmark/data/clean_manifest.jsonl.
 
 import argparse
 import hashlib
-import io
 import json
-import os
 import sys
-import tempfile
 import time
-import wave
 from pathlib import Path
 
 import httpx
@@ -25,6 +21,7 @@ from gnani_client.errors import GnaniError
 from gnani_client.tts import TimbreTTS
 from gnani_client.wav import wav_duration_seconds
 from rasta_bench.corpus import load_utterances
+from rasta_bench.wavio import atomic_write, read_pcm
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "benchmark/data"
@@ -32,23 +29,6 @@ MODEL = "timbre-v3.0"
 VOICE = "Shivani"
 LANGUAGE = "hi-en"
 SAMPLE_RATE = 16000
-
-
-def _atomic_write(path: Path, content: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as tmp:
-        temporary = Path(tmp.name)
-        try:
-            tmp.write(content)
-            tmp.flush()
-            os.fsync(tmp.fileno())
-        except BaseException:
-            temporary.unlink(missing_ok=True)
-            raise
-    try:
-        temporary.replace(path)
-    finally:
-        temporary.unlink(missing_ok=True)
 
 
 def _read_manifest(path: Path) -> dict[str, dict]:
@@ -70,19 +50,11 @@ def _read_manifest(path: Path) -> dict[str, dict]:
 
 def _duration(blob: bytes) -> float:
     """Validate PCM format and measure actual bytes, not streaming frame counts."""
-    try:
-        with wave.open(io.BytesIO(blob), "rb") as audio:
-            if (audio.getframerate(), audio.getnchannels(), audio.getsampwidth()) != (
-                SAMPLE_RATE, 1, 2,
-            ):
-                raise ValueError("Timbre must return mono 16-bit PCM WAV at 16000 Hz")
-            pcm = audio.readframes(len(blob) // 2 + 1)
-    except (wave.Error, EOFError) as exc:
-        raise ValueError("Timbre returned an invalid PCM WAV") from exc
+    samples, rate = read_pcm(blob, sample_rate=SAMPLE_RATE)
     duration = wav_duration_seconds(blob)
-    if not pcm or len(pcm) % 2 or duration is None or duration <= 0:
+    if duration is None or duration <= 0:
         raise ValueError("Timbre returned empty or incomplete PCM audio")
-    if duration != round(len(pcm) / (SAMPLE_RATE * 2), 3):
+    if duration != round(len(samples) / rate, 3):
         raise ValueError("Timbre returned inconsistent PCM timing metadata")
     return duration
 
@@ -153,7 +125,7 @@ def generate_clean_clips(
     def checkpoint() -> list[dict]:
         entries = [completed[row["id"]] for row in rows if row["id"] in completed]
         content = "".join(json.dumps(entry, ensure_ascii=False) + "\n" for entry in entries)
-        _atomic_write(manifest, content.encode("utf-8"))
+        atomic_write(manifest, content.encode("utf-8"))
         return entries
 
     with httpx.Client(timeout=60.0) as http:
@@ -164,7 +136,7 @@ def generate_clean_clips(
             print(f"{expected['id']}: requesting Timbre speech", flush=True)
             blob = _synthesize(tts, expected["spoken_text"])
             duration = _duration(blob)
-            _atomic_write(path, blob)
+            atomic_write(path, blob)
             completed[expected["id"]] = {
                 **expected, "sha256": hashlib.sha256(blob).hexdigest(), "duration_s": duration,
             }
