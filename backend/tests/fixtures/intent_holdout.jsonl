@@ -1,0 +1,24 @@
+{"id":"h01","intent":"customer_unreachable","order_id":"102","eta_minutes":null,"text":"yaar yeh aadmi call receive hi nahi kar raha, order 102, main yahin wait kar raha"}
+{"id":"h02","intent":"customer_unreachable","order_id":"4","eta_minutes":null,"text":"customer ka mobile switch off hai, order chaar pe do baar try ho chuka"}
+{"id":"h03","intent":"customer_unreachable","order_id":"18","eta_minutes":null,"text":"dispatch, is bande ko line nahi mil rahi mujhe, order eighteen"}
+{"id":"h04","intent":"customer_unreachable","order_id":"18","eta_minutes":null,"text":"andar gate lock hai aur koi pickup nahi kar raha phone, order 18"}
+{"id":"h05","intent":"address_issue","order_id":"4","eta_minutes":null,"text":"yeh building hi galat hai, map kisi aur society pe le aaya, order 4"}
+{"id":"h06","intent":"address_issue","order_id":"102","eta_minutes":null,"text":"gali ka entry closed hai, security andar nahi jaane de raha, order 102"}
+{"id":"h07","intent":"address_issue","order_id":"18","eta_minutes":null,"text":"customer ne wing B bola tha, main wing D mein khada hoon, address clear nahi, order eighteen"}
+{"id":"h08","intent":"address_issue","order_id":null,"eta_minutes":null,"text":"rasta khud stuck hai paani ki wajah se, drop point tak nahi jaa paa raha"}
+{"id":"h09","intent":"item_missing","order_id":"18","eta_minutes":null,"text":"parcel khol ke dekha to ek saman hi nahi mila, order 18"}
+{"id":"h10","intent":"item_missing","order_id":"4","eta_minutes":null,"text":"hub ne galat bag de diya, andar ka sku missing hai, order 4"}
+{"id":"h11","intent":"item_missing","order_id":"102","eta_minutes":null,"text":"quantity short hai, do cheezein honi thi ek hi hai, order 102"}
+{"id":"h12","intent":"item_missing","order_id":null,"eta_minutes":null,"text":"food packet ke saath dip nahi diya, item nahi hai pouch mein"}
+{"id":"h13","intent":"delay","order_id":"18","eta_minutes":20,"text":"bridge pe lamba queue hai, bees minute extra lagenge, order 18"}
+{"id":"h14","intent":"delay","order_id":"4","eta_minutes":10,"text":"baahar barish mein atak gaya hoon, das min late delivery hogi, order 4"}
+{"id":"h15","intent":"delay","order_id":"102","eta_minutes":15,"text":"signal pe lamba wait, eta fifteen minutes, order 102"}
+{"id":"h16","intent":"delay","order_id":null,"eta_minutes":null,"text":"time zyada lag raha hai aaj, koi naya eta nahi bol sakta"}
+{"id":"h17","intent":"accident_sos","order_id":"18","eta_minutes":null,"text":"saamne ki gaadi se takkar ho gayi, pair mein dard hai, order 18 rok do"}
+{"id":"h18","intent":"accident_sos","order_id":null,"eta_minutes":null,"text":"main zameen pe hoon, bike palat gayi, jaldi help bhejo"}
+{"id":"h19","intent":"accident_sos","order_id":null,"eta_minutes":null,"text":"bhai sahab meri tabiyat kharab, chot lagi hai, hospital le jaana padega"}
+{"id":"h20","intent":"accident_sos","order_id":"4","eta_minutes":null,"text":"log yahan jama ho gaye, meri bike gir gayi sadak pe, order 4"}
+{"id":"h21","intent":"other","order_id":null,"eta_minutes":null,"text":"canteen se chai le li, ab next drop ki taraf nikal raha hoon"}
+{"id":"h22","intent":"other","order_id":null,"eta_minutes":null,"text":"radio check, awaaz aa rahi hai? main available hoon"}
+{"id":"h23","intent":"other","order_id":null,"eta_minutes":null,"text":"helmet strap toot gaya, naya leke aata hoon phir start"}
+{"id":"h24","intent":"other","order_id":null,"eta_minutes":null,"text":"bhaiya salary slip bhej dena, meri taraf se koi issue nahi hai"}

@@ -1,0 +1,30 @@
+{"id":"g01","intent":"customer_unreachable","order_id":"18","eta_minutes":null,"text":"bhaiya gate band hai, customer phone nahi utha raha, order 18"}
+{"id":"g02","intent":"customer_unreachable","order_id":"18","eta_minutes":null,"text":"order eighteen ke customer ko call kiya, not picking up"}
+{"id":"g03","intent":"customer_unreachable","order_id":"102","eta_minutes":null,"text":"customer unreachable hai, order 102 pe khada hoon"}
+{"id":"g04","intent":"customer_unreachable","order_id":null,"eta_minutes":null,"text":"phone nahi utha rahe, bell bhi bajayi"}
+{"id":"g05","intent":"customer_unreachable","order_id":"4","eta_minutes":null,"text":"order chaar, do baar try kiya, phone nahi lag raha"}
+{"id":"g06","intent":"address_issue","order_id":"18","eta_minutes":null,"text":"bhaiya gate band hai, andar nahi ja pa raha, order 18"}
+{"id":"g07","intent":"address_issue","order_id":"4","eta_minutes":null,"text":"address galat lag raha hai, order 4"}
+{"id":"g08","intent":"address_issue","order_id":"102","eta_minutes":null,"text":"rasta band hai is gali mein, order 102"}
+{"id":"g09","intent":"address_issue","order_id":null,"eta_minutes":null,"text":"location galat diya hua hai customer ne"}
+{"id":"g10","intent":"address_issue","order_id":"18","eta_minutes":null,"text":"galat address hai, pin bhi match nahi kar raha, order eighteen"}
+{"id":"g11","intent":"item_missing","order_id":"4","eta_minutes":null,"text":"order 4 mein ek item missing"}
+{"id":"g12","intent":"item_missing","order_id":"18","eta_minutes":null,"text":"bhaiya bag check kiya, item nahi hai, order 18"}
+{"id":"g13","intent":"item_missing","order_id":"102","eta_minutes":null,"text":"missing item mila packing mein, order 102"}
+{"id":"g14","intent":"item_missing","order_id":"4","eta_minutes":null,"text":"ek item kam pad raha hai order chaar mein"}
+{"id":"g15","intent":"item_missing","order_id":null,"eta_minutes":null,"text":"item missing hai, kitchen se confirm karo"}
+{"id":"g16","intent":"delay","order_id":"18","eta_minutes":20,"text":"bhaiya bees minute late hoon, traffic mein, order 18"}
+{"id":"g17","intent":"delay","order_id":"4","eta_minutes":10,"text":"delay ho raha hai, das minute aur lagenge, order 4"}
+{"id":"g18","intent":"delay","order_id":"102","eta_minutes":15,"text":"order 102, der lag rahi hai, pandrah min"}
+{"id":"g19","intent":"delay","order_id":null,"eta_minutes":10,"text":"traffic jam ke kaaran late ho jaunga, eta 10 min"}
+{"id":"g20","intent":"delay","order_id":"18","eta_minutes":null,"text":"der ho rahi hai, koi eta nahi de sakta abhi, order eighteen"}
+{"id":"g21","intent":"accident_sos","order_id":null,"eta_minutes":null,"text":"bhaiya accident ho gaya, main gir gaya"}
+{"id":"g22","intent":"accident_sos","order_id":"18","eta_minutes":null,"text":"hadsa ho gaya order 18 pe, sos bhej do"}
+{"id":"g23","intent":"accident_sos","order_id":null,"eta_minutes":null,"text":"bike gir gayi, thoda chot lagi"}
+{"id":"g24","intent":"accident_sos","order_id":null,"eta_minutes":null,"text":"sos, rider ko help chahiye"}
+{"id":"g25","intent":"accident_sos","order_id":"4","eta_minutes":null,"text":"accident ho gaya, order 4 cancel mat karna, pehle help bhejo"}
+{"id":"g26","intent":"other","order_id":null,"eta_minutes":null,"text":"bas theek hoon, paani pi ke nikalta hoon"}
+{"id":"g27","intent":"other","order_id":null,"eta_minutes":null,"text":"hub pe pahunch gaya, next order ka wait kar raha hoon"}
+{"id":"g28","intent":"other","order_id":null,"eta_minutes":null,"text":"battery low hai, thodi der mein charge karta hoon"}
+{"id":"g29","intent":"other","order_id":null,"eta_minutes":null,"text":"ok hoon bhaiya, drop complete, thanks"}
+{"id":"g30","intent":"other","order_id":null,"eta_minutes":null,"text":"thoda paani pi raha hoon, phir start karta hoon"}
