@@ -79,3 +79,37 @@ def test_missing_llm_key_falls_back_to_rules(monkeypatch):
     event = extract_event("order 4 mein ek item missing", provider="groq")
     assert event.intent.value == "item_missing"
     assert event.confidence == 0.5
+
+
+def test_answered_call_is_not_unreachable():
+    event = extract_event(
+        "customer ne phone receive kar liya, address clear hai",
+        provider="rules",
+    )
+    assert event.intent.value == "other"
+    assert event.urgency.value == "low"
+    assert event.confidence == 0.0
+
+    event = extract_event(
+        "customer ne call receive ki aur location confirm kar di",
+        provider="rules",
+    )
+    assert event.intent.value == "other"
+    assert event.urgency.value == "low"
+    assert event.confidence == 0.0
+
+
+def test_failed_receive_and_busy_line_still_match():
+    event = extract_event("call receive hi nahi kar raha, order 18", provider="rules")
+    assert event.intent.value == "customer_unreachable"
+    assert event.urgency.value == "high"
+    assert event.order_id == "18"
+
+    event = extract_event("customer ka phone receive nahi ho raha, order 4", provider="rules")
+    assert event.intent.value == "customer_unreachable"
+    assert event.order_id == "4"
+
+    event = extract_event("customer ka mobile busy hai, order 102", provider="rules")
+    assert event.intent.value == "customer_unreachable"
+    assert event.order_id == "102"
+

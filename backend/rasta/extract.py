@@ -156,9 +156,11 @@ _RULES: tuple[_Rule, ...] = (
             "mobile band",
             "phone band",
         ),
+        # "receive" alone is not a failure: "phone receive kar liya" is an
+        # answered call. Failure forms stay in any_of ("receive nahi").
         all_groups=(
             ("phone", "mobile", "call"),
-            ("switch off", "switched off", "receive", "line nahi"),
+            ("switch off", "switched off", "line nahi", "busy"),
         ),
     ),
     _Rule(
