@@ -1,7 +1,8 @@
 """Typed process settings loaded from the environment.
 
 Issue 02 owns the LLM keys, model ids, timeout, and retry cap. Issue 04
-owns the in-memory event-store capacity. Call ``get_settings()`` rather
+owns the in-memory event-store capacity. Issue 07 owns the realtime
+stream limits, timeouts, frame size, and CORS origin allow list. Call ``get_settings()`` rather
 than ``os.environ`` so a typo, a negative timeout, or a non-positive
 capacity fails in one place. ``clear_settings_cache`` exists so tests
 can change the env without restarting the process.
@@ -30,6 +31,16 @@ ENV_GEMINI_MODEL = "GEMINI_MODEL"
 ENV_GROQ_BASE_URL = "GROQ_BASE_URL"
 ENV_GEMINI_BASE_URL = "GEMINI_BASE_URL"
 ENV_EVENT_STORE_CAPACITY = "EVENT_STORE_CAPACITY"
+ENV_RASTA_MAX_STREAMS = "RASTA_MAX_STREAMS"
+ENV_STREAM_SESSION_SECONDS = "RASTA_STREAM_SESSION_SECONDS"
+ENV_STREAM_IDLE_SECONDS = "RASTA_STREAM_IDLE_SECONDS"
+ENV_STREAM_HEARTBEAT_SECONDS = "RASTA_STREAM_HEARTBEAT_SECONDS"
+ENV_STREAM_DRAIN_SECONDS = "RASTA_STREAM_DRAIN_SECONDS"
+ENV_STREAM_QUIET_SECONDS = "RASTA_STREAM_QUIET_SECONDS"
+ENV_STREAM_FRAME_BYTES = "RASTA_STREAM_FRAME_BYTES"
+ENV_STREAM_QUEUE_MAX = "RASTA_STREAM_QUEUE_MAX"
+ENV_STREAM_SAMPLE_RATE = "RASTA_STREAM_SAMPLE_RATE"
+ENV_CORS_ALLOW_ORIGINS = "CORS_ALLOW_ORIGINS"
 
 # Checked 12 Nov 2026 against Groq deprecations: llama-3.1-8b-instant was
 # withdrawn for free and developer tiers on 16 Aug 2026. openai/gpt-oss-20b
@@ -55,6 +66,30 @@ DEFAULT_LLM_RETRY_BACKOFF_SECONDS = 0.25
 DEFAULT_EVENT_STORE_CAPACITY = 200
 # Hard ceiling so a typo cannot allocate unbounded memory in one process.
 MAX_EVENT_STORE_CAPACITY = 10_000
+
+# Issue 07 realtime stream. Defaults match the Prisma session cap, idle
+# default, and 1024-byte frame size from the current streaming docs.
+DEFAULT_MAX_STREAMS = 2
+MAX_MAX_STREAMS = 32
+DEFAULT_STREAM_SESSION_SECONDS = 900.0
+MAX_STREAM_SESSION_SECONDS = 3600.0
+DEFAULT_STREAM_IDLE_SECONDS = 60.0
+MAX_STREAM_IDLE_SECONDS = 900.0
+DEFAULT_STREAM_HEARTBEAT_SECONDS = 20.0
+MAX_STREAM_HEARTBEAT_SECONDS = 300.0
+DEFAULT_STREAM_DRAIN_SECONDS = 8.0
+MAX_STREAM_DRAIN_SECONDS = 60.0
+DEFAULT_STREAM_QUIET_SECONDS = 1.0
+MAX_STREAM_QUIET_SECONDS = 30.0
+DEFAULT_STREAM_FRAME_BYTES = 1024
+MAX_STREAM_FRAME_BYTES = 65_536
+DEFAULT_STREAM_QUEUE_MAX = 32
+MAX_STREAM_QUEUE_MAX = 1024
+DEFAULT_STREAM_SAMPLE_RATE = 16000
+ALLOWED_STREAM_SAMPLE_RATES = frozenset({8000, 16000, 44100, 48000})
+DEFAULT_CORS_ALLOW_ORIGINS = (
+    "http://localhost:5173,http://127.0.0.1:5173"
+)
 
 ALLOWED_PROVIDERS = frozenset({"rules", "groq", "gemini"})
 MAX_ALLOWED_RETRIES = 1
@@ -131,6 +166,60 @@ def _positive_int(name: str, default: int, maximum: int) -> int:
     return value
 
 
+def _bounded_float(name: str, default: float, maximum: float) -> float:
+    """Parse a positive finite float no greater than ``maximum``."""
+    value = _positive_float(name, default)
+    if value > maximum:
+        raise SettingsError(
+            f"{name} must be a positive number no greater than {maximum}, got {value!r}"
+        )
+    return value
+
+
+def _even_positive_int(name: str, default: int, maximum: int) -> int:
+    """Parse a positive even integer in ``2..maximum`` (16-bit PCM frame size)."""
+    value = _positive_int(name, default, maximum)
+    if value % 2:
+        raise SettingsError(f"{name} must be an even integer, got {value!r}")
+    return value
+
+
+def _sample_rate(name: str, default: int) -> int:
+    raw = _raw(name)
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise SettingsError(
+            f"{name} must be one of {sorted(ALLOWED_STREAM_SAMPLE_RATES)}, got {raw!r}"
+        ) from exc
+    if value not in ALLOWED_STREAM_SAMPLE_RATES:
+        raise SettingsError(
+            f"{name} must be one of {sorted(ALLOWED_STREAM_SAMPLE_RATES)}, got {raw!r}"
+        )
+    return value
+
+
+def _origin_list(name: str, default: str) -> tuple[str, ...]:
+    """Comma-separated exact Origins. Unset uses ``default``; empty is an empty list.
+
+    ``*`` is rejected so a typo cannot open the WebSocket to every site.
+    Issue 27 reuses this list for HTTP CORS.
+    """
+    if name in environ:
+        raw = environ.get(name, "").strip()
+    else:
+        raw = default
+    if not raw:
+        return ()
+    origins = tuple(part.strip() for part in raw.split(",") if part.strip())
+    if any(origin == "*" for origin in origins):
+        raise SettingsError(f"{name} must not contain *")
+    return origins
+
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     """Validated process settings for this process."""
@@ -146,6 +235,16 @@ class Settings:
     groq_api_key: str
     gemini_api_key: str
     event_store_capacity: int
+    max_streams: int
+    stream_session_seconds: float
+    stream_idle_seconds: float
+    stream_heartbeat_seconds: float
+    stream_drain_seconds: float
+    stream_quiet_seconds: float
+    stream_frame_bytes: int
+    stream_queue_max: int
+    stream_sample_rate: int
+    cors_allow_origins: tuple[str, ...]
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -190,7 +289,57 @@ class Settings:
                 DEFAULT_EVENT_STORE_CAPACITY,
                 MAX_EVENT_STORE_CAPACITY,
             ),
+            max_streams=_positive_int(
+                ENV_RASTA_MAX_STREAMS, DEFAULT_MAX_STREAMS, MAX_MAX_STREAMS
+            ),
+            stream_session_seconds=_bounded_float(
+                ENV_STREAM_SESSION_SECONDS,
+                DEFAULT_STREAM_SESSION_SECONDS,
+                MAX_STREAM_SESSION_SECONDS,
+            ),
+            stream_idle_seconds=_bounded_float(
+                ENV_STREAM_IDLE_SECONDS,
+                DEFAULT_STREAM_IDLE_SECONDS,
+                MAX_STREAM_IDLE_SECONDS,
+            ),
+            stream_heartbeat_seconds=_bounded_float(
+                ENV_STREAM_HEARTBEAT_SECONDS,
+                DEFAULT_STREAM_HEARTBEAT_SECONDS,
+                MAX_STREAM_HEARTBEAT_SECONDS,
+            ),
+            stream_drain_seconds=_bounded_float(
+                ENV_STREAM_DRAIN_SECONDS,
+                DEFAULT_STREAM_DRAIN_SECONDS,
+                MAX_STREAM_DRAIN_SECONDS,
+            ),
+            stream_quiet_seconds=_bounded_float(
+                ENV_STREAM_QUIET_SECONDS,
+                DEFAULT_STREAM_QUIET_SECONDS,
+                MAX_STREAM_QUIET_SECONDS,
+            ),
+            stream_frame_bytes=_even_positive_int(
+                ENV_STREAM_FRAME_BYTES,
+                DEFAULT_STREAM_FRAME_BYTES,
+                MAX_STREAM_FRAME_BYTES,
+            ),
+            stream_queue_max=_positive_int(
+                ENV_STREAM_QUEUE_MAX, DEFAULT_STREAM_QUEUE_MAX, MAX_STREAM_QUEUE_MAX
+            ),
+            stream_sample_rate=_sample_rate(
+                ENV_STREAM_SAMPLE_RATE, DEFAULT_STREAM_SAMPLE_RATE
+            ),
+            cors_allow_origins=_origin_list(
+                ENV_CORS_ALLOW_ORIGINS, DEFAULT_CORS_ALLOW_ORIGINS
+            ),
         )
+
+    def prisma_idle_timeout_sec(self) -> int:
+        """Idle seconds to send as ``x-idle-timeout-sec`` (Prisma range 5–900)."""
+        return min(900, max(5, int(round(self.stream_idle_seconds))))
+
+    def frame_seconds(self) -> float:
+        """Playback duration of one PCM frame at the configured sample rate."""
+        return self.stream_frame_bytes / (2 * self.stream_sample_rate)
 
     def key_for(self, provider: str) -> str:
         """Return the API key for ``provider``, or an empty string."""

@@ -4,10 +4,16 @@ import pytest
 
 from rasta.extractors.http import close_shared_client, get_shared_client
 from rasta.settings import (
+    DEFAULT_CORS_ALLOW_ORIGINS,
     DEFAULT_EVENT_STORE_CAPACITY,
     DEFAULT_GEMINI_MODEL,
     DEFAULT_GROQ_MODEL,
     DEFAULT_LLM_TIMEOUT_SECONDS,
+    DEFAULT_MAX_STREAMS,
+    DEFAULT_STREAM_FRAME_BYTES,
+    DEFAULT_STREAM_IDLE_SECONDS,
+    DEFAULT_STREAM_SAMPLE_RATE,
+    DEFAULT_STREAM_SESSION_SECONDS,
     SettingsError,
     clear_settings_cache,
     get_settings,
@@ -34,6 +40,15 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch):
         "GROQ_API_KEY",
         "GEMINI_API_KEY",
         "EVENT_STORE_CAPACITY",
+        "RASTA_MAX_STREAMS",
+        "RASTA_STREAM_SESSION_SECONDS",
+        "RASTA_STREAM_IDLE_SECONDS",
+        "RASTA_STREAM_HEARTBEAT_SECONDS",
+        "RASTA_STREAM_DRAIN_SECONDS",
+        "RASTA_STREAM_FRAME_BYTES",
+        "RASTA_STREAM_QUEUE_MAX",
+        "RASTA_STREAM_SAMPLE_RATE",
+        "CORS_ALLOW_ORIGINS",
     ):
         monkeypatch.delenv(name, raising=False)
     clear_settings_cache()
@@ -46,6 +61,17 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch):
     assert settings.groq_api_key == ""
     assert settings.gemini_api_key == ""
     assert settings.event_store_capacity == DEFAULT_EVENT_STORE_CAPACITY
+    assert settings.max_streams == DEFAULT_MAX_STREAMS
+    assert settings.stream_session_seconds == DEFAULT_STREAM_SESSION_SECONDS
+    assert settings.stream_idle_seconds == DEFAULT_STREAM_IDLE_SECONDS
+    assert settings.stream_frame_bytes == DEFAULT_STREAM_FRAME_BYTES
+    assert settings.stream_sample_rate == DEFAULT_STREAM_SAMPLE_RATE
+    assert settings.cors_allow_origins == (
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    )
+    # The constant is the env default string; the field is the parsed tuple.
+    assert ",".join(settings.cors_allow_origins) == DEFAULT_CORS_ALLOW_ORIGINS
 
 
 def test_invalid_timeout_is_rejected(monkeypatch: pytest.MonkeyPatch):
@@ -126,3 +152,40 @@ def test_negative_backoff_is_rejected(monkeypatch: pytest.MonkeyPatch):
     with pytest.raises(SettingsError, match="LLM_RETRY_BACKOFF_SECONDS"):
         get_settings()
 
+
+def test_stream_limits_are_validated(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("RASTA_MAX_STREAMS", "0")
+    clear_settings_cache()
+    with pytest.raises(SettingsError, match="RASTA_MAX_STREAMS"):
+        get_settings()
+    monkeypatch.setenv("RASTA_MAX_STREAMS", "3")
+    clear_settings_cache()
+    assert get_settings().max_streams == 3
+
+
+def test_odd_frame_bytes_are_rejected(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("RASTA_STREAM_FRAME_BYTES", "1023")
+    clear_settings_cache()
+    with pytest.raises(SettingsError, match="even"):
+        get_settings()
+
+
+def test_cors_wildcard_is_rejected(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("CORS_ALLOW_ORIGINS", "https://ok.example,*")
+    clear_settings_cache()
+    with pytest.raises(SettingsError, match="must not contain"):
+        get_settings()
+
+
+def test_empty_cors_allow_list(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("CORS_ALLOW_ORIGINS", "")
+    clear_settings_cache()
+    assert get_settings().cors_allow_origins == ()
+
+
+def test_short_idle_is_clamped_for_the_prisma_header(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("RASTA_STREAM_IDLE_SECONDS", "0.2")
+    clear_settings_cache()
+    settings = get_settings()
+    assert settings.stream_idle_seconds == 0.2
+    assert settings.prisma_idle_timeout_sec() == 5
