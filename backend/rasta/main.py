@@ -12,6 +12,8 @@ from gnani_client.env import api_key
 from gnani_client.errors import GnaniError, MissingApiKeyError
 from rasta.extract import extract_event
 from rasta.pipeline import SAMPLE_LINE, ClipTooLarge, EmptyClip, ingest, speak_sample
+from rasta.routes_events import events_router
+from rasta.store import attach_event_store
 
 # Real env vars win over .env, so a deploy secret is never shadowed.
 load_dotenv()
@@ -19,9 +21,10 @@ log = logging.getLogger("rasta")
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(app: FastAPI):
     if not api_key():
         log.error("GNANI_API_KEY is not set. Every speech request will fail with 503.")
+    attach_event_store(app, replace=True)
     yield
 
 
@@ -35,6 +38,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(events_router)
 
 
 @app.get("/api/health")
@@ -49,7 +53,9 @@ def health() -> dict:
 @app.post("/api/ingest")
 async def ingest_upload(audio_file: UploadFile = File(...)) -> dict:
     data = await audio_file.read()
-    return _guard(lambda: ingest(data, audio_file.filename or "clip.wav"))
+    return _guard(
+        lambda: attach_event_store(app).append(ingest(data, audio_file.filename or "clip.wav"))
+    )
 
 
 @app.post("/api/ingest/sample")
@@ -62,9 +68,9 @@ def ingest_sample() -> dict:
 
     def run() -> dict:
         audio = speak_sample()
-        result = ingest(audio, "sample.wav")
-        result["sample_text"] = SAMPLE_LINE
-        return result
+        stamped = attach_event_store(app).append(ingest(audio, "sample.wav"))
+        stamped["sample_text"] = SAMPLE_LINE
+        return stamped
 
     return _guard(run)
 
