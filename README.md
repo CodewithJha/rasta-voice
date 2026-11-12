@@ -34,7 +34,7 @@ Solid arrows are in this skeleton. Dashed arrows are the issue plan.
 flowchart LR
   rider["Rider chit<br/>frontend"] -->|POST /api/ingest| api["FastAPI<br/>backend/rasta"]
   api --> stt["Prisma STT<br/>POST /stt/v3"]
-  stt --> extract["Extractor<br/>rules today, free LLM later"]
+  stt --> extract["Extractor<br/>free LLM, rules fallback"]
   extract --> event["RiderEvent JSON"]
   event --> slate["Dispatch slate"]
   event -.-> tts["Timbre TTS<br/>POST /api/v1/tts/inference"]
@@ -74,7 +74,7 @@ pip install -r requirements-dev.txt
 cp .env.example .env
 ```
 
-Put your key in `.env` as `GNANI_API_KEY=…` (the API loads `.env` on start; real environment variables win). `.env` is gitignored, never commit it. `LLM_PROVIDER=rules` uses the keyword extractor, which needs no LLM key. `groq` and `gemini` fail with HTTP 501 until issue 02 wires them.
+Put your key in `.env` as `GNANI_API_KEY=…` (the API loads `.env` on start; real environment variables win). `.env` is gitignored, never commit it. `LLM_PROVIDER=rules` uses the keyword extractor, which needs no LLM key and is the fallback when a free-tier Groq or Gemini call fails. `groq` and `gemini` need `GROQ_API_KEY` or `GEMINI_API_KEY`. Defaults, timeout, and retry caps are listed in `.env.example` and documented in [docs/EXTRACTOR.md](docs/EXTRACTOR.md).
 
 API:
 
@@ -115,9 +115,11 @@ Every upload is a live Prisma REST call (30 seconds max). The response includes 
 | `urgency` | `low`, `medium`, `high` |
 | `dispatch_action` | One instruction for the desk |
 | `transcript` | Text the extractor saw |
-| `confidence` | Rules use `0.5` on a hit and `0.0` otherwise |
+| `confidence` | Rules use `0.5` on a hit and `0.0` otherwise. An LLM may return its own number in `[0, 1]`. |
 
-Change the JSON schema, `backend/rasta/schema.py`, and `frontend/src/types.ts` in the same commit.
+Change the JSON schema, `backend/rasta/schema.py`, and `frontend/src/types.ts` in the same commit. Envelope fields such as `extractor_source` (`llm` or `rules`) and `fallback_reason` stay next to `event`, never inside it.
+
+Rules intent accuracy, measured 12 Nov 2026, is 8/36 = 0.222 on the blind holdout after the channel-bound contact fix (still below the 0.8 target, which remains open on issue 2; earlier official runs were 6/36). The development gold set is 30/30, the 24-line tuning holdout that was seen during rule expansion is 24/24, and Himanshu's benchmark corpus, which was not used for tuning, is 41/48. The write-up is in [docs/EXTRACTOR.md](docs/EXTRACTOR.md).
 
 ## Checks
 
@@ -131,7 +133,7 @@ GitHub Actions runs the same three commands with no secrets. Tests swap the HTTP
 
 ## What is deliberately not here
 
-Noise mixing, the scored Prisma matrix, realtime streaming, the LLM, the spoken reply, deployment, and the contest post. Those are issues, with owners and days, in [docs/PLAN.md](docs/PLAN.md).
+Noise mixing, the scored Prisma matrix, realtime streaming, the spoken reply, deployment, and the contest post. Those are issues, with owners and days, in [docs/PLAN.md](docs/PLAN.md).
 
 <!-- benchmark:start -->
 

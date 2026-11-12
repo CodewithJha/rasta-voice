@@ -75,6 +75,10 @@ def test_upload_goes_to_prisma(client: TestClient, calls, make_wav):
     assert body["event"]["intent"] == "customer_unreachable"
     assert body["event"]["order_id"] == "18"
     assert body["event"]["eta_minutes"] == 10
+    assert body["extractor_source"] == "rules"
+    assert body["fallback_reason"] is None
+    assert "extractor_source" not in body["event"]
+    assert "fallback_reason" not in body["event"]
 
 
 def test_sample_is_timbre_then_prisma(client: TestClient, calls):
@@ -128,7 +132,18 @@ def test_upstream_error_is_a_502(monkeypatch: pytest.MonkeyPatch, make_wav):
     assert "No credit" in detail["error"]
 
 
-def test_unwired_llm_is_501(client: TestClient, monkeypatch: pytest.MonkeyPatch):
+def test_missing_llm_key_still_ingests_with_rules(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+):
     monkeypatch.setenv("LLM_PROVIDER", "groq")
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    from rasta.settings import clear_settings_cache
+
+    clear_settings_cache()
     response = client.post("/api/ingest/sample")
-    assert response.status_code == 501
+    assert response.status_code == 200
+    body = response.json()
+    assert body["extractor_source"] == "rules"
+    assert body["fallback_reason"] == "missing_api_key"
+    assert body["event"]["intent"] == "customer_unreachable"
+    assert "extractor_source" not in body["event"]
