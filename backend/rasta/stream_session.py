@@ -29,6 +29,7 @@ from rasta.extract import extract_event_with_source
 from rasta.pipeline import STT_FORMAT
 from rasta.settings import Settings
 from rasta.store import attach_event_store
+from rasta.tasks import cancel_all, first_completed
 
 log = logging.getLogger("rasta.stream")
 
@@ -191,20 +192,11 @@ class StreamSession:
                         await stream.send_audio(chunk)
                 await stream.commit()
                 return
-            get_task = asyncio.create_task(self.queue.get())
-            waiters = {
-                get_task,
-                asyncio.create_task(self.commit.wait()),
-                asyncio.create_task(self._done.wait()),
-            }
-            _done, pending = await asyncio.wait(waiters, return_when=asyncio.FIRST_COMPLETED)
-            for task in pending:
-                task.cancel()
-            await asyncio.gather(*pending, return_exceptions=True)
-            if get_task.done() and not get_task.cancelled():
-                chunk = get_task.result()
-                if chunk:
-                    await stream.send_audio(chunk)
+            index, chunk = await first_completed(
+                self.queue.get(), self.commit.wait(), self._done.wait()
+            )
+            if index == 0 and chunk:
+                await stream.send_audio(chunk)
 
     async def _downlink(self, stream: SttStream) -> None:
         try:
@@ -284,11 +276,9 @@ class StreamSession:
                 deadline - now,
                 next_ping - now,
             )
-            try:
-                await asyncio.wait_for(self._done.wait(), timeout=max(0.0, wait))
+            index, _ = await first_completed(self._done.wait(), timeout=max(0.0, wait))
+            if index == 0:
                 return
-            except TimeoutError:
-                continue
 
     async def _finalize(self) -> None:
         if self._finalized:
@@ -347,13 +337,7 @@ async def _drain_transcripts(
         else:
             remaining = deadline - time.monotonic()
         got_frame.clear()
-        waiters = {asyncio.create_task(got_frame.wait()), asyncio.create_task(done.wait())}
-        _finished, pending = await asyncio.wait(
-            waiters, timeout=max(0.0, remaining), return_when=asyncio.FIRST_COMPLETED
-        )
-        for task in pending:
-            task.cancel()
-        await asyncio.gather(*pending, return_exceptions=True)
+        await first_completed(got_frame.wait(), done.wait(), timeout=max(0.0, remaining))
         quiet = last_transcript_at() + settings.stream_quiet_seconds
         if done.is_set() or (texts and time.monotonic() >= quiet):
             return
@@ -407,10 +391,7 @@ def _task_named(tasks: list[asyncio.Task[Any]], name: str) -> asyncio.Task[Any] 
 
 
 async def _cancel_tasks(tasks: list[asyncio.Task[Any]]) -> None:
-    for task in tasks:
-        task.cancel()
-    if tasks:
-        await asyncio.gather(*tasks, return_exceptions=True)
+    await cancel_all(tasks)
     tasks.clear()
 
 
@@ -436,32 +417,23 @@ def parse_control(raw: str) -> dict[str, Any] | None:
 async def receive_message(websocket: WebSocket, timeout: float) -> dict[str, Any] | None:
     """Return a parsed browser frame, or None on timeout."""
     try:
-        message = await asyncio.wait_for(websocket.receive(), timeout=timeout)
-    except TimeoutError:
-        return None
+        index, message = await first_completed(websocket.receive(), timeout=timeout)
     except WebSocketDisconnect:
         return {"kind": "disconnect"}
+    if index is None:
+        return None
     return _parse_ws_message(message)
 
 
 async def receive_or_done(websocket: WebSocket, done: asyncio.Event) -> dict[str, Any] | None:
     """Return a browser frame, or None if the session already resolved."""
-    recv = asyncio.create_task(websocket.receive())
-    stop = asyncio.create_task(done.wait())
     try:
-        finished, pending = await asyncio.wait({recv, stop}, return_when=asyncio.FIRST_COMPLETED)
-        for task in pending:
-            task.cancel()
-        await asyncio.gather(*pending, return_exceptions=True)
-        if recv not in finished or recv.cancelled():
-            return None
-        if recv.exception() is not None:
-            if isinstance(recv.exception(), WebSocketDisconnect):
-                return {"kind": "disconnect"}
-            raise recv.exception()  # type: ignore[misc]
-        return _parse_ws_message(recv.result())
+        index, message = await first_completed(websocket.receive(), done.wait())
     except WebSocketDisconnect:
         return {"kind": "disconnect"}
+    if index != 0:
+        return None
+    return _parse_ws_message(message)
 
 
 def _parse_ws_message(message: dict[str, Any]) -> dict[str, Any]:

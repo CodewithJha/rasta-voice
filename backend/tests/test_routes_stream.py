@@ -85,6 +85,7 @@ class FakeConnect:
     ) -> None:
         self.calls: list[dict[str, Any]] = []
         self.sockets: list[FakeSocket] = []
+        self.started = threading.Event()
         self.transcripts = (
             [
                 {
@@ -111,6 +112,7 @@ class FakeConnect:
             error_on_audio=self.error_on_audio,
         )
         self.sockets.append(socket)
+        self.started.set()
         return _FakeCM(socket, self.refuse)
 
 
@@ -199,9 +201,9 @@ def test_audio_reaches_upstream_before_browser_commit():
         with client.websocket_connect("/api/stream", headers=ORIGIN) as ws:
             ws.send_bytes(FRAME)
             ws.send_bytes(FRAME)
-            socket = connect.sockets[0] if connect.sockets else None
-            got_audio = bool(socket and socket.audio_received.wait(timeout=2))
-            sent = list(socket.sent) if socket else []
+            socket = _wait_audio(connect)
+            got_audio = True
+            sent = list(socket.sent)
             had_commit = any(_is_commit(m) for m in sent)
             ws.send_json({"type": "commit", "sample_rate": 16000})
             event = _recv_until(ws, {"event", "error"})
@@ -319,6 +321,23 @@ def _assert_cleanup(client: TestClient, connect: FakeConnect, *, upstream: str) 
         raise AssertionError(upstream)
 
 
+def _wait_started(connect: FakeConnect, timeout: float = 2.0) -> FakeSocket:
+    """Wait for the fake Prisma connect hook to run, then return its socket."""
+    if not connect.started.wait(timeout=timeout):
+        raise AssertionError("upstream did not start")
+    if not connect.sockets:
+        raise AssertionError("start signal set but no upstream socket")
+    return connect.sockets[0]
+
+
+def _wait_audio(connect: FakeConnect, timeout: float = 2.0) -> FakeSocket:
+    """Wait until the first upstream audio frame has been received."""
+    socket = _wait_started(connect, timeout=timeout)
+    if not socket.audio_received.wait(timeout=timeout):
+        raise AssertionError("upstream did not receive audio")
+    return socket
+
+
 def _stored() -> list[dict[str, Any]]:
     return attach_event_store(app).list_since(None)
 
@@ -413,7 +432,7 @@ def test_sample_disconnect_does_not_store_event():
             app.state.sample_pcm = lambda: FRAME * 3
             with client.websocket_connect("/api/stream", headers=ORIGIN) as ws:
                 ws.send_json({"type": "sample"})
-                assert connect.sockets and connect.sockets[0].audio_received.wait(timeout=2)
+                _wait_audio(connect)
                 ws.close()
             hold.set()
             assert _stored() == []
@@ -543,8 +562,7 @@ def test_session_outcome_table(mode: str, condition: str, monkeypatch: pytest.Mo
             with client.websocket_connect("/api/stream", headers=ORIGIN) as ws:
                 _start(mode, ws)
                 if condition in {"idle_timeout", "session_cap", "browser_gone"}:
-                    if not (connect.sockets and connect.sockets[0].audio_received.wait(timeout=2)):
-                        pytest.fail("upstream did not start")
+                    _wait_audio(connect)
                     if condition == "browser_gone":
                         ws.close()
                         frames, code = [], None
