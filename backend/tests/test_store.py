@@ -24,7 +24,12 @@ from rasta.settings import (
     clear_settings_cache,
     get_settings,
 )
-from rasta.store import EventStore, InvalidSince, attach_event_store
+from rasta.store import (
+    EventStore,
+    InvalidSince,
+    attach_event_store,
+    parse_since,
+)
 
 LINE = (
     "Bhaiya, gate band hai aur customer phone nahi utha raha. "
@@ -152,6 +157,50 @@ def test_list_since_accepts_z_suffix_as_utc():
     assert stamp.endswith("+00:00")
     as_z = stamp.removesuffix("+00:00") + "Z"
     assert store.list_since(as_z) == []
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "2026-11-13T10:00:00+00:00",
+        "2026-11-13T10:00:00Z",
+        "2026-11-13T10:00:00z",
+        "2026-11-13 10:00:00+00:00",
+        "0001-01-01T00:00:00+00:00",
+        "9999-12-31T23:59:59+00:00",
+    ],
+)
+def test_parse_since_accepts_aware_instants(value: str):
+    parsed = parse_since(value)
+    assert parsed.tzinfo is not None
+    assert parsed.utcoffset() == timedelta(0)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "0001-01-01T00:00:00+01:00",  # fromisoformat ok; astimezone overflows
+        "9999-12-31T23:59:59-01:00",
+        "not-a-timestamp",
+        "yesterday",
+        "2026-11-13T10:00:00",  # naive
+        "2026-11-13",  # date-only, naive
+        "2026-11-13Z",  # date-only even with Z stays naive in Python
+        "2026-11-13T10:00:00+24:00",
+        "2026-11-13T10:00:00+99:00",
+        "2026-11-13T10:00:00-24:00",
+        "2026-13-01T00:00:00+00:00",
+        "2026-11-13T10:00:00+00:00 extra",
+        "",
+        "2026-11-13T10:00:00+00:00" + "0" * 80,  # over the length cap
+        123,
+        None,
+        b"2026-11-13T10:00:00+00:00",
+    ],
+)
+def test_parse_since_rejects_unusable_values(value):
+    with pytest.raises(InvalidSince):
+        parse_since(value)
 
 
 def test_append_keeps_the_full_payload():
@@ -297,6 +346,9 @@ def test_two_ingests_are_stored_oldest_first(client: TestClient, make_wav):
     assert [event["id"] for event in events] == [first.json()["id"], second.json()["id"]]
     assert events[0]["created_at"] < events[1]["created_at"]
     assert events[0]["event"]["order_id"] == "18"
+    # Full ingest envelope is stored as-is, including extractor fields from #37.
+    assert first.json()["extractor_source"] == events[0]["extractor_source"]
+    assert "fallback_reason" in first.json() and "fallback_reason" in events[0]
 
 
 def test_sample_ingest_shares_id_but_does_not_store_sample_text(
@@ -326,14 +378,58 @@ def test_events_since_returns_only_newer(client: TestClient, make_wav):
 
 @pytest.mark.parametrize(
     "since",
-    ["not-a-timestamp", "2026-11-13T10:00:00", "yesterday"],
+    [
+        "not-a-timestamp",
+        "2026-11-13T10:00:00",
+        "yesterday",
+        "2026-11-13",
+        "2026-11-13T10:00:00+24:00",
+        "0001-01-01T00:00:00+01:00",
+        "9999-12-31T23:59:59-01:00",
+        "2026-11-13T10:00:00+00:00" + "0" * 80,
+    ],
 )
 def test_events_since_invalid_is_422(client: TestClient, since: str):
+    # raise_server_exceptions stays on: a leaked OverflowError would fail the test.
     response = client.get("/api/events", params={"since": since})
     assert response.status_code == 422
     assert "timezone-aware" in response.json()["detail"] or "ISO 8601" in str(
         response.json()["detail"]
     )
+
+
+def test_events_since_range_overflow_is_422_not_500():
+    """Normalization overflow must not become an unhandled 500."""
+    with TestClient(app, raise_server_exceptions=False) as client:
+        for since in ("0001-01-01T00:00:00+01:00", "9999-12-31T23:59:59-01:00"):
+            response = client.get("/api/events", params={"since": since})
+            assert response.status_code == 422, since
+
+
+def test_concurrent_http_ingests_are_stored_with_unique_ids(client: TestClient, make_wav):
+    """Ingest runs in worker threads (asyncio.to_thread). The store must stay consistent."""
+    n = 8
+    barrier = threading.Barrier(n)
+    responses: list = [None] * n
+
+    def worker(index: int) -> None:
+        barrier.wait()
+        responses[index] = _upload(client, make_wav)
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(n)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert all(response is not None and response.status_code == 200 for response in responses)
+    events = client.get("/api/events").json()["events"]
+    assert len(events) == n
+    ids = [event["id"] for event in events]
+    assert len(set(ids)) == n
+    stamps = [datetime.fromisoformat(event["created_at"]) for event in events]
+    assert all(earlier < later for earlier, later in zip(stamps, stamps[1:]))
+    assert {event["id"] for event in events} == {response.json()["id"] for response in responses}
 
 
 def test_failed_ingest_is_not_stored(client: TestClient, make_wav):

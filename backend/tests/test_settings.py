@@ -4,6 +4,7 @@ import pytest
 
 from rasta.extractors.http import close_shared_client, get_shared_client
 from rasta.settings import (
+    DEFAULT_EVENT_STORE_CAPACITY,
     DEFAULT_GEMINI_MODEL,
     DEFAULT_GROQ_MODEL,
     DEFAULT_LLM_TIMEOUT_SECONDS,
@@ -32,6 +33,7 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch):
         "GEMINI_MODEL",
         "GROQ_API_KEY",
         "GEMINI_API_KEY",
+        "EVENT_STORE_CAPACITY",
     ):
         monkeypatch.delenv(name, raising=False)
     clear_settings_cache()
@@ -43,6 +45,7 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch):
     assert settings.gemini_model == DEFAULT_GEMINI_MODEL
     assert settings.groq_api_key == ""
     assert settings.gemini_api_key == ""
+    assert settings.event_store_capacity == DEFAULT_EVENT_STORE_CAPACITY
 
 
 def test_invalid_timeout_is_rejected(monkeypatch: pytest.MonkeyPatch):

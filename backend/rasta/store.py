@@ -19,24 +19,38 @@ class InvalidSince(ValueError):
     """Raised when ``list_since`` cannot parse or cannot use ``since``."""
 
 
-def parse_since(since: str) -> datetime:
-    """Parse a tz-aware ISO 8601 timestamp.
+# ISO 8601 instants with a numeric offset are well under this length.
+# Longer input is rejected up front so the parser stays bounded.
+_SINCE_MAX_LENGTH = 64
+_SINCE_ERROR = "since must be a timezone-aware UTC ISO 8601 timestamp"
 
-    A trailing ``Z`` is accepted as UTC. Naive (no timezone) or malformed
-    values raise ``InvalidSince`` so the router can answer 422.
+
+def parse_since(since: object) -> datetime:
+    """Parse a tz-aware ISO 8601 timestamp into an aware UTC datetime.
+
+    This is a total function: it returns an aware UTC ``datetime`` or
+    raises ``InvalidSince``. A trailing ``Z`` or ``z`` is accepted as
+    UTC. Naive values, malformed strings, non-strings, overly long
+    input, and timestamps that cannot be normalized to UTC (for
+    example year-0001 / year-9999 overflow) all raise ``InvalidSince``
+    so the router can answer 422.
     """
+    if not isinstance(since, str) or len(since) > _SINCE_MAX_LENGTH:
+        raise InvalidSince(_SINCE_ERROR)
     text = since.strip()
+    if not text:
+        raise InvalidSince(_SINCE_ERROR)
     if text.endswith(("Z", "z")):
         text = text[:-1] + "+00:00"
     try:
         value = datetime.fromisoformat(text)
-    except ValueError as exc:
-        raise InvalidSince(
-            "since must be a timezone-aware UTC ISO 8601 timestamp"
-        ) from exc
-    if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
-        raise InvalidSince("since must be a timezone-aware UTC ISO 8601 timestamp")
-    return value.astimezone(UTC)
+        if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+            raise InvalidSince(_SINCE_ERROR)
+        return value.astimezone(UTC)
+    except InvalidSince:
+        raise
+    except (ValueError, OverflowError, OSError, TypeError) as exc:
+        raise InvalidSince(_SINCE_ERROR) from exc
 
 
 class EventStore:
@@ -77,7 +91,9 @@ class EventStore:
     def list_since(self, since: str | None) -> list[dict]:
         """Return stored events strictly after ``since``, or all if ``since`` is missing."""
         cutoff: datetime | None = None
-        if since is not None and since.strip():
+        if since is None or (isinstance(since, str) and not since.strip()):
+            cutoff = None
+        else:
             cutoff = parse_since(since)
         with self._lock:
             if cutoff is None:
