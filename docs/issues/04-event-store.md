@@ -67,3 +67,4 @@ pytest backend/tests/test_ingest.py backend/tests/test_store.py -q
 curl -s -X POST http://127.0.0.1:8000/api/ingest/sample >/dev/null   # real Timbre + Prisma, needs GNANI_API_KEY
 curl -s http://127.0.0.1:8000/api/events | python -m json.tool
 ```
+

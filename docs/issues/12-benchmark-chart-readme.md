@@ -66,3 +66,12 @@ pytest benchmark/tests/test_chart.py -q
 ```
 
 Open `benchmark/results/wer.svg` in a browser. The bars should be visible, labelled, and not stacked on top of the axis labels.
+
+<!-- rasta-voice-audit-2026-11-12 -->
+
+### Benchmark figure audit
+
+- [ ] The plot legend/caption says whether bars are **raw** or **normalized** WER; the README explains the normalization policy from #11 and any cross-script limitations.
+- [ ] Show total sample count and correct number of model evaluations; do not interpret 80 unique clips as 80 evaluations when five systems were run.
+- [ ] If #11 was incomplete, explicitly say so and do not draw a fake comparison figure.
+

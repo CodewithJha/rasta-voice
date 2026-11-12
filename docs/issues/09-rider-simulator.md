@@ -13,7 +13,7 @@ Backend, new file `backend/rasta/simulate.py`, route in `backend/rasta/routes_si
 
 `POST /api/simulate` with the same multipart field `audio_file` plus a query `condition=clean|noisy`.
 
-- `clean` returns the wav unchanged, as `audio/wav`, plus an `X-Rasta-Condition: clean` header. Also run the normal ingest and return... two responses can't share a body. Return JSON instead:
+- Both `clean` and `noisy` return JSON with `condition`, `audio_base64` and the actual `ingest` result. `clean` preserves the audio samples, and the audio field is a valid WAV representation of the exact bytes sent to Prisma:
 
 ```json
 {
@@ -75,3 +75,11 @@ cd frontend && npm run check
 ```
 
 Browser, against `npm run dev` with the API up: the two toggles, both buttons, both audio players, then a 400px-wide window.
+
+<!-- rasta-voice-audit-2026-11-12 -->
+
+### Clean/noisy consistency acceptance
+
+- [ ] For **both** conditions, the API returns one JSON envelope with the exact audio that Prisma received, an `ingest` event, and an accurate condition label. Do not mix a WAV-response contract and a JSON-response contract.
+- [ ] Repeat the same utterance across conditions and verify the audible clip, transcript and event correspond to each condition, rather than silently reusing a clean transcript.
+

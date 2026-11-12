@@ -76,3 +76,4 @@ python -m rasta_bench.speak          # needs GNANI_API_KEY
 pytest benchmark/tests/test_speak.py -q
 python -c "import wave; w=wave.open('benchmark/data/audio/clean/u01.wav'); print(w.getframerate(), w.getnchannels(), w.getsampwidth())"
 ```
+

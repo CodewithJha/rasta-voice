@@ -54,3 +54,4 @@ Renders one row per event. No new endpoint.
 ## How to test
 
 Start API and `npm run dev`. Open two windows. In one, run **Speak a sample line** twice (needs `GNANI_API_KEY`; four Gnani calls total). Watch the other. Refresh both. Narrow one window until the layout stacks and confirm the slate is still readable.
+

@@ -22,7 +22,7 @@ The prompt:
 
 Parse the JSON. Validate it with `RiderEvent`. On timeout, non-200, or invalid JSON, fall back to the rules and keep going. Do not let a flaky free tier 500 the rider. Do not log the API key. Do not put the key in the repo.
 
-Gold set: `backend/tests/fixtures/intent_gold.jsonl`, at least 20 lines, same fields as issue 01's corpus (you may write your own; do not block on Member A's file). A test runs `extract_event(text, provider="rules")` on every row and asserts intent accuracy of at least 0.8. That locks the rules against the gold you just wrote, so write gold the rules can pass, including the stacked "gate band / nahi utha" case.
+Gold set: `backend/tests/fixtures/intent_gold.jsonl`, at least 20 lines, same fields as issue 01's corpus (you may write your own; do not block on Member A's file). A test runs `extract_event(text, provider="rules")` on the gold rows and reports accuracy, targeting at least 0.8 on an independent, locked holdout. Do not change gold labels or cherry-pick phrases to make rules pass. Include the stacked "gate band / nahi utha" case and adversarial distractors. A failed target is a genuine failure to fix or report, not a reason to rewrite the evaluation set.
 
 A second test calls the live provider only when the matching key is in the environment. Otherwise it skips. Do not record live transcripts that contain anything but your gold text.
 
@@ -76,3 +76,13 @@ Gemini: POST to the free `generateContent` method. Read the current URL from Goo
 pytest backend/tests/test_extract.py backend/tests/test_llm.py -q
 LLM_PROVIDER=groq GROQ_API_KEY=... pytest backend/tests/test_llm.py -q -k live
 ```
+
+<!-- rasta-voice-audit-2026-11-12 -->
+
+### Independent evaluation acceptance
+
+- [ ] Split examples into development and an independent holdout before tuning any rules or prompt; at least six varied held-out utterances, preferably not near-paraphrases of the training examples.
+- [ ] Include negative/distractor cases, code-mixing, number words, and non-matching `other` utterances; each gold intent is assigned before checking model output.
+- [ ] Report per-intent accuracy/confusion, rule-only accuracy, and live LLM accuracy when available; do not mislabel a rule fallback as an LLM success.
+- [ ] Document the frozen holdout and any failures honestly. Never lower the threshold by changing gold labels after seeing predictions.
+

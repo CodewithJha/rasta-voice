@@ -46,3 +46,13 @@ The markdown file has the five beats with target seconds and measured seconds, t
 ## How to test
 
 Read the script with a timer. A second person (Member A) reads it once without having seen the app and lists any step they cannot perform. Fix the shot list until that list is empty.
+
+<!-- rasta-voice-audit-2026-11-12 -->
+
+### Video delivery boundary
+
+This issue delivers the **script and shot list** only. It is not finished contest delivery. Coordinate with the separate working-video-and-submission issue: record the actual application, publish a playable public video and verify the official submission, without waiting for perfect benchmark numbers.
+
+- [ ] Time the script against the actual working screen transitions. Remove footage of broken or unimplemented controls; label simulated audio conditions truthfully.
+- [ ] Pass the shot list to the owner of the publishing/submission issue and verify a working video can be recorded with it.
+

@@ -62,3 +62,11 @@ python -c "import wave; w=wave.open('benchmark/data/audio/phone/u01__clean__clea
 ```
 
 The clean-row filename follows whatever issue 05 used for `noise: "clean"`. Match that stem. Don't invent a second naming scheme.
+
+<!-- rasta-voice-audit-2026-11-12 -->
+
+### Provenance and claim boundary
+
+- [ ] All generated 8 kHz G.711-round-tripped WAVs and scores are explicitly called **simulated telephony**, not recorded cellular/telephone calls.
+- [ ] README/demo only use "real telephonic recording" for genuine consented phone-channel evidence, if collected separately in the field-validation issue.
+

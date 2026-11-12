@@ -80,3 +80,14 @@ cd frontend && npm run check
 ```
 
 Then, with `GNANI_API_KEY` set, `uvicorn` and `npm run dev`: click **Stream a sample line**, confirm the slate, talk into the mic once, then refuse the mic in the browser site settings and click **Talk**.
+
+<!-- rasta-voice-audit-2026-11-12 -->
+
+### Realtime behavior acceptance (not just socket-shaped batch)
+
+- [ ] With a live microphone, frames are forwarded to the upstream Gnani WebSocket **while recording**; do not buffer the full utterance and send only after the rider presses Stop.
+- [ ] Implement an async browser-frame-to-upstream pump with bounded buffering/backpressure, and propagate partial transcripts as they arrive. `transcribe_pcm(bytes, ...)` may remain as a test/sample helper, but must not be the only live microphone path.
+- [ ] Commit ends the stream only after queued audio frames drain; session cancellation, disconnect and upstream errors close both sockets and free resources.
+- [ ] An integration test proves upstream receives audio *before* the browser commit frame; a real manual mic run records time to first transcript and final event (do not invent latency).
+- [ ] Throttle the Timbre sample's PCM frames to realistic elapsed playback time when the video claims live streaming; do not treat a rapid batch send as proof of live latency.
+

@@ -52,3 +52,19 @@ Fix only what this pass finds, and only if the fix is inside your trees (`benchm
 ## How to test
 
 Follow the README from a new venv. Run the `rg` command in the table. `curl` the deployed `/api/health`. Read the demo script with a timer. Open both post URLs and confirm they resolve.
+
+<!-- rasta-voice-audit-2026-11-12 -->
+
+### Official submission and audit acceptance
+
+Official programme page: https://www.gnani.ai/internship (deadline currently shown as **15 Nov 2026, 18:00 IST**).
+
+- [ ] Open and actually watch the **public working-app video**, rather than relying on `docs/demo-script.md` or a photo. Compare the audio sent to Prisma with the event shown on screen. No simulated outputs may masquerade as live Gnani output.
+- [ ] Verify video and nominated public post links, both mandatory hashtags and the Gnani tag; record safe evidence/URLs in `docs/SUBMISSION.md`.
+- [ ] Verify the **official form was submitted** with demo, written project explanation, actual models/APIs, contributions of both teammates and nominated post link(s). Document confirmation/status, not just a saved draft.
+- [ ] Confirm public demo credit protection is enforced before sharing the hosted URL.
+- [ ] Report separately whether field-validation audio came via a **real consented phone channel**, a noisy microphone, or synthetic 8 kHz/G.711 simulation. Do not conflate them.
+- [ ] Restrict the mock/canned grep to runtime paths and review matches manually; README prose, issue descriptions and test-only `MockTransport` do not prove app fake-path support.
+- [ ] Review digit-regex matches manually; timestamps, hashes and real Gnani request IDs may contain 8+ digits without being personal identifiers. Scan for actual PII and keys as well.
+- [ ] A failed check stays `no` with the responsible owner and evidence. Do not mark submitted until there is an actual submission confirmation.
+

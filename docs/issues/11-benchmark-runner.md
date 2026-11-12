@@ -92,3 +92,15 @@ python -m rasta_bench.run --limit 8      # the committed run
 ```
 
 Read the printed file count before it starts uploading.
+
+<!-- rasta-voice-audit-2026-11-12 -->
+
+### Credit budget, comparison fairness, and resumability
+
+- [ ] State the counts separately in the CLI preflight: with the default 8 utterances, 5 noises, 2 SNRs and 5 systems, there are **80 distinct audio files and 400 model evaluations** (plus any separately counted clean references). The 200-file refusal threshold refers to **distinct uploaded files**, not model evaluations. Print both numbers and estimated credit usage.
+- [ ] Bound a live run by the available Gnani programme credit budget. Request explicit `--i-mean-it` when exceeding the documented credit cap; do not unexpectedly pay for overage.
+- [ ] Cache/resume by stable audio hash **and** model/config hash. A retry must not re-upload successful results or count a stale transcript from different parameters as new evidence.
+- [ ] Normalize case, Unicode punctuation/spacing and digit-vs-number-word representations consistently; preserve **raw WER/CER** alongside a clearly labeled **normalized** metric. Do not quietly call differently scripted or transliterated references directly comparable.
+- [ ] Record differences in language-code and output-format settings across v2.5/v3.0, sample counts and run failures. If results are cross-script and not fairly alignable, report the limitation rather than asserting a model winner.
+- [ ] A benchmark table and demo use only complete, provenance-linked **live** results; no placeholder values, no selective exclusion of failed cases.
+

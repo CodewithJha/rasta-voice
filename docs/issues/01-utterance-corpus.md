@@ -64,3 +64,4 @@ Each line of `utterances.jsonl` is one JSON object:
 pytest benchmark/tests/test_corpus.py -q
 python -c "from rasta_bench.corpus import load_utterances; rows=load_utterances('benchmark/data/utterances.jsonl'); print(len(rows), {r['intent'] for r in rows})"
 ```
+

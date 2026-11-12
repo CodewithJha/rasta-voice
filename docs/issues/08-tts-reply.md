@@ -1,7 +1,8 @@
 # 08 — Timbre Hinglish confirmation
 
 - **Labels:** `area:app`, `day:2`, `tts`
-- **Owner:** Member B: app & realtime
+- **Note:** this touches `backend/rasta/` (Member B's tree). Keep the change to the reply route and its template module, and tell Member B in the PR body. Land it early on Day 2, because #09 depends on it.
+- **Owner:** Member A: benchmark & audio (moved from Member B on 12 Nov to balance load)
 - **Target day:** Day 2 (13–14 Nov 2026)
 - **Depends on:** issue 04 (the stored event is what you reply to). Can be written beside issue 07. Do not edit `rider.ts` here if 07 is open; this issue's frontend change is a play button that can land after 07, or in issue 09. Prefer: this PR is backend-only, and issue 09 adds the play button. That keeps `rider.ts` in one person's hands one PR at a time.
 
@@ -23,7 +24,7 @@ One sentence, Hinglish, at most one tag from `AUDIO_TAGS`, placed where the docs
 | `address_issue` | Ask them to stay near a landmark. No tag, or `<slow>`. |
 | `item_missing` | Tell them to hold the drop, the hub will check the bag. |
 | `delay` | Repeat the ETA if `eta_minutes` is set ("bees minute"), else say traffic is noted. |
-| `accident_sos` | Ask if they are okay, tell them a person is coming, tell them to pull the bike aside. Start with `<whispers>`. Do not be cute. |
+| `accident_sos` | Ask if they are okay, tell them a person is coming, tell them to pull the bike aside. Use a calm, clearly audible, untagged emergency response. Do not use `<whispers>` or promise a human is coming unless dispatch has actually acknowledged the emergency. Ask about safety and suggest stopping in a safe place. |
 | `other` | A short "suna, aage badho" with no tag. |
 
 No order id read out as a phone number. Speaking "order atharah" is fine.
@@ -67,7 +68,7 @@ Output: JSON above. `audio_base64` decodes to bytes starting with `RIFF`. `text`
 ## Acceptance criteria
 
 - [ ] Each intent has a test that the line is non-empty, contains no 8-digit run, and contains at most one `<` tag.
-- [ ] Accident line starts with `<whispers>`.
+- [ ] Accident line is calm and audible, uses no `<whispers>` tag, and never claims that a human was dispatched without a real acknowledgement.
 - [ ] `POST /api/reply/{id}` after a sample ingest returns a wav. In the test, swap Timbre's HTTP transport (`monkeypatch.setattr(TimbreTTS, "_http", ...)` with `httpx.MockTransport`, same pattern as `backend/tests/test_ingest.py`) and assert the request body's `text` equals `reply_text(event)`.
 - [ ] With `GNANI_API_KEY` unset the route answers 503 with the missing-key message.
 - [ ] Unknown id returns 404.
@@ -82,3 +83,12 @@ pytest backend/tests/test_reply.py -q
 ```
 
 Manual, after 09 wires the button: play the reply in the browser and confirm the `<pre>` shows the Hinglish line, not only a silent success.
+
+<!-- rasta-voice-audit-2026-11-12 -->
+
+### Safety and truthfulness acceptance
+
+- [ ] An `accident_sos` template asks for immediate human review, never says assistance has been dispatched unless a verified human acknowledgement exists, and avoids any advice that could put a rider into moving traffic.
+- [ ] An `other` or uncertain intent does not falsely tell the rider it is safe to continue. A human-review instruction is preferable to unverified assurance.
+- [ ] Test emergency and uncertain replies for natural Hindi/Hinglish pronunciation, audibility and absence of fabricated dispatch promises.
+

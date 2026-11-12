@@ -20,7 +20,7 @@ One free host, one process. Hugging Face Spaces (Docker SDK) is the default. Ren
 
 Static files: in `main.py`, mount `StaticFiles` at `/` **after** the API routes, with `html=True`, only when the dist directory exists. Check that `/api/health` still wins over the mount. A test uses `TestClient` against an app that has a temp dist with an `index.html`, gets HTML from `/`, and JSON from `/api/health`.
 
-The Space runs on the real Gnani APIs only. `GNANI_API_KEY` is a required Space secret. Without it the app still boots, `/api/health` reports `gnani_key_set: false`, and speech routes answer 503 with the missing-key message, so a misconfigured Space is obvious, not silently fake. Watch credits: a public demo button costs two Gnani calls per click, so consider a simple per-IP rate limit on `/api/ingest/sample`.
+The Space runs on the real Gnani APIs only. `GNANI_API_KEY` is a required Space secret. Without it the app still boots, `/api/health` reports `gnani_key_set: false`, and speech routes answer 503 with the missing-key message, so a misconfigured Space is obvious, not silently fake. Watch credits: a public demo button costs two Gnani calls per click, so require a basic per-IP rate limit, global API-call budget and maximum request duration on every public credit-consuming speech route, not only `/api/ingest/sample`. Treat WebSocket sessions and reply generation as billable too.
 
 No analytics snippet. No third-party tracker.
 
@@ -64,3 +64,14 @@ curl -s -X POST localhost:7860/api/ingest/sample
 ```
 
 Open the site in a browser, run **Speak a sample line**, toggle noisy, and confirm the slate polls. That is the same check as issues 09 and 10, on the deployed origin.
+
+<!-- rasta-voice-audit-2026-11-12 -->
+
+### Public-host abuse and end-to-end acceptance
+
+- [ ] Enforce per-IP requests/minute and a **global** number of allowed live Gnani calls per time window or remaining demo credit pool, including `/api/ingest`, `/api/ingest/sample`, `/api/simulate`, `/api/reply/{id}`, and `/api/stream`; return a clear 429/503 rather than spending unbounded credits.
+- [ ] Apply tight maximum upload size/audio seconds, total request/stream duration and concurrency; avoid trusting arbitrary forwarded-IP headers from public clients.
+- [ ] Only server-side secrets reach Gnani. Verify no key in client JS, error messages, logs, image layers, or public demo recording.
+- [ ] Smoke-test on the actual HTTPS public origin: `/` loads, `/api/health` is JSON, a live noisy sample reaches Prisma, Timbre confirmation plays, and a **secure-context microphone/WebSocket** flow works if #07 shipped.
+- [ ] Document what happens when Gnani credit is exhausted or a public endpoint is rate-limited. No fake offline fallback.
+

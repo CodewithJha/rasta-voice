@@ -32,19 +32,23 @@ If a client bug blocks you, one small fix in `gnani_client/` is allowed in your 
 | 05 | [Procedural noise mixer](issues/05-noise-mixer.md) | A | 2 | 03 |
 | 06 | [8 kHz telephony and codec artefacts](issues/06-telephony-sim.md) | A | 2 | 05 |
 | 07 | [Prisma realtime WebSocket](issues/07-realtime-stt.md) | B | 2 | 04 |
-| 08 | [Timbre Hinglish confirmation](issues/08-tts-reply.md) | B | 2 | 04 |
+| 08 | [Timbre Hinglish confirmation](issues/08-tts-reply.md) | A | 2 (land early) | 04 |
 | 09 | [Rider page clean/noisy toggle](issues/09-rider-simulator.md) | B | 2 | 07, 08 |
 | 10 | [Live dispatcher dashboard](issues/10-dispatch-dashboard.md) | B | 2 | 04 |
 | 11 | [Benchmark runner](issues/11-benchmark-runner.md) | A | 3 | 06 |
 | 12 | [Chart and README benchmark section](issues/12-benchmark-chart-readme.md) | A | 3 | 11 |
 | 13 | [Free-host deploy](issues/13-free-host-deploy.md) | B | 3 | 09, 10 |
 | 14 | [60-second demo script](issues/14-demo-video-script.md) | B | 3 | 09 |
-| 15 | [LinkedIn and X post](issues/15-social-post.md) | B | 3 (publish 14 Nov) | 09 |
-| 16 | [Submission checklist](issues/16-submission-check.md) | A | 3 | 12, 13, 15 |
+| 15 | [LinkedIn and X post](issues/15-social-post.md) | A | 3 (publish 14 Nov) | 09, 18 video |
+| 16 | [Submission checklist](issues/16-submission-check.md) | A | 3 | 12, 13, 15, 18 |
+| 17 | [Consented real-world noisy speech validation](issues/17-field-validation.md) | A | 3 | 06, 11 |
+| 18 | [Working demo video and final submission](issues/18-demo-video-and-submission.md) | B | 3 (video by 14 Nov) | 09, 14 |
 
-Day 2 note for Member B: finish 07 and 08 before opening 09. 10 can land beside 07 because it only touches `frontend/src/dispatch.ts` and a new stylesheet. Do not both edit `frontend/src/rider.ts`.
+Load balance (12 Nov): 08 and 15 moved from B to A, so B can give 07 (true live streaming), 13 (credit and abuse limits) and 18 (the video) their full time. A lands 08 early on Day 2 with a narrow change in `backend/rasta/`, flagged in the PR body.
 
-Day 3 note: 15 does not wait on 12. If the chart is merged, quote one number. If it is not, quote the live sample result from the README (Timbre line → Prisma transcript, word for word) and say the scored run follows before the deadline. Publish by 14 Nov 18:00 IST anyway.
+Day 2 note for Member B: finish 07, and wait for A's 08, before opening 09. 10 can land beside 07 because it only touches `frontend/src/dispatch.ts` and a new stylesheet. Do not both edit `frontend/src/rider.ts`.
+
+Day 3 note: 15 needs the public working-app video from 18 (a photo is not enough), but does not wait on 12. If the chart is merged, quote one number. If it is not, quote the live sample result from the README (Timbre line → Prisma transcript, word for word) and say the scored run follows before the deadline. Publish by 14 Nov 18:00 IST anyway.
 
 ## Rules that apply to every issue
 

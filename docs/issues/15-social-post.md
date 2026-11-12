@@ -1,8 +1,8 @@
 # 15 — LinkedIn and X post
 
 - **Labels:** `area:app`, `day:3`, `outreach`
-- **Owner:** Member B: app & realtime
-- **Target day:** Day 3, and the post is **live by 14 Nov 2026, 18:00 IST**. Draft earlier the same day. Do not wait on the full benchmark if it is late. Do not wait on the video render. A phone photo of the slate is enough.
+- **Owner:** Member A: benchmark & audio (moved from Member B on 12 Nov to balance load)
+- **Target day:** Day 3, and the post is **live by 14 Nov 2026, 18:00 IST**. Draft earlier the same day. Do not wait on the full benchmark if it is late. However, the contest post needs a real public **working-application video**, not merely a phone photo of the slate. Record a truthful simple video first; see the video/submission issue.
 - **Depends on:** issue 09, so you have something true to describe. Issue 12 is optional input: quote a number only from the committed live `scores.json`. If it is not in yet, describe the live sample result (README) instead of a number.
 
 ## Description
@@ -36,7 +36,7 @@ At the bottom of the file, a checklist:
 
 Fill the links when you post. The draft without links can merge first; a follow-up commit adds the links the same day. The issue is not done until the links are in the file.
 
-Member A reads the draft once for the benchmark sentence before you post, if they are awake. If they are not, you still post, and you do not invent their number.
+Member B reads the draft once for the app claims before you post, and supplies the video from #18. If they are not around, you still post, and you do not invent any number or feature.
 
 ## Files to touch
 
@@ -73,3 +73,15 @@ print(len(fence.strip()))
 ```
 
 Paste into the X compose box as a second check. The site's counter wins if it disagrees.
+
+<!-- rasta-voice-audit-2026-11-12 -->
+
+### Public video requirement
+
+Official requirements: https://www.gnani.ai/internship
+
+- [ ] A public working-application **video is attached/linked to the nominated post**. Photo-only posts do not count as a completed demo entry.
+- [ ] Both required hashtags and the Gnani AI tag are on each nominated post; draft post links are not accepted as final links.
+- [ ] The post is truthful about simulated noise and any unimplemented features. Avoid unsupported WER, false live-call claims, and misleading engagement tactics.
+- [ ] Record the publicly accessible video and nominated post links in the video/submission evidence issue and pass them to #16.
+
