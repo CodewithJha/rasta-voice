@@ -129,3 +129,12 @@ Issue 29 owns retries, the shared client, and the breaker. This issue still has 
 - [ ] Open-breaker on the LLM (issue 29) is a rules fallback, not a 500 and not a hung ingest.
 - [ ] Prompts and model text are not written to logs. Issue 21's default stays "no full transcript".
 - [ ] A test covers "LLM times out once, rules succeed, envelope source is `rules`".
+
+## Implementation notes (12 Nov 2026)
+
+Landed in the Member B tree: typed settings in `backend/rasta/settings.py`,
+providers in `backend/rasta/llm.py` and `backend/rasta/extractors/`, the
+existing `_by_rules` fallback, gold and holdout fixtures, and
+`scripts/eval_intent.py`. Frozen contracts were not touched. Measured
+rules numbers, the client and retry policy, and the envelope fields are
+recorded in [docs/EXTRACTOR.md](../EXTRACTOR.md).
