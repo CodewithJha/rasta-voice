@@ -7,14 +7,11 @@ Optional --dropouts writes a separate dataset, never replacing the default set.
 
 import argparse
 import hashlib
-import io
 import json
-import os
 import sys
-import tempfile
-import wave
-from array import array
 from pathlib import Path
+
+from rasta_bench.wavio import atomic_write, pcm_wav, read_pcm
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "benchmark/data"
@@ -71,41 +68,10 @@ def downsample(samples: list[int], sample_rate: int) -> list[int]:
 
 def _read_pcm(path: Path) -> tuple[bytes, list[int], int]:
     blob = path.read_bytes()
-    try:
-        with wave.open(io.BytesIO(blob), "rb") as wav:
-            rate = wav.getframerate()
-            if wav.getnchannels() != 1 or wav.getsampwidth() != 2:
-                raise ValueError("source must be mono 16-bit PCM WAV")
-            # Clean rows preserve Timbre's placeholder frame count. Read actual bytes.
-            raw = wav.readframes(len(blob) // 2 + 1)
-    except (wave.Error, EOFError) as exc:
-        raise ValueError(f"invalid source WAV: {path}") from exc
+    pcm, rate = read_pcm(blob)
     if rate < PHONE_RATE or rate % PHONE_RATE:
         raise ValueError("source sample rate must be a positive multiple of 8000 Hz")
-    if not raw or len(raw) % 2:
-        raise ValueError("source PCM is empty or truncated")
-    pcm = array("h")
-    pcm.frombytes(raw)
-    if sys.byteorder != "little":
-        pcm.byteswap()
-    return blob, pcm.tolist(), rate
-
-
-def _write_atomic(path: Path, blob: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as output:
-        temporary = Path(output.name)
-        try:
-            output.write(blob)
-            output.flush()
-            os.fsync(output.fileno())
-        except BaseException:
-            temporary.unlink(missing_ok=True)
-            raise
-    try:
-        temporary.replace(path)
-    finally:
-        temporary.unlink(missing_ok=True)
+    return blob, pcm, rate
 
 
 def to_telephony(
@@ -120,17 +86,8 @@ def to_telephony(
     if dropouts:
         for index in range(DROPOUT_INTERVAL - 1, len(converted), DROPOUT_INTERVAL):
             converted[index] = 0
-    pcm = array("h", converted)
-    if sys.byteorder != "little":
-        pcm.byteswap()
-    buffer = io.BytesIO()
-    with wave.open(buffer, "wb") as wav:
-        wav.setnchannels(1)
-        wav.setsampwidth(2)
-        wav.setframerate(PHONE_RATE)
-        wav.writeframes(pcm.tobytes())
-    blob = buffer.getvalue()
-    _write_atomic(destination, blob)
+    blob = pcm_wav(converted, PHONE_RATE)
+    atomic_write(destination, blob)
     return {
         "telephony": "mulaw8k", "provenance": "simulated_telephony", "dropouts": dropouts,
         "sample_rate": PHONE_RATE, "source_sample_rate": rate,
@@ -189,7 +146,7 @@ def generate_phone_clips(
         stored_path = (destination.relative_to(ROOT).as_posix()
                        if destination.is_relative_to(ROOT) else str(destination))
         rows.append({**row, **metadata, "path": stored_path})
-    _write_atomic(manifest, "".join(json.dumps(row, ensure_ascii=False) + "\n"
+    atomic_write(manifest, "".join(json.dumps(row, ensure_ascii=False) + "\n"
                                     for row in rows).encode("utf-8"))
     return rows
 
