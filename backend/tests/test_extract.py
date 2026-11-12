@@ -84,8 +84,10 @@ def test_missing_llm_key_falls_back_to_rules(monkeypatch):
 
 
 # Contact-state classes for the customer_unreachable rule. Latest state
-# wins when a success signal and a failure phrase both appear. A rider
-# saying they are busy is never a failed call.
+# is only between a bound failure and a bound success. A success verb
+# counts only in the same clause as the customer and/or the phone
+# channel. A rider saying they are busy is never a failed call. A bare
+# address, packing, or entry confirmation is not customer contact.
 @pytest.mark.parametrize(
     ("text", "intent", "urgency"),
     [
@@ -115,7 +117,7 @@ def test_missing_llm_key_falls_back_to_rules(monkeypatch):
             "low",
         ),
         (
-            "pehle phone nahi uthaya, ab baat ho gayi",
+            "pehle phone nahi uthaya, ab customer se baat ho gayi",
             "other",
             "low",
         ),
@@ -194,6 +196,42 @@ def test_missing_llm_key_falls_back_to_rules(monkeypatch):
             "customer_unreachable",
             "high",
         ),
+        (
+            "customer phone nahi utha raha, address confirm kar diya hai",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer ka phone switch off hai, restaurant ne packing confirm kar di",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer ka number band hai, guard ne entry confirm kar di",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer ne phone nahi uthaya, maine address confirm kar liya",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer phone nahi utha raha tha, ab customer se baat ho gayi, "
+            "address confirm hai",
+            "other",
+            "low",
+        ),
+        (
+            "pehle switch off tha, phir customer ne call utha liya",
+            "other",
+            "low",
+        ),
+        (
+            "customer ne phone pe location confirm kar di",
+            "other",
+            "low",
+        ),
     ],
     ids=[
         "answered_call_rider_busy_packing",
@@ -217,6 +255,13 @@ def test_missing_llm_key_falls_back_to_rules(monkeypatch):
         "line_nahi_mil",
         "ring_unanswered",
         "latest_state_now_unreachable",
+        "confirm_address_after_no_answer",
+        "confirm_packing_after_switch_off",
+        "confirm_entry_after_number_band",
+        "confirm_address_by_rider_after_no_answer",
+        "latest_state_baat_then_address_confirm",
+        "latest_state_then_customer_utha_liya",
+        "customer_phone_location_confirm",
     ],
 )
 def test_contact_state_classes(text, intent, urgency):
@@ -227,4 +272,54 @@ def test_contact_state_classes(text, intent, urgency):
         assert event.confidence == 0.5
     else:
         assert event.confidence == 0.0
+
+
+# Every reproduction from the three reviews of this pull request.
+@pytest.mark.parametrize(
+    ("text", "intent", "urgency"),
+    [
+        (
+            "customer ne phone receive kar liya, address clear hai",
+            "other",
+            "low",
+        ),
+        (
+            "customer ne call receive ki aur location confirm kar di",
+            "other",
+            "low",
+        ),
+        (
+            "customer ka call receive kar liya, ab main packing mein busy hoon",
+            "other",
+            "low",
+        ),
+        (
+            "customer se phone par baat ho gayi, main parcel sort karne mein busy hoon",
+            "other",
+            "low",
+        ),
+        (
+            "customer phone nahi utha raha, address confirm kar diya hai",
+            "customer_unreachable",
+            "high",
+        ),
+        (
+            "customer ka phone switch off hai, restaurant ne packing confirm kar di",
+            "customer_unreachable",
+            "high",
+        ),
+    ],
+    ids=[
+        "review1_receive_kar_liya",
+        "review1_receive_ki_confirm",
+        "review2_receive_then_rider_busy_packing",
+        "review2_baat_ho_gayi_then_rider_busy_sorting",
+        "review3_no_answer_then_address_confirm",
+        "review3_switch_off_then_packing_confirm",
+    ],
+)
+def test_himanshu_review_repros(text, intent, urgency):
+    event = extract_event(text, provider="rules")
+    assert event.intent.value == intent
+    assert event.urgency.value == urgency
 
