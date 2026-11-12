@@ -23,12 +23,12 @@ Backend, new file `backend/rasta/simulate.py`, route in `backend/rasta/routes_si
 }
 ```
 
-- `noisy` mixes a short horn burst and rumble onto the PCM (a few lines, stdlib, seed 4), downsamples to 8000 Hz by averaging pairs, then sends **that** wav to `ingest`. The transcript the desk sees is the transcript of the dirty audio. In mock mode the transcript is still the canned line, because mock STT ignores bytes. That is honest: show the dirty wav's play button anyway, and let the slate say `stt.mock`. When the key is live, the noisy condition is a real Prisma call on the dirty audio. Don't hide that.
+- `noisy` mixes a short horn burst and rumble onto the PCM (a few lines, stdlib, seed 4), downsamples to 8000 Hz by averaging pairs, then sends **that** wav to `ingest`. The transcript the desk sees is a real Prisma transcript of the dirty audio. Show the dirty wav's play button so a viewer can hear what Prisma heard.
 
 Frontend, `frontend/src/rider.ts` and `frontend/src/rider.css`:
 
 - A two-position control, "Clean line" / "Noisy line", default Clean. Not a checkbox buried in a menu. Big enough to see on a phone.
-- The existing upload and the canned-tone stream both honour it.
+- The existing upload and the **Speak a sample line** button both honour it (the sample route gets a `condition` query too: Timbre speaks, the server dirties it, Prisma transcribes the dirty audio).
 - After a result, an `<audio controls>` plays `audio_base64` when the simulate route was used.
 - A second `<audio controls>` plays the reply from `POST /api/reply/{id}` (issue 08). Button label: "Hear dispatch".
 - Keep the chit look: paper, red spine, hard shadow. Don't introduce a card grid, a purple gradient, or a new font.
@@ -52,17 +52,18 @@ The stream path: if noisy, the browser can only dirty what it sends. Document in
 
 See the JSON above. `condition` is exactly `clean` or `noisy`. Anything else is 400.
 
-`ingest` is the stamped store record from issue 04. The audio in `audio_base64` is the audio Prisma (or the mock) was given.
+`ingest` is the stamped store record from issue 04. The audio in `audio_base64` is the exact audio Prisma was given.
 
 Noisy audio is 8000 Hz mono 16-bit WAV. Clean audio keeps the upload's container only if you can hand Prisma the original bytes; otherwise re-wrap as wav and say so. Prefer re-wrap so the player always gets wav.
 
 ## Acceptance criteria
 
-- [ ] `condition=noisy` on a generated tone returns 8000 Hz wav. Test with `wave` on the decoded bytes.
+- [ ] `condition=noisy` on a wav generated in the test returns 8000 Hz wav. Test with `wave` on the decoded bytes. Prisma's HTTP transport is swapped inside the test (same pattern as `backend/tests/test_ingest.py`).
 - [ ] `condition=clean` does not change the sample count of a wav you generated in the test.
-- [ ] Mock ingest inside the payload still has `event.intent == customer_unreachable` for the canned path. For an uploaded tone in mock mode, same, because mock STT is fixed. Assert `stt.mock` is true.
+- [ ] The test asserts the bytes posted to `/stt/v3` are the noisy wav (8000 Hz), not the clean upload.
+- [ ] Live check with a real key: the sample line, noisy, still comes back as `customer_unreachable` / order 18 (verified on 12 Nov with 5 dB white noise at 8 kHz). Paste both transcripts in the PR.
 - [ ] Bad `condition` is 400.
-- [ ] In the browser: toggle Noisy, run **Canned night drop** (or the upload), hear a clip, click **Hear dispatch**, hear the mock tone, see the slate update. Then toggle Clean and run it again. Both succeed.
+- [ ] In the browser, with a real key: toggle Noisy, run **Speak a sample line** (or the upload), hear the dirty clip, click **Hear dispatch**, hear Timbre's reply, see the slate update. Then toggle Clean and run it again. Both succeed.
 - [ ] Phone width (a narrow window) still shows the toggle, the buttons, and the slate without overlapping the sticker into the buttons. Look at it.
 - [ ] `npm run check` and `pytest backend/tests/test_simulate.py` pass.
 

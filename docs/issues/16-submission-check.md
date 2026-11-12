@@ -15,9 +15,11 @@ Then confirm:
 
 | Check | How | Done when |
 | --- | --- | --- |
-| Mock hello path | `POST /api/ingest/sample` | Intent is `customer_unreachable`, order `18`, and `stt.mock` is true |
-| Gnani is actually used | README architecture plus, if a key exists, one live `request_id` from a Prisma response | The id is written in the doc. The key is not. If no key yet, write "credits not in yet" and leave the mock path as the thing you submit only if the rules allow — otherwise this row stays open |
-| Benchmark section | README between the markers | Table, SVG, and the word synthetic. Fixture vs live is explicit |
+| Live hello path | `POST /api/ingest/sample` with `GNANI_API_KEY` set | Intent is `customer_unreachable`, order `18`, with a real Prisma `request_id` |
+| Gnani is actually used | README architecture plus one live `request_id` from a Prisma response and one Timbre clip duration | The id is written in the doc. The key is not |
+| No mock paths | `rg -n -i "mock\|GNANI_MOCK\|canned" --glob '!**/tests/**' --glob '!docs/issues/**' .` | No hits outside tests (tests may use `httpx.MockTransport`) |
+| Missing key is loud | Start the API with `GNANI_API_KEY` unset, call `/api/ingest/sample` | 503 with the missing-key message |
+| Benchmark section | README between the markers | Table, SVG, the word synthetic, run date and grid size from the live run |
 | No real personal data | `rg -n "[0-9]{8,}" benchmark/data docs backend frontend shared` | No hits, or every hit explained as a non-personal token |
 | Demo script | `docs/demo-script.md` | Total read-through ≤ 60 s |
 | Post | `docs/social-post.md` | Both links present |

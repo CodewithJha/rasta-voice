@@ -37,11 +37,11 @@ Route, new file `backend/rasta/routes_reply.py`:
   "text": "Theek hai. <pauses> Aap gate ke paas ruko.",
   "audio_base64": "<wav bytes, standard base64>",
   "content_type": "audio/wav",
-  "mock": true
+  "audio_seconds": 1.8
 }
 ```
 
-Mock mode uses `TimbreTTS` mock and still returns a playable wav (the tone). Live mode uses the client's defaults (`timbre-v3.0`, `Shivani`, `hi-en`). One include line in `main.py`.
+Always a real Timbre call with the client's defaults (`timbre-v3.0`, `Shivani`, `hi-en`). Missing key → 503 with the client's message; a Timbre error → 502 with `upstream_status` (reuse the `_guard` mapping in `main.py`). `audio_seconds` comes from `gnani_client.wav.wav_duration_seconds` (Timbre's WAV header sizes are placeholders). One include line in `main.py`.
 
 Unknown id → 404. Do not accept a raw transcript from the browser for this route. The text comes from the stored event, so the browser cannot make Timbre say an arbitrary string.
 
@@ -60,7 +60,7 @@ Unknown id → 404. Do not accept a raw transcript from the browser for this rou
 
 Input: event id already stored by issue 04.
 
-Output: JSON above. `audio_base64` decodes to bytes starting with `RIFF`. `text` is the exact string sent to Timbre. `mock` mirrors `TimbreTTS.mock`.
+Output: JSON above. `audio_base64` decodes to bytes starting with `RIFF`. `text` is the exact string sent to Timbre.
 
 `reply_text` is pure and tested without audio.
 
@@ -68,10 +68,12 @@ Output: JSON above. `audio_base64` decodes to bytes starting with `RIFF`. `text`
 
 - [ ] Each intent has a test that the line is non-empty, contains no 8-digit run, and contains at most one `<` tag.
 - [ ] Accident line starts with `<whispers>`.
-- [ ] `POST /api/reply/{id}` after a sample ingest returns a wav and `mock: true` under `GNANI_MOCK=1`.
+- [ ] `POST /api/reply/{id}` after a sample ingest returns a wav. In the test, swap Timbre's HTTP transport (`monkeypatch.setattr(TimbreTTS, "_http", ...)` with `httpx.MockTransport`, same pattern as `backend/tests/test_ingest.py`) and assert the request body's `text` equals `reply_text(event)`.
+- [ ] With `GNANI_API_KEY` unset the route answers 503 with the missing-key message.
 - [ ] Unknown id returns 404.
 - [ ] A made-up body cannot override the spoken text (the route has no `text` field).
-- [ ] `pytest backend/tests/test_reply.py` passes with no key.
+- [ ] `pytest backend/tests/test_reply.py` passes with no key (transport swapped in the test only, nothing fake in app code).
+- [ ] One live call with a real key: paste the spoken text and `audio_seconds` in the PR.
 
 ## How to test
 

@@ -45,12 +45,12 @@ Renders one row per event. No new endpoint.
 
 ## Acceptance criteria
 
-- [ ] With the API in mock mode, two clicks of the canned drop on the rider page produce two rows, stable across a refresh (the store is in the API process, so the refresh repaints from `GET /api/events`).
+- [ ] With a real key, two clicks of **Speak a sample line** on the rider page produce two rows, stable across a refresh (the store is in the API process, so the refresh repaints from `GET /api/events`).
 - [ ] A second browser tab pointed at the same frontend shows the same rows within one poll, without clicking anything in that tab.
-- [ ] High urgency renders the urgency word in `#9b2226`. Check the computed colour, or look: the canned event is high.
+- [ ] High urgency renders the urgency word in `#9b2226`. Check the computed colour, or look: the sample line's event is high.
 - [ ] Empty store shows the dark-desk sentence, not a blank panel and not an error.
 - [ ] `npm run check` passes. Keyboard: you can tab to the rider controls and the slate text is readable. No new click target that lacks a name.
 
 ## How to test
 
-Start API and `npm run dev`. Open two windows. In one, run the canned drop twice. Watch the other. Refresh both. Narrow one window until the layout stacks and confirm the slate is still readable.
+Start API and `npm run dev`. Open two windows. In one, run **Speak a sample line** twice (needs `GNANI_API_KEY`; four Gnani calls total). Watch the other. Refresh both. Narrow one window until the layout stacks and confirm the slate is still readable.

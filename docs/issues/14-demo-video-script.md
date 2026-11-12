@@ -16,7 +16,7 @@ Beats:
 | 0–8 | The chit, night page, no dashboard chrome tour | Who it's for: a rider in traffic, Hinglish, a noisy phone line. Name Rasta Voice. |
 | 8–20 | Toggle to Noisy. Play the utterance. | One real line, spoken: the gate is shut and the customer is not picking up, order 18. Say the audio is synthetic. |
 | 20–35 | Slate fills: intent, order, action. Then the reply plays. | What dispatch is told, in one sentence. Mention Prisma heard it and Timbre answered. |
-| 35–50 | README chart, or the SVG file full screen | v2.5 against v3.0, hints, denoise, on 8 kHz phone audio. One comparison, only if the number is in `scores.json` or `scores.live.json`. If the file says `"mock": true`, say "fixture run, live scores land with the credits". |
+| 35–50 | README chart, or the SVG file full screen | v2.5 against v3.0, hints, denoise, on 8 kHz phone audio. One comparison, only if the number is in the committed live `scores.json`. If the scored run is not in yet, show the live sample result instead (Timbre line → Prisma transcript, word for word, also on 8 kHz noisy audio). Never quote a number that did not come from Prisma. |
 | 50–60 | The page again | Noise Canceller entry. Mixed Hinglish. Hashtags spoken once: Gnani AI, Great Indian AI Internship Challenge. "No real customer calls." |
 
 Do not show a terminal full of keys, a `.env` file, or a phone number. Do not claim a WER the JSON does not contain.

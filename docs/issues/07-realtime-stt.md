@@ -17,14 +17,14 @@ Protocol, from the docs:
 - Read JSON frames. A transcript looks like `{"type": "transcript", "text": "...", "segment_id": "...", "latency": 320}`. An error frame has `type: "error"`.
 - Session limit is 15 minutes. Idle timeout default is 60 seconds. For the demo, close the socket on commit. Don't hold it open.
 
-Mock mode: do not open a socket. After commit, emit one transcript and that transcript is `MOCK_TRANSCRIPT` from `gnani_client.stt`. Then run `extract_event` and `store.append`, and send the stamped record to the browser as one JSON text frame.
+Always open the real socket. After commit, collect the transcript frames, then run `extract_event` and `store.append`, and send the stamped record to the browser as one JSON text frame. If `GNANI_API_KEY` is missing, close the browser socket with an `{"type": "error"}` frame carrying the missing-key message. If Gnani sends an error frame or refuses the handshake (401/402/429), forward its message the same way. Never invent a transcript.
 
 Add the `websockets` package to `gnani_client/pyproject.toml` in this PR. Pin a current 13.x or whatever `additional_headers` matches (the docs note that `websockets` < 13 wants `extra_headers`).
 
 Browser side, in `frontend/src/rider.ts` only:
 
 - A button, "Talk". `getUserMedia({audio: true})`, `AudioContext`, resample to 16-bit PCM with a `ScriptProcessor` or `AudioWorklet`. If the mic permission fails, the button shows the error in the existing `<pre>` and does not crash the page.
-- A second button, "Stream the canned tone", sends the same socket a few silent-or-tone PCM frames and a commit, so the demo works on a machine with no mic. Mock mode answers with the fixed Hinglish line.
+- A second button, "Stream a sample line", so the demo works on a machine with no mic: the API asks Timbre for `pipeline.SAMPLE_LINE` as raw 16 kHz PCM (`container="raw"`, `sample_rate=16000`), then streams it through the same Prisma realtime path in 1024-byte frames. Real TTS in, real realtime STT out.
 - On a transcript message, paint the JSON the way the upload path already does, and dispatch `rasta:event` so the slate updates.
 
 Backend socket: `WS /api/stream` on a new router `backend/rasta/routes_stream.py`. One `include_router` line in `main.py`. The browser talks to your API, and your API talks to Gnani, so the key never reaches the browser.
@@ -50,7 +50,7 @@ Browser → API: binary PCM frames, then a text frame `{"type":"commit","sample_
 API → browser: text frames.
 
 ```json
-{"type": "transcript", "text": "bhaiya gate band hai, customer phone nahi utha raha, order 18", "mock": true}
+{"type": "transcript", "text": "Bhaiya, gate band hai aur customer phone nahi utha raha...", "segment_id": "seg_1"}
 ```
 
 Then, when extraction finishes:
@@ -59,13 +59,15 @@ Then, when extraction finishes:
 {"type": "event", "id": "...", "created_at": "...", "transcript": "...", "stt": {}, "event": {}}
 ```
 
-`stt_stream.transcribe_pcm(pcm: bytes, sample_rate: int) -> SttResult` is the function the route calls. In mock mode it returns `MOCK_TRANSCRIPT` and does not connect. A unit test feeds it bytes and asserts no socket attempt (pass a client factory that would raise if called).
+`stt_stream.transcribe_pcm(pcm: bytes, sample_rate: int, *, connect=websockets.connect) -> SttResult` is the function the route calls. It always connects to Gnani. The `connect` parameter exists so the unit test can pass a fake socket factory inside the test (records sent frames, replays scripted server frames). No env flag or app-level switch fakes the socket.
 
 ## Acceptance criteria
 
-- [ ] Mock `transcribe_pcm` returns the canned transcript and never builds a WebSocket.
+- [ ] `transcribe_pcm` with a fake `connect` (defined in the test file) sends 1024-byte binary frames then `{"type":"commit"}`, and joins the transcript frames it gets back.
+- [ ] With `GNANI_API_KEY` unset, `WS /api/stream` replies with an error frame naming the missing key, and the page shows it.
 - [ ] A test of `stream_headers` / the new module asserts the live URL path is `/stt/v3/stream` and the telephony preset sets `x-sample-rate` to `8000`.
-- [ ] With the API in mock mode, the "canned tone" button on the rider page ends with the slate showing customer unreachable / order 18. Click it. Don't only look at the DOM.
+- [ ] With a real key, the "Stream a sample line" button ends with the slate showing customer unreachable / order 18. Click it. Don't only look at the DOM.
+- [ ] One manual live test with a real voice through the mic. Paste the transcript and Gnani `request_id` in the PR (synthetic words only).
 - [ ] Mic denial shows a message and leaves the upload form working.
 - [ ] The Gnani key is read on the server only. Confirm the frontend bundle has no `GNANI` string (`rg GNANI frontend/src` is empty).
 - [ ] `pytest`, `ruff`, and `npm run check` pass.
@@ -77,4 +79,4 @@ pytest gnani_client/tests/test_stream.py backend/tests -q
 cd frontend && npm run check
 ```
 
-Then, with `uvicorn` and `npm run dev`: click **Stream the canned tone**, confirm the slate, then refuse the mic in the browser site settings and click **Talk**.
+Then, with `GNANI_API_KEY` set, `uvicorn` and `npm run dev`: click **Stream a sample line**, confirm the slate, talk into the mic once, then refuse the mic in the browser site settings and click **Talk**.

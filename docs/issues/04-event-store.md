@@ -43,7 +43,7 @@ Do not add persistence, auth, or a second process. The desk is one uvicorn worke
   "id": "uuid",
   "created_at": "2026-11-13T10:00:00+00:00",
   "transcript": "...",
-  "stt": {"model": "prisma-v3.0", "mock": true, "request_id": "mock-stt", "detected_language_code": "hi-IN"},
+  "stt": {"model": "prisma-v3.0", "request_id": "01a1ceb8-be35-7a20-b209-af966a3bb25a", "detected_language_code": null, "processing_time": 0.21, "audio_seconds": 6.08},
   "event": {"intent": "customer_unreachable", "order_id": "18"}
 }
 ```
@@ -54,7 +54,7 @@ Do not add persistence, auth, or a second process. The desk is one uvicorn worke
 
 ## Acceptance criteria
 
-- [ ] Two sample ingests produce two stored events, oldest first.
+- [ ] Two ingests produce two stored events, oldest first. In tests, swap the Gnani HTTP transport the way `backend/tests/test_ingest.py` does; no fake path in app code.
 - [ ] The 201st append drops the oldest. Test this by calling `append` directly, not via HTTP.
 - [ ] `since` filters by `created_at`.
 - [ ] Existing ingest tests still pass. Update them only if they assert the exact key set and now reject `id`.
@@ -64,6 +64,6 @@ Do not add persistence, auth, or a second process. The desk is one uvicorn worke
 
 ```bash
 pytest backend/tests/test_ingest.py backend/tests/test_store.py -q
-curl -s -X POST http://127.0.0.1:8000/api/ingest/sample >/dev/null
+curl -s -X POST http://127.0.0.1:8000/api/ingest/sample >/dev/null   # real Timbre + Prisma, needs GNANI_API_KEY
 curl -s http://127.0.0.1:8000/api/events | python -m json.tool
 ```

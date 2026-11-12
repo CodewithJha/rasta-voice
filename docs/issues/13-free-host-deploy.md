@@ -16,11 +16,11 @@ One free host, one process. Hugging Face Spaces (Docker SDK) is the default. Ren
 - `pip install` the three Python packages from `requirements-dev.txt` is wrong for production (it pulls pytest). Install `gnani_client`, `backend`, and `benchmark` with `pip install` of those directories, plus the runtime deps already in their pyprojects. `benchmark` is imported only if you choose to ship the demo mix from there; the simulate route is self-contained, so the image does not need `benchmark` to boot. Leave it out of the image unless the image gets huge either way and you'd rather keep one Dockerfile simple. Prefer leaving it out.
 - `npm ci && npm run build` in `frontend/`.
 - Copy `frontend/dist` to a path the API serves.
-- `CMD` runs `uvicorn rasta.main:app --host 0.0.0.0 --port 7860` (Spaces) or `$PORT` if you document Render. Pick one host and one port. Don't write both and leave the reader to guess. If you pick Spaces, add a `README.md` paragraph... no, don't bury host notes in the product README. Add `docs/DEPLOY.md` with the click path: create a public Space, SDK Docker, set secrets `GNANI_API_KEY`, `GNANI_MOCK`, `LLM_PROVIDER`, `GROQ_API_KEY` or `GEMINI_API_KEY`. Secrets are Space secrets, never `ENV` lines in the Dockerfile.
+- `CMD` runs `uvicorn rasta.main:app --host 0.0.0.0 --port 7860` (Spaces) or `$PORT` if you document Render. Pick one host and one port. Don't write both and leave the reader to guess. If you pick Spaces, add a `README.md` paragraph... no, don't bury host notes in the product README. Add `docs/DEPLOY.md` with the click path: create a public Space, SDK Docker, set secrets `GNANI_API_KEY`, `LLM_PROVIDER`, `GROQ_API_KEY` or `GEMINI_API_KEY`. Secrets are Space secrets, never `ENV` lines in the Dockerfile.
 
 Static files: in `main.py`, mount `StaticFiles` at `/` **after** the API routes, with `html=True`, only when the dist directory exists. Check that `/api/health` still wins over the mount. A test uses `TestClient` against an app that has a temp dist with an `index.html`, gets HTML from `/`, and JSON from `/api/health`.
 
-`GNANI_MOCK=1` must boot with no key, so the public Space is not a blank error before credits land. When the key is set, set `GNANI_MOCK=0` in the Space secrets and say so in `docs/DEPLOY.md`.
+The Space runs on the real Gnani APIs only. `GNANI_API_KEY` is a required Space secret. Without it the app still boots, `/api/health` reports `gnani_key_set: false`, and speech routes answer 503 with the missing-key message, so a misconfigured Space is obvious, not silently fake. Watch credits: a public demo button costs two Gnani calls per click, so consider a simple per-IP rate limit on `/api/ingest/sample`.
 
 No analytics snippet. No third-party tracker.
 
@@ -48,7 +48,7 @@ The browser on the deployed origin calls `/api/...` on the same origin. Vite's d
 
 - [ ] `docker build -t rasta .` succeeds. Run it if Docker is available. If Docker is not available in your environment, say so in the PR and still run a local `uvicorn` against the built dist.
 - [ ] Container or local prod-mode serves `/` as HTML and `/api/health` as JSON.
-- [ ] `POST /api/ingest/sample` on that server returns `customer_unreachable` when `GNANI_MOCK=1`.
+- [ ] With `GNANI_API_KEY` set, `POST /api/ingest/sample` on that server returns `customer_unreachable`, order `18`, and a real `request_id`. Without the key it returns 503.
 - [ ] `docs/DEPLOY.md` lists the secrets by name and says not to commit them.
 - [ ] The image has no `.env` file (`docker run --rm rasta ls -a | rg env` finds nothing, or you never `COPY .env`).
 - [ ] The public URL is pasted at the top of `docs/DEPLOY.md` once the Space is up.
@@ -57,10 +57,10 @@ The browser on the deployed origin calls `/api/...` on the same origin. Vite's d
 
 ```bash
 docker build -t rasta .
-docker run --rm -e GNANI_MOCK=1 -p 7860:7860 rasta
+docker run --rm -e GNANI_API_KEY -p 7860:7860 rasta   # passes the key from your shell, never baked in
 curl -s localhost:7860/api/health
 curl -s -o /dev/null -w "%{http_code}\n" localhost:7860/
 curl -s -X POST localhost:7860/api/ingest/sample
 ```
 
-Open the site in a browser, run the canned drop, toggle noisy, and confirm the slate polls. That is the same check as issues 09 and 10, on the deployed origin.
+Open the site in a browser, run **Speak a sample line**, toggle noisy, and confirm the slate polls. That is the same check as issues 09 and 10, on the deployed origin.

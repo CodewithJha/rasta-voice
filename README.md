@@ -2,7 +2,7 @@
 
 A noise-robust voice copilot for delivery riders. The rider speaks Hinglish on a phone-quality line ("bhaiya gate band hai, customer phone nahi utha raha"). Gnani Prisma transcribes it, a small extractor turns it into a dispatch event, and Gnani Timbre will speak a short confirmation back.
 
-This repository is the skeleton: one working path from an audio upload to that event, with mock speech clients so the app runs before API credits arrive. The rest of the product is sequenced in [docs/PLAN.md](docs/PLAN.md).
+This repository is the skeleton: one working path from an audio upload to that event, on the real Gnani APIs. There is no mock or offline mode. Without `GNANI_API_KEY` the speech routes answer `503` with a clear message. The rest of the product is sequenced in [docs/PLAN.md](docs/PLAN.md).
 
 Built for Gnani AI's Great Indian AI Internship Challenge. Target award: **Noise Canceller**. Speech is synthetic. No real phone numbers, calls, or customer records.
 
@@ -43,16 +43,18 @@ Gnani base URL: `https://api.vachana.ai`. Auth header on every call: `X-API-Key-
 | --- | --- | --- |
 | `PrismaSTT.transcribe` | `POST /stt/v3` | `model=prisma-v3.0` is opt-in. Omit `model` for Prisma v2.5. REST clips are 30 seconds. |
 | `stream_headers` | `wss://api.vachana.ai/stt/v3/stream` | Headers only. The socket loop is issue 07. `preset="telephony"` sets 8 kHz and the noisy-line VAD knobs. |
-| `PrismaBatch` | `POST /stt/v3/batch/jobs`, then `/start` | `with_denoise` exists here, not on REST. Creating a job does not start it. |
+| `PrismaBatch` | `POST /stt/v3/batch/jobs`, then `/start` | `with_denoise` exists here, not on REST. Creating a job does not start it. `list_files` returns pre-signed `transcript_url`s; `fetch_transcript` downloads one. |
 | `TimbreTTS.synthesize` | `POST /api/v1/tts/inference` | Default voice `Shivani`, model `timbre-v3.0`, language `hi-en` (Hinglish). Tags such as `<whispers>` are v3.0 only. |
 
-The hello path asks Prisma v3.0 for `language_code=hi-IN,en-IN` and `format=codemix`, and sends a short rider topic plus keyterms (`order`, `gate`, `customer`, `item`, `accident`, `traffic`). Codemix keeps English words in Latin script, which matches how those utterances are spoken.
+Every client needs `GNANI_API_KEY` and raises `MissingApiKeyError` when it is empty. API failures raise `GnaniError` with the HTTP status and Gnani's error code (`401 INVALID_API_KEY`, `402` out of credit, `429 RATE_LIMITED`, …). The backend maps a missing key to `503` and an upstream failure to `502` with `upstream_status`.
 
-Mock mode does not open a socket and does not read the audio. It returns one fixed line so the desk is demoable:
+The hello path asks Prisma v3.0 for `language_code=hi-IN,en-IN` and `format=transliterate`, and sends a short rider topic plus keyterms (`order`, `gate`, `customer`, `item`, `accident`, `traffic`). Transliterate returns the whole line in Latin script, so the extractor and the dispatcher read one script. Numbers come back as words ("order eighteen", "das minute"), and the extractor parses both words and digits.
 
-> bhaiya gate band hai, customer phone nahi utha raha, order 18
+Verified live on 12 Nov 2026: Timbre v3.0 (`Shivani`, `hi-en`, 16 kHz) spoke
 
-That line is a `customer_unreachable` event for order `18`. The closed gate is in the words, and the contact failure wins.
+> Bhaiya, gate band hai aur customer phone nahi utha raha. Order eighteen pe main das minute se khada hoon.
+
+(6.1 s of audio), and Prisma v3.0 returned that line word for word. The event is `customer_unreachable`, order `18`, ETA `10` min, urgency `high`. The closed gate is in the words, and the contact failure wins. The same clip downsampled to 8 kHz with white noise at 5 dB SNR still came back with the same intent, order and ETA.
 
 ## Setup
 
@@ -65,12 +67,13 @@ pip install -r requirements-dev.txt
 cp .env.example .env
 ```
 
-Leave `GNANI_API_KEY` empty and `GNANI_MOCK=1` until credits show up. `LLM_PROVIDER=mock` uses the rule extractor. `groq` and `gemini` fail with HTTP 501 on purpose.
+Put your key in `.env` as `GNANI_API_KEY=…` (the API loads `.env` on start; real environment variables win). `.env` is gitignored, never commit it. `LLM_PROVIDER=rules` uses the keyword extractor, which needs no LLM key. `groq` and `gemini` fail with HTTP 501 until issue 02 wires them.
 
 API:
 
 ```bash
 uvicorn rasta.main:app --reload --port 8000
+curl -s http://127.0.0.1:8000/api/health          # gnani_key_set must be true
 curl -s -X POST http://127.0.0.1:8000/api/ingest/sample | python -m json.tool
 ```
 
@@ -82,7 +85,7 @@ npm install
 npm run dev
 ```
 
-Open the printed localhost URL. **Canned night drop** fills the chit and the slate.
+Open the printed localhost URL. **Speak a sample line** has Timbre say a synthetic rider line, sends that audio to Prisma, and fills the chit and the slate. It costs two API calls.
 
 Upload a real clip with:
 
@@ -91,7 +94,7 @@ curl -s -X POST http://127.0.0.1:8000/api/ingest \
   -F audio_file=@clip.wav
 ```
 
-When `GNANI_MOCK=0` and a key is set, that upload is a live Prisma call. The sample route stays refused in live mode: the canned clip is a tone, not speech.
+Every upload is a live Prisma REST call (30 seconds max). The response includes `request_id`, `processing_time` and `audio_seconds`.
 
 ## Event
 
@@ -117,7 +120,7 @@ pytest
 cd frontend && npm run check
 ```
 
-GitHub Actions runs the same three commands.
+GitHub Actions runs the same three commands with no secrets. Tests swap the HTTP transport (`httpx.MockTransport`) inside the test files only; the app code has no fake path.
 
 ## What is deliberately not here
 
@@ -125,6 +128,6 @@ Noise mixing, the scored Prisma matrix, realtime streaming, the LLM, the spoken 
 
 <!-- benchmark:start -->
 
-The noise benchmark is not scored yet. Issue 12 fills this section with the WER table and chart. Until then, `rasta_bench.wer` and `rasta_bench.cer` are the scoring functions the runner will call.
+The noise benchmark is not scored yet. Issue 12 fills this section with the WER table and chart from a live Prisma run. Until then, `rasta_bench.wer` and `rasta_bench.cer` are the scoring functions the runner will call.
 
 <!-- benchmark:end -->

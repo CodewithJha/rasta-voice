@@ -1,8 +1,8 @@
 # Rasta Voice — three-day plan
 
-Contest deadline: **15 Nov 2026, 18:00 IST**. The public post goes out by **14 Nov 2026, 18:00 IST**, even if the benchmark chart is still the fixture run. Live Prisma numbers replace the fixture the moment credits work. Do not block the post on a perfect table.
+Contest deadline: **15 Nov 2026, 18:00 IST**. The public post goes out by **14 Nov 2026, 18:00 IST**, even if the benchmark has only a small live run. Do not block the post on a perfect table.
 
-Today in this repo is the skeleton (mock STT, rule extractor, upload → JSON, chit + slate). Everything below is a file in `docs/issues/`. Merge them in the order listed. Same-day issues with no dependency can be pull requests at the same time.
+Today in this repo is the skeleton (live Prisma STT and Timbre TTS, rule extractor, upload → JSON, chit + slate). There is no mock mode anywhere in the app. Everything below is a file in `docs/issues/`. Merge them in the order listed. Same-day issues with no dependency can be pull requests at the same time.
 
 ## Owners
 
@@ -44,12 +44,13 @@ If a client bug blocks you, one small fix in `gnani_client/` is allowed in your 
 
 Day 2 note for Member B: finish 07 and 08 before opening 09. 10 can land beside 07 because it only touches `frontend/src/dispatch.ts` and a new stylesheet. Do not both edit `frontend/src/rider.ts`.
 
-Day 3 note: 15 does not wait on 12. If the chart is merged, quote one number. If it is not, say the fixture table is in the README and the live run follows before the deadline. Publish by 14 Nov 18:00 IST anyway.
+Day 3 note: 15 does not wait on 12. If the chart is merged, quote one number. If it is not, quote the live sample result from the README (Timbre line → Prisma transcript, word for word) and say the scored run follows before the deadline. Publish by 14 Nov 18:00 IST anyway.
 
 ## Rules that apply to every issue
 
 - Synthetic audio and synthetic order tokens only. No real phone numbers, call recordings, customer names, or government IDs. An 8-digit run is not an `order_id`.
 - Free tools only. Gnani credits are the contest grant. LLM is Groq or Gemini free tier. Host is Hugging Face Spaces or Render free. No paid APIs, no paid fonts, no paid dataset.
-- At least one live Gnani model must be on the path once credits arrive (Prisma, and Timbre for the reply and the clean clips). Mock stays the default in CI.
-- CI (`ruff`, `pytest`, `npm run check`) stays green. Tests that need a key are skipped when the key is absent.
+- Real Gnani calls only. No mock flags, canned transcripts, tone stand-ins, or fixture scores in app, benchmark, or docs. A missing `GNANI_API_KEY` is a loud error, never a silent fallback.
+- CI (`ruff`, `pytest`, `npm run check`) stays green with no secrets. Tests fake the HTTP transport inside the test file (`httpx.MockTransport` or monkeypatch), never through a flag in app code. Live tests are opt-in and skip when `GNANI_API_KEY` is absent.
+- Watch credits: one REST STT call per clip, one TTS call per line. Cache generated audio under `benchmark/data/audio/` and do not regenerate it on every run.
 - `extract_event(transcript) -> RiderEvent` stays that signature. Extra optional args are fine. Removing the rule fallback is not.

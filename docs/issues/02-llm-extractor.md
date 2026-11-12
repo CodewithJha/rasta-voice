@@ -9,7 +9,7 @@
 
 Replace the "not implemented" branch in `extract_event` with a real call to a free LLM, then check it against a gold file.
 
-`LLM_PROVIDER=mock` stays the rule table in `backend/rasta/extract.py`. That path is what CI runs.
+`LLM_PROVIDER=rules` (the default) stays the keyword extractor in `backend/rasta/extract.py`. It is a real extractor, not a stand-in: it is the fallback whenever the LLM key is missing or the free tier fails, and it is what CI runs. Prisma transcripts arrive transliterated (Latin script, numbers as words), so prompt and gold rows should look like that.
 
 `LLM_PROVIDER=groq` calls Groq's OpenAI-compatible chat completions endpoint with `GROQ_API_KEY`. `LLM_PROVIDER=gemini` calls the Gemini generateContent endpoint with `GEMINI_API_KEY`. Use `httpx`, which is already installed. Do not add an SDK. Look up the current free model id on the day you implement it (Groq and Gemini retire ids). Put the id in one constant at the top of `backend/rasta/llm.py` with a comment of the date you checked.
 
@@ -22,7 +22,7 @@ The prompt:
 
 Parse the JSON. Validate it with `RiderEvent`. On timeout, non-200, or invalid JSON, fall back to the rules and keep going. Do not let a flaky free tier 500 the rider. Do not log the API key. Do not put the key in the repo.
 
-Gold set: `backend/tests/fixtures/intent_gold.jsonl`, at least 20 lines, same fields as issue 01's corpus (you may write your own; do not block on Member A's file). A test runs `extract_event(text, provider="mock")` on every row and asserts intent accuracy of at least 0.8. That locks the rules against the gold you just wrote, so write gold the rules can pass, including the stacked "gate band / nahi utha" case.
+Gold set: `backend/tests/fixtures/intent_gold.jsonl`, at least 20 lines, same fields as issue 01's corpus (you may write your own; do not block on Member A's file). A test runs `extract_event(text, provider="rules")` on every row and asserts intent accuracy of at least 0.8. That locks the rules against the gold you just wrote, so write gold the rules can pass, including the stacked "gate band / nahi utha" case.
 
 A second test calls the live provider only when the matching key is in the environment. Otherwise it skips. Do not record live transcripts that contain anything but your gold text.
 
@@ -62,10 +62,11 @@ Gemini: POST to the free `generateContent` method. Read the current URL from Goo
 
 ## Acceptance criteria
 
-- [ ] `LLM_PROVIDER=mock` behaviour for the existing `test_extract.py` cases is unchanged.
+- [ ] `LLM_PROVIDER=rules` behaviour for the existing `test_extract.py` cases is unchanged.
 - [ ] `LLM_PROVIDER=groq` with no key raises a clear error from the LLM helper, and `extract_event` catches it and returns the rule event.
 - [ ] Gold file has at least 20 rows and no 8-digit numbers.
-- [ ] Mock accuracy on that file is at least 0.8.
+- [ ] Rules accuracy on that file is at least 0.8.
+- [ ] Unit tests for the Groq/Gemini request shape swap the HTTP transport inside the test (`httpx.MockTransport`), not via a flag in `llm.py`.
 - [ ] Live test is skipped in CI (no key in the workflow).
 - [ ] `pytest` and `ruff check backend` pass.
 

@@ -3,7 +3,7 @@
 - **Labels:** `area:app`, `day:3`, `outreach`
 - **Owner:** Member B: app & realtime
 - **Target day:** Day 3, and the post is **live by 14 Nov 2026, 18:00 IST**. Draft earlier the same day. Do not wait on the full benchmark if it is late. Do not wait on the video render. A phone photo of the slate is enough.
-- **Depends on:** issue 09, so you have something true to describe. Issue 12 is optional input: quote a number only when `scores.live.json` exists, or when you clearly mark a fixture number as a fixture.
+- **Depends on:** issue 09, so you have something true to describe. Issue 12 is optional input: quote a number only from the committed live `scores.json`. If it is not in yet, describe the live sample result (README) instead of a number.
 
 ## Description
 
