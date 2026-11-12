@@ -6,13 +6,28 @@ live on the ingest envelope, not inside `event`.
 
 ## Headline result
 
-Rules intent accuracy on the **blind holdout** is **6/36 = 0.167**. That
-is below the issue's 0.8 target. This is a genuine miss. The test records
-a documented baseline of 6/36; it does not lower the 0.8 target by
-relabelling the set or retuning rules against it. A later "rules v2"
-issue, or relying on the LLM path once it is inside the 4 s budget, is
-the follow-up. Do not treat the 24/24 tuning-holdout score as an
-independent result.
+Rules intent accuracy on the **blind holdout** is **8/36 = 0.222** after
+the channel-bound contact-failure fix. That is still below the issue's
+0.8 target. This pull request delivers the extractor infrastructure and
+the evaluation harness; it does not close issue 2. The 0.8 acceptance
+bar remains open.
+
+Two checks are kept distinct, with constants in
+`backend/rasta/intent_eval.py`:
+
+- A regression floor `BLIND_RULES_BASELINE = 6/36`, asserted as a
+  normal test. This floor is not raised when a later review fix moves
+  the score, and it is not raised by retuning or relabelling.
+- An acceptance check against `HOLDOUT_ACCURACY_TARGET = 0.8`, marked
+  `pytest.mark.xfail(strict=True)`. It is an expected failure today and
+  becomes a hard error (XPASS) when the target is met, so the marker
+  has to be removed.
+
+`python scripts/eval_intent.py` always prints `TARGET MET` or
+`TARGET NOT MET` for the blind rules score and exits 0. Pass
+`--enforce-target` to exit 1 when the target is unmet. CI does not pass
+that flag until the issue 2 accuracy work lands. Do not treat the 24/24
+tuning-holdout score as an independent result.
 
 ## Providers
 
@@ -60,12 +75,16 @@ set. A new 36-line blind holdout was written and committed in
 `440bcda` before any extractor was run on those lines.
 
 A first rules scoring of the blind set was run at that point, **before**
-a later review fix in `be41004` (answered "phone receive" / "call
-receive" lines must not become `customer_unreachable`). That fix came
-from the review, not from the blind misses. The extractor was then
-frozen and the blind set was scored a second time. Both rules runs were
-**6/36 = 0.167**; the review fix did not change the blind score. The
-miss lists were the same. Those numbers are left as measured.
+later review fixes to the contact rule. Those fixes came from the
+review (false escalations on answered calls), not from inspecting the
+blind misses as a tuning list. After each extractor freeze the blind
+set was scored once as a regression check. The first two official rules
+runs were **6/36 = 0.167**. After the channel-bound contact fix
+(`a97476c`) a third rules run was **8/36 = 0.222**. The two new hits
+were `b05` ("uthata nahi", the same verb family as "nahi utha" /
+"uthaya nahi") and `b06` ("number continuously busy", a channel-bound
+busy phrase). They were not added by targeting those lines. The 0.8
+target is still unmet. Those numbers are left as measured.
 
 ## Measured rules accuracy (intent only, 12 Nov 2026)
 
@@ -74,12 +93,14 @@ miss lists were the same. Those numbers are left as measured.
 | Development gold | 30/30 = 1.000 |
 | Tuning holdout (after expansion; not independent) | 24/24 = 1.000 (was 7/24 = 0.292 before expansion) |
 | Blind holdout, first run (before `be41004`) | 6/36 = 0.167 |
-| Blind holdout, second run (after `be41004`, official) | 6/36 = 0.167 |
+| Blind holdout, second run (after `be41004`) | 6/36 = 0.167 |
+| Blind holdout, third run (after `a97476c`, official) | 8/36 = 0.222 |
 | Benchmark corpus (reference) | 41/48 = 0.854 (was 40/48 = 0.833 before expansion) |
 
-Blind per-intent accuracy, both runs: `customer_unreachable` 0/6,
+Blind per-intent accuracy, third run: `customer_unreachable` 2/6,
 `address_issue` 0/6, `item_missing` 0/6, `delay` 2/6, `accident_sos` 0/6,
-`other` 4/6. Order id exact-match is 36/36. ETA exact-match is 35/36;
+`other` 4/6. The first two runs were the same except
+`customer_unreachable` 0/6. Order id exact-match is 36/36. ETA exact-match is 35/36;
 the one miss is `b31`, where "do minute" in an `other` line is parsed as
 an ETA of 2. Confusion is almost all true-intent rows falling through to
 `other`, plus `b30` (`accident_sos` predicted `delay` because of
@@ -125,4 +146,5 @@ A rules fallback is never counted as an LLM success. CI has no LLM key;
 ```bash
 pytest backend/tests/test_extract.py backend/tests/test_llm.py backend/tests/test_intent_eval.py -q
 python scripts/eval_intent.py
+python scripts/eval_intent.py --enforce-target  # exits 1 until the 0.8 target is met
 ```

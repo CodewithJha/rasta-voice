@@ -4,6 +4,12 @@
 Usage:
   python scripts/eval_intent.py
   python scripts/eval_intent.py --provider groq
+  python scripts/eval_intent.py --enforce-target
+
+The default exit is 0 even when the 0.8 blind-holdout target is unmet;
+the script still prints TARGET MET or TARGET NOT MET. Pass
+``--enforce-target`` to exit 1 when the target is unmet. CI does not
+pass that flag until the issue 2 accuracy work lands.
 
 Rules always run. An LLM provider is used only when its key is set; the
 script then reports LLM accuracy without counting a rules fallback as an
@@ -27,34 +33,23 @@ if str(ROOT) not in sys.path:
 
 from rasta.intent_eval import (  # noqa: E402
     BLIND_HOLDOUT_PATH,
-    BLIND_RULES_BASELINE,
     GOLD_PATH,
     HOLDOUT_ACCURACY_TARGET,
     TUNING_HOLDOUT_PATH,
     evaluate_rows,
     format_report,
+    format_target_status,
     load_benchmark_corpus,
     load_gold_rows,
 )
 from rasta.settings import get_settings  # noqa: E402
 
 
-def _run(name: str, path: Path, provider: str) -> None:
+def _run(name: str, path: Path, provider: str):
     rows = load_gold_rows(path)
     report = evaluate_rows(rows, name=name, provider=provider)
     print(format_report(report))
-    if (
-        name.startswith("blind")
-        and provider == "rules"
-        and report.accuracy < HOLDOUT_ACCURACY_TARGET
-    ):
-        print(
-            f"blind holdout is below the {HOLDOUT_ACCURACY_TARGET:.1f} issue target "
-            f"({report.accuracy:.3f}; documented baseline "
-            f"{BLIND_RULES_BASELINE:.3f}). This is a genuine miss. Do not "
-            "relabel the frozen set or retune rules to chase the target.",
-            file=sys.stderr,
-        )
+    return report
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -64,6 +59,14 @@ def main(argv: list[str] | None = None) -> int:
         default="rules",
         help="rules (default), groq, or gemini. LLM paths skip when the key is missing.",
     )
+    parser.add_argument(
+        "--enforce-target",
+        action="store_true",
+        help=(
+            "exit 1 if the blind rules score is below HOLDOUT_ACCURACY_TARGET. "
+            "CI does not pass this flag until issue 2 accuracy work lands."
+        ),
+    )
     args = parser.parse_args(argv)
 
     print("=== rules ===")
@@ -71,7 +74,8 @@ def main(argv: list[str] | None = None) -> int:
     print()
     _run("tuning holdout (seen during rule expansion)", TUNING_HOLDOUT_PATH, "rules")
     print()
-    _run("blind holdout", BLIND_HOLDOUT_PATH, "rules")
+    blind = _run("blind holdout", BLIND_HOLDOUT_PATH, "rules")
+    print(format_target_status(blind.accuracy, correct=blind.intent_correct, n=blind.n))
     corpus = load_benchmark_corpus()
     if corpus:
         print()
@@ -90,13 +94,16 @@ def main(argv: list[str] | None = None) -> int:
         if not key:
             env_name = settings.key_env_name(provider)
             print(f"=== {provider} skipped ({env_name} is not set) ===")
-            return 0
-        print(f"=== {provider} ===")
-        _run("dev (gold)", GOLD_PATH, provider)
-        print()
-        _run("tuning holdout (seen during rule expansion)", TUNING_HOLDOUT_PATH, provider)
-        print()
-        _run("blind holdout", BLIND_HOLDOUT_PATH, provider)
+        else:
+            print(f"=== {provider} ===")
+            _run("dev (gold)", GOLD_PATH, provider)
+            print()
+            _run("tuning holdout (seen during rule expansion)", TUNING_HOLDOUT_PATH, provider)
+            print()
+            _run("blind holdout", BLIND_HOLDOUT_PATH, provider)
+
+    if args.enforce_target and blind.accuracy < HOLDOUT_ACCURACY_TARGET:
+        return 1
     return 0
 
 

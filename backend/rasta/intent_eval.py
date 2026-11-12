@@ -30,16 +30,31 @@ BENCHMARK_CORPUS_PATH = (
 _FIELDS = frozenset({"id", "intent", "order_id", "eta_minutes", "text"})
 _LONG_DIGITS = re.compile(r"\d{8,}")
 INTENTS = tuple(intent.value for intent in Intent)
-# Issue 02 target for an independent holdout. The first holdout was later
-# used to guide rule expansion, so it is no longer that test. The blind
-# set is. The 0.8 target is not yet met there; do not raise the baseline
-# by retuning rules or relabelling the file.
+# Two distinct checks, kept in this one module:
+# (a) BLIND_RULES_BASELINE is a regression floor. Do not raise it by
+#     retuning rules or relabelling the frozen file.
+# (b) HOLDOUT_ACCURACY_TARGET is the issue 2 acceptance bar on the
+#     independent blind holdout. It is not yet met; this pull request
+#     does not close that work.
 HOLDOUT_ACCURACY_TARGET = 0.8
-# First rules scoring of the frozen blind holdout, 12 Nov 2026, and the
-# repeat after the later receive-precision review fix. Both were 6/36.
+# First and second official rules scorings of the frozen blind holdout,
+# 12 Nov 2026, both 6/36. A later contact-binding review fix moved the
+# measured score; this floor stays at the original 6/36.
 BLIND_RULES_BASELINE_CORRECT = 6
 BLIND_RULES_BASELINE_N = 36
 BLIND_RULES_BASELINE = BLIND_RULES_BASELINE_CORRECT / BLIND_RULES_BASELINE_N
+
+
+def format_target_status(accuracy: float, *, correct: int, n: int) -> str:
+    """Explicit TARGET MET / TARGET NOT MET line for the 0.8 acceptance bar."""
+    score = f"blind rules {correct}/{n} = {accuracy:.3f}"
+    if accuracy >= HOLDOUT_ACCURACY_TARGET:
+        return f"TARGET MET: {score} >= {HOLDOUT_ACCURACY_TARGET:.1f}"
+    return (
+        f"TARGET NOT MET: {score} < {HOLDOUT_ACCURACY_TARGET:.1f} "
+        f"(regression floor {BLIND_RULES_BASELINE_CORRECT}/"
+        f"{BLIND_RULES_BASELINE_N})"
+    )
 
 
 class FixtureError(ValueError):

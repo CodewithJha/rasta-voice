@@ -14,10 +14,12 @@ from rasta.intent_eval import (
     BLIND_RULES_BASELINE_CORRECT,
     BLIND_RULES_BASELINE_N,
     GOLD_PATH,
+    HOLDOUT_ACCURACY_TARGET,
     TUNING_HOLDOUT_PATH,
     FixtureError,
     evaluate_rows,
     format_report,
+    format_target_status,
     load_benchmark_corpus,
     load_gold_rows,
 )
@@ -109,9 +111,9 @@ def test_rules_accuracy_on_gold_tuning_and_blind():
     print(format_report(blind))
     # Development set only: not an independent claim.
     assert gold.accuracy >= 0.8, format_report(gold)
-    # The 0.8 issue target is not met on the blind set. This floor is the
-    # first (and repeated) rules score of 6/36 measured on 12 Nov 2026.
-    # Do not raise it by retuning rules or relabelling the frozen file.
+    # Regression floor only. The 0.8 acceptance target is a separate,
+    # currently xfailed check. Do not raise this floor by retuning or
+    # relabelling the frozen file.
     assert blind.n == BLIND_RULES_BASELINE_N
     assert blind.accuracy >= BLIND_RULES_BASELINE, format_report(blind)
     assert blind.intent_correct >= BLIND_RULES_BASELINE_CORRECT
@@ -122,6 +124,36 @@ def test_rules_accuracy_on_gold_tuning_and_blind():
     for intent in INTENTS:
         _correct, total = blind.per_intent[intent]
         assert total >= 1
+
+
+@pytest.mark.xfail(
+    reason=(
+        "Issue 2 accuracy acceptance is still open: rules must reach "
+        f"{HOLDOUT_ACCURACY_TARGET:.1f} on the blind holdout. The measured "
+        "regression floor is 6/36. Do not retune against this set. When "
+        "the target is met this strict xfail becomes a hard error so the "
+        "marker is removed."
+    ),
+    strict=True,
+)
+def test_blind_rules_meet_the_issue_accuracy_target():
+    blind = evaluate_rows(
+        load_gold_rows(BLIND_HOLDOUT_PATH), name="blind", provider="rules"
+    )
+    assert blind.accuracy >= HOLDOUT_ACCURACY_TARGET, format_report(blind)
+
+
+def test_target_status_is_explicit_and_distinct_from_the_baseline():
+    unmet = format_target_status(
+        BLIND_RULES_BASELINE,
+        correct=BLIND_RULES_BASELINE_CORRECT,
+        n=BLIND_RULES_BASELINE_N,
+    )
+    met = format_target_status(HOLDOUT_ACCURACY_TARGET, correct=29, n=36)
+    assert unmet.startswith("TARGET NOT MET:")
+    assert met.startswith("TARGET MET:")
+    assert "0.8" in unmet and "6/36" in unmet
+    assert "0.8" in met
 
 
 def test_llm_fallback_is_not_counted_as_llm_success():
