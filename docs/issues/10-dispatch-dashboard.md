@@ -55,3 +55,34 @@ Renders one row per event. No new endpoint.
 
 Start API and `npm run dev`. Open two windows. In one, run **Speak a sample line** twice (needs `GNANI_API_KEY`; four Gnani calls total). Watch the other. Refresh both. Narrow one window until the layout stacks and confirm the slate is still readable.
 
+
+<!-- rasta-voice-hardening-2026-11-12 -->
+
+### Mobile layout, states, and original design
+
+The slate is a dense ops board for a dispatcher on a small laptop or a phone held in landscape, not a marketing dashboard.
+
+Design brief (follow this, don't copy a known product):
+
+- Keep the phosphor panel and the lamp-red HIGH stamp (`#9b2226`). Rows stay a paper tape (`<ol>`), oldest at the top. Do not replace it with a KPI row, a chart, a card masonry, or a pastel table.
+- Dense but readable: intent, order, ETA, urgency, and action on one row at desktop; wrap to two lines at 360 px rather than truncating the intent or the SOS prefix. Touch or click targets on any later ack control are at least 44 px.
+- Contrast on the phosphor background meets 4.5:1 for body text and the SOS/HIGH labels. Focus is visible. The board itself is a live region or equivalent so new rows are announced; the empty sentence stays keyboard-reachable text, not a mystery blank.
+
+States, all in `dispatch.ts` / `dispatch.css`:
+
+- Empty: keep "Dark. No drop has come in on this desk."
+- Loading: a quiet first-load indicator until the first `GET /api/events` returns; subsequent polls fail softly without flashing the whole board empty.
+- Error:
+  - 401 (after issue 20's passcode) → a short unlock prompt, not a stack trace and not a redirect that takes down the rider chit.
+  - 503 (a down or misconfigured desk, or a missing `DISPATCH_PASSCODE` once issue 20 lands) → "Desk isn't ready".
+  - 502 → "Upstream failed", don't invent rows.
+  - 429 → "Desk is rate-limited, polling will retry", and back off the poll rather than hammering.
+  - 404 remains "Desk list isn't up" until issue 04 is merged.
+- Never paint placeholder events to fill the empty state.
+
+At 360 px wide the rider chit and the slate stack; the slate remains readable, SOS/HIGH stay visible, and there is no horizontal scroll.
+
+- [ ] At 360 px wide the slate is readable, stacked under the chit, with no overlap or sideways scroll.
+- [ ] Empty, first-load, 401, 503, 502, and 429 states are implemented and distinguishable. Polling backs off on 429.
+- [ ] Keyboard and contrast checks above pass. `npm run check` still passes.
+- [ ] The look follows the brief. No template kit, no copied ops-console shell, no chart library.

@@ -83,3 +83,31 @@ Browser, against `npm run dev` with the API up: the two toggles, both buttons, b
 - [ ] For **both** conditions, the API returns one JSON envelope with the exact audio that Prisma received, an `ingest` event, and an accurate condition label. Do not mix a WAV-response contract and a JSON-response contract.
 - [ ] Repeat the same utterance across conditions and verify the audible clip, transcript and event correspond to each condition, rather than silently reusing a clean transcript.
 
+
+<!-- rasta-voice-hardening-2026-11-12 -->
+
+### Mobile layout, states, and original design
+
+The rider chit has to work in a rider's hand, outdoors, and it has to look like this product, not like a dashboard template.
+
+Design brief (follow this, don't copy a known product):
+
+- High-contrast, outdoor-readable rider screen: ink on paper under hard noon light. The existing chit (paper, red spine, hard shadow) stays the spine of the page. Do not restyle it into a card grid, a soft pastel app, a purple gradient, or a glass panel.
+- Touch targets at least 44 px on the toggle, **Speak a sample line**, upload, and **Hear dispatch**. Hinglish microcopy is allowed on button labels and helper lines ("Clean line" / "Noisy line", "Bolo", "Sun lo") as long as a first-time judge still understands the control in English.
+- At 360 px wide, the toggle, buttons, players, and chit stack in one column with no overlap, no horizontal scroll, and no text smaller than 14 px for body copy. Helper text can be 12 px if contrast still holds.
+- Contrast: text and essential controls meet a 4.5:1 ratio against their background (the red spine and the paper). Focus rings are visible. Every control is reachable by keyboard (tab, enter/space on the toggle and buttons) and has an accessible name.
+
+States, all in `rider.ts` / `rider.css`:
+
+- Empty: the chit waits with a short line, not a blank card. No fake event.
+- Loading: a visible busy state on the button that was pressed; it is disabled until the response arrives. Do not block the whole page with a modal.
+- Error: show the server's meaning, not a raw stack.
+  - 503 (missing `GNANI_API_KEY`) → a clear "key is not set on the server" line.
+  - 502 (Gnani failed) → upstream failure, include `upstream_status` if the API sent it.
+  - 429 (rate limit or credit budget from issue 13) → "demo is busy, try in a minute", not a silent no-op.
+- Don't invent a 200 with a canned transcript to paper over any of these.
+
+- [ ] At 360 px wide, the rider column is usable: toggle, primary actions, and players visible without overlap or sideways scroll.
+- [ ] Empty, loading, 503, 502, and 429 states are implemented and distinguishable.
+- [ ] Keyboard: tab order is sensible, focus is visible, controls have names. `npm run check` still passes.
+- [ ] The look follows the brief above. No template kit, no copied shell, no new webfont.

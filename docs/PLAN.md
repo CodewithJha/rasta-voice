@@ -43,12 +43,20 @@ If a client bug blocks you, one small fix in `gnani_client/` is allowed in your 
 | 16 | [Submission checklist](issues/16-submission-check.md) | A | 3 | 12, 13, 15, 18 |
 | 17 | [Consented real-world noisy speech validation](issues/17-field-validation.md) | A | 3 | 06, 11 |
 | 18 | [Working demo video and final submission](issues/18-demo-video-and-submission.md) | B | 3 (video by 14 Nov) | 09, 14 |
+| 19 | [SQLite event store](issues/19-sqlite-event-store.md) | B | 2 (land early) | 04 |
+| 20 | [Dispatcher passcode](issues/20-dispatcher-passcode.md) | B | 2 | 10 |
+| 21 | [Structured logging and request IDs](issues/21-structured-logging.md) | B | 2 | skeleton |
+| 22 | [Health and readiness](issues/22-health-and-readiness.md) | B | 3 | 13, 19 |
+| 23 | [Docs pack](issues/23-docs-pack.md) | A | 3 | 19, 20, 21, 22 |
+| 24 | [End-to-end smoke test](issues/24-e2e-smoke-test.md) | A | 3 | 13, 20 |
 
 Load balance (12 Nov): 08 and 15 moved from B to A, so B can give 07 (true live streaming), 13 (credit and abuse limits) and 18 (the video) their full time. A lands 08 early on Day 2 with a narrow change in `backend/rasta/`, flagged in the PR body.
 
-Day 2 note for Member B: finish 07, and wait for A's 08, before opening 09. 10 can land beside 07 because it only touches `frontend/src/dispatch.ts` and a new stylesheet. Do not both edit `frontend/src/rider.ts`.
+Hardening (12 Nov, later): 19–22 go to B (store, passcode, logs, ready). 23 and 24 go to A (docs pack and the live smoke script). The count is even (12 and 12); A's added work is lighter so B still has time for 07, 13, and 18.
 
-Day 3 note: 15 needs the public working-app video from 18 (a photo is not enough), but does not wait on 12. If the chart is merged, quote one number. If it is not, quote the live sample result from the README (Timbre line → Prisma transcript, word for word) and say the scored run follows before the deadline. Publish by 14 Nov 18:00 IST anyway.
+Day 2 note for Member B: finish 07, and wait for A's 08, before opening 09. 10 can land beside 07 because it only touches `frontend/src/dispatch.ts` and a new stylesheet. Do not both edit `frontend/src/rider.ts`. Land 19 early, once 04 is in, and keep the issue 04 JSON so 10 does not wait on sqlite. Land 21 in parallel with 19 if you are not both rewriting `main.py`. Land 20 only after 10's slate is mergeable; 20 is the other Day 2 edit to `dispatch.ts`.
+
+Day 3 note: 15 needs the public working-app video from 18 (a photo is not enough), but does not wait on 12. If the chart is merged, quote one number. If it is not, quote the live sample result from the README (Timbre line → Prisma transcript, word for word) and say the scored run follows before the deadline. Publish by 14 Nov 18:00 IST anyway. 22 waits for 13 and 19. 23 waits for 19–22 and describes only what has actually merged. 24 waits for 13 and 20; 16's checklist runs `scripts/smoke.py` against the public URL.
 
 ## Rules that apply to every issue
 

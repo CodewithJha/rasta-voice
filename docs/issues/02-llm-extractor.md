@@ -86,3 +86,34 @@ LLM_PROVIDER=groq GROQ_API_KEY=... pytest backend/tests/test_llm.py -q -k live
 - [ ] Report per-intent accuracy/confusion, rule-only accuracy, and live LLM accuracy when available; do not mislabel a rule fallback as an LLM success.
 - [ ] Document the frozen holdout and any failures honestly. Never lower the threshold by changing gold labels after seeing predictions.
 
+
+<!-- rasta-voice-hardening-2026-11-12 -->
+
+### LLM timeout and extractor source
+
+The free tier can hang. Do not let that block ingest.
+
+- Time out the Groq or Gemini HTTP call after 4 seconds by default. Make the limit configurable with `LLM_TIMEOUT_SECONDS` (a positive float). Pass it as `timeout=` to `httpx`, not a background thread you then ignore.
+- On timeout, connection error, non-200, or invalid JSON, fall back to `_by_rules` and keep going. The rider still gets an event. Log the fallback reason without the key or the raw model text if it might contain secrets.
+- `RiderEvent` stays frozen: `shared/rider_event.schema.json` has `additionalProperties: false`, and `backend/rasta/schema.py` uses `extra="forbid"`. Do not add `source` (or any new field) to the schema, `schema.py`, or `frontend/src/types.ts`.
+- Put the extractor source on the ingest envelope instead, next to `transcript`, `stt`, and `event`:
+
+```json
+{
+  "transcript": "...",
+  "stt": {},
+  "event": { "...RiderEvent fields only..." },
+  "extractor_source": "llm"
+}
+```
+
+`extractor_source` is `"llm"` when the validated event came from the free-tier call, and `"rules"` when the rules path ran (default provider, missing key, or any fallback). Issue 04's store should persist this field if it is present; do not drop it on `append`.
+
+- `extract_event(...)` keeps returning `RiderEvent`. If you need the source inside the backend, return it from a helper (`extract_event_with_source`) or attach it on the dict in `pipeline.ingest`. Do not change the public signature to return a tuple that breaks `extract_event(transcript) -> RiderEvent`.
+- A unit test in `test_llm.py` forces the HTTP transport to stall past the timeout (or raises `httpx.TimeoutException`) and asserts the rule event is returned and the envelope (or helper) reports `extractor_source: "rules"`. Swap the transport inside the test; no app flag.
+
+- [ ] Default timeout is 4 seconds and `LLM_TIMEOUT_SECONDS` overrides it.
+- [ ] A hanging or timed-out LLM call falls back to rules; ingest does not 500.
+- [ ] `extractor_source` is `llm` or `rules` on the API envelope, not inside `event`.
+- [ ] `shared/rider_event.schema.json`, `backend/rasta/schema.py`, and `frontend/src/types.ts` are unchanged.
+- [ ] The timeout-path test exists and passes without a live key.
