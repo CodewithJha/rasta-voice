@@ -4,6 +4,16 @@ Issue 02 adds a free-tier LLM path in front of the keyword rules. The
 frozen `RiderEvent` is unchanged. `extractor_source` and `fallback_reason`
 live on the ingest envelope, not inside `event`.
 
+## Headline result
+
+Rules intent accuracy on the **blind holdout** is **6/36 = 0.167**. That
+is below the issue's 0.8 target. This is a genuine miss. The test records
+a documented baseline of 6/36; it does not lower the 0.8 target by
+relabelling the set or retuning rules against it. A later "rules v2"
+issue, or relying on the LLM path once it is inside the 4 s budget, is
+the follow-up. Do not treat the 24/24 tuning-holdout score as an
+independent result.
+
 ## Providers
 
 `LLM_PROVIDER` selects the first hop:
@@ -16,8 +26,8 @@ live on the ingest envelope, not inside `event`.
   developer tiers on 16 Aug 2026).
 - `gemini` — `POST {GEMINI_BASE_URL}/models/{model}:generateContent` with
   the key in the `x-goog-api-key` header. Default model
-  `gemini-3.5-flash-lite`, checked 12 Nov 2026 against Google AI Studio
-  (recommended Flash-Lite for new work).
+  `gemini-3.5-flash-lite`, checked 12 Nov 2026 against Google's Gemini
+  docs (recommended Flash-Lite for new work).
 
 There is no vendor SDK and no mock mode in application code. Tests swap
 `httpx.MockTransport`. The HTTP client is process-wide, created with
@@ -32,57 +42,85 @@ envelope records `extractor_source: "rules"` plus a short
 no model text, no key. An open circuit breaker (hook for issue 29) is the
 same fallback, with reason `circuit_open`.
 
-## Evaluation
-
-The labelled sets in `backend/tests/fixtures/` were frozen on 12 Nov 2026.
-Every label was assigned before any rule or prompt change. The files were
-not edited to chase a score.
+## Evaluation splits
 
 | Split | File | Rows | Role |
 | --- | --- | --- | --- |
 | Development | `intent_gold.jsonl` | 30, 5 per intent | May be inspected while improving generalisable rules |
-| Holdout | `intent_holdout.jsonl` | 24, 4 per intent | Locked. The 0.8 target applies here |
+| Tuning holdout | `intent_tuning_holdout.jsonl` | 24, 4 per intent | Seen during rule expansion. Preserved for regression, not independent |
+| Blind holdout | `intent_blind_holdout.jsonl` | 36, 6 per intent | Independent test. Labels were assigned and committed before scoring |
 | Reference | `benchmark/data/utterances.jsonl` | 48, 8 per intent | Himanshu's corpus. Scored, not used for tuning, not edited |
 
-Measured **rules** accuracy on 12 Nov 2026, intent only:
+The 24-line file was first written as an independent holdout. After a
+7/24 first pass, generalisable Hinglish patterns were added and the same
+file then scored 24/24. That makes it a **tuning holdout**: it was seen
+during rule expansion, so it is no longer an independent test. The cases
+and labels were not changed, and they stay in the tree as a regression
+set. A new 36-line blind holdout was written and committed in
+`440bcda` before any extractor was run on those lines.
 
-| Split | Before rule expansion | After generalisable expansion |
-| --- | --- | --- |
-| Development (gold) | 30/30 = 1.000 | 30/30 = 1.000 |
-| Holdout | 7/24 = 0.292 | 24/24 = 1.000 |
-| Benchmark corpus (reference) | 40/48 = 0.833 | 41/48 = 0.854 |
+A first rules scoring of the blind set was run at that point, **before**
+a later review fix in `be41004` (answered "phone receive" / "call
+receive" lines must not become `customer_unreachable`). That fix came
+from the review, not from the blind misses. The extractor was then
+frozen and the blind set was scored a second time. Both rules runs were
+**6/36 = 0.167**; the review fix did not change the blind score. The
+miss lists were the same. Those numbers are left as measured.
 
-The first holdout pass failed because the original needles were narrow
-("phone nahi", "gate band", "item missing", "late" / "traffic",
-"accident"). The expansion added general Hinglish paraphrases a
-transliterated Prisma line would actually contain: `switch off`,
-`line nahi mil`, `receive nahi`, `entry closed`, `address clear nahi`,
-`rasta` + `stuck`, `saman nahi`, `sku missing`, `quantity short`,
-`lamba queue`, `lamba wait`, `takkar`, `palat gayi`, `chot lagi`,
-`phisal gayi`, and similar. No holdout line was copied into the rule
-list, and no label was changed.
+## Measured rules accuracy (intent only, 12 Nov 2026)
 
-Holdout per-intent accuracy after the expansion is 4/4 on every intent,
-including `other`. Order id and ETA exact-match on gold and holdout are
-also 1.000. The holdout is small (24 lines); 1.000 should be read as
-"cleared the 0.8 bar on this frozen set", not as a claim of perfect
-production accuracy.
+| Split | Score |
+| --- | --- |
+| Development gold | 30/30 = 1.000 |
+| Tuning holdout (after expansion; not independent) | 24/24 = 1.000 (was 7/24 = 0.292 before expansion) |
+| Blind holdout, first run (before `be41004`) | 6/36 = 0.167 |
+| Blind holdout, second run (after `be41004`, official) | 6/36 = 0.167 |
+| Benchmark corpus (reference) | 41/48 = 0.854 (was 40/48 = 0.833 before expansion) |
 
-The seven remaining misses on the benchmark corpus are almost all
-Devanagari lines (`u07`, `u08`, `u16`, `u24`, `u32`, `u40`). Prisma is
-asked for `format=transliterate`, so the rules stay Latin-script. `u14`
-("delivery pin do gali door… kaunsa gate lena hai") is a subtler address
-paraphrase that still falls through. Those numbers are left as measured.
+Blind per-intent accuracy, both runs: `customer_unreachable` 0/6,
+`address_issue` 0/6, `item_missing` 0/6, `delay` 2/6, `accident_sos` 0/6,
+`other` 4/6. Order id exact-match is 36/36. ETA exact-match is 35/36;
+the one miss is `b31`, where "do minute" in an `other` line is parsed as
+an ETA of 2. Confusion is almost all true-intent rows falling through to
+`other`, plus `b30` (`accident_sos` predicted `delay` because of
+"traffic"), `b35` (`other` predicted `accident_sos` because a safety
+video mentioned "accident"), and `b36` (`other` predicted `delay`).
 
-Live LLM accuracy is not recorded here. Run it only with a key:
+The remaining corpus misses are almost all Devanagari lines (`u07`,
+`u08`, `u16`, `u24`, `u32`, `u40`). Prisma is asked for
+`format=transliterate`, so the rules stay Latin-script. `u14` is a
+subtler address paraphrase that still falls through.
 
-```bash
-python scripts/eval_intent.py --provider gemini
-python scripts/eval_intent.py --provider groq
-```
+## Live LLM measurement (Gemini, 12 Nov 2026)
 
-A rules fallback on that path is reported as rules, not as an LLM
-success. CI has no LLM key; `pytest -k live` skips.
+A Groq key was not present. `GEMINI_API_KEY` was set; the default model
+was `gemini-3.5-flash-lite`. Thirty-six calls were made on the blind
+set, twice:
+
+1. **Before** `be41004` (preliminary; extractor not yet in its final
+   form). 35/36 calls hit the 4 s timeout and fell back to rules. One
+   call returned a validated LLM event (`b14`, `item_missing`, correct,
+   3974 ms). End-to-end accuracy, counting fallbacks as rules and not as
+   LLM successes, was 7/36 = 0.194. LLM-validated accuracy was 1/1.
+   Latency over all 36 calls: mean 4046 ms, p95 4064 ms (dominated by
+   the timeout). LLM-only latency: 3974 ms.
+2. **After** `be41004` (official, extractor frozen; same 4 s timeout).
+   23/36 calls returned a validated LLM event. 10/36 timed out and
+   3/36 returned HTTP 429 after the one allowed retry, all falling back
+   to rules. End-to-end accuracy, counting fallbacks as rules and not as
+   LLM successes, was 23/36 = 0.639. LLM-validated accuracy was 21/23 =
+   0.913; the two LLM misses were `b21` (`delay` predicted
+   `address_issue`) and `b32` (`other` predicted `delay`). Latency over
+   all 36 calls: mean 2018 ms, p50 1177 ms, p95 4071 ms, min 541 ms,
+   max 5277 ms. LLM-only latency: mean 1181 ms, p50 1036 ms, p95 2388
+   ms. This second run is not an improvement from the receive-precision
+   fix (the rules score was unchanged). It is a different service-latency
+   outcome under the same 4 s budget, so both runs are reported. The
+   production timeout was not raised to improve the score. End-to-end
+   0.639 is still below the 0.8 issue target.
+
+A rules fallback is never counted as an LLM success. CI has no LLM key;
+`pytest -k live` skips.
 
 ```bash
 pytest backend/tests/test_extract.py backend/tests/test_llm.py backend/tests/test_intent_eval.py -q

@@ -134,7 +134,12 @@ Issue 29 owns retries, the shared client, and the breaker. This issue still has 
 
 Landed in the Member B tree: typed settings in `backend/rasta/settings.py`,
 providers in `backend/rasta/llm.py` and `backend/rasta/extractors/`, the
-existing `_by_rules` fallback, gold and holdout fixtures, and
-`scripts/eval_intent.py`. Frozen contracts were not touched. Measured
-rules numbers, the client and retry policy, and the envelope fields are
-recorded in [docs/EXTRACTOR.md](../EXTRACTOR.md).
+existing `_by_rules` fallback, gold, tuning, and blind holdout fixtures,
+and `scripts/eval_intent.py`. Frozen contracts were not touched.
+
+The original 24-line holdout was used to guide rule expansion, so it is
+kept as a tuning/regression set. The independent test is
+`intent_blind_holdout.jsonl` (36 lines, frozen in `440bcda` before it
+was scored). Rules accuracy there is 6/36 = 0.167, below the 0.8 target.
+The measured numbers, including both blind scorings around the
+receive-precision review fix, are in [docs/EXTRACTOR.md](../EXTRACTOR.md).

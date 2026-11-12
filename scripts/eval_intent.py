@@ -8,6 +8,10 @@ Usage:
 Rules always run. An LLM provider is used only when its key is set; the
 script then reports LLM accuracy without counting a rules fallback as an
 LLM success. Without a key the LLM section is skipped cleanly.
+
+The headline split is the blind holdout. The earlier 24-line file is a
+tuning holdout: it was seen during rule expansion and is not an
+independent test.
 """
 
 from __future__ import annotations
@@ -22,9 +26,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT / "benchmark"))
 
 from rasta.intent_eval import (  # noqa: E402
+    BLIND_HOLDOUT_PATH,
+    BLIND_RULES_BASELINE,
     GOLD_PATH,
     HOLDOUT_ACCURACY_TARGET,
-    HOLDOUT_PATH,
+    TUNING_HOLDOUT_PATH,
     evaluate_rows,
     format_report,
     load_benchmark_corpus,
@@ -37,11 +43,16 @@ def _run(name: str, path: Path, provider: str) -> None:
     rows = load_gold_rows(path)
     report = evaluate_rows(rows, name=name, provider=provider)
     print(format_report(report))
-    if name == "holdout" and provider == "rules" and report.accuracy < HOLDOUT_ACCURACY_TARGET:
+    if (
+        name.startswith("blind")
+        and provider == "rules"
+        and report.accuracy < HOLDOUT_ACCURACY_TARGET
+    ):
         print(
-            f"holdout is below the {HOLDOUT_ACCURACY_TARGET:.1f} target "
-            f"({report.accuracy:.3f}). This is a genuine miss, not a reason "
-            "to relabel the frozen set.",
+            f"blind holdout is below the {HOLDOUT_ACCURACY_TARGET:.1f} issue target "
+            f"({report.accuracy:.3f}; documented baseline "
+            f"{BLIND_RULES_BASELINE:.3f}). This is a genuine miss. Do not "
+            "relabel the frozen set or retune rules to chase the target.",
             file=sys.stderr,
         )
 
@@ -58,7 +69,9 @@ def main(argv: list[str] | None = None) -> int:
     print("=== rules ===")
     _run("dev (gold)", GOLD_PATH, "rules")
     print()
-    _run("holdout", HOLDOUT_PATH, "rules")
+    _run("tuning holdout (seen during rule expansion)", TUNING_HOLDOUT_PATH, "rules")
+    print()
+    _run("blind holdout", BLIND_HOLDOUT_PATH, "rules")
     corpus = load_benchmark_corpus()
     if corpus:
         print()
@@ -81,7 +94,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"=== {provider} ===")
         _run("dev (gold)", GOLD_PATH, provider)
         print()
-        _run("holdout", HOLDOUT_PATH, provider)
+        _run("tuning holdout (seen during rule expansion)", TUNING_HOLDOUT_PATH, provider)
+        print()
+        _run("blind holdout", BLIND_HOLDOUT_PATH, provider)
     return 0
 
 

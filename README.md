@@ -119,7 +119,7 @@ Every upload is a live Prisma REST call (30 seconds max). The response includes 
 
 Change the JSON schema, `backend/rasta/schema.py`, and `frontend/src/types.ts` in the same commit. Envelope fields such as `extractor_source` (`llm` or `rules`) and `fallback_reason` stay next to `event`, never inside it.
 
-Rules intent accuracy, measured 12 Nov 2026, is 30/30 on the development gold set, 24/24 on the frozen holdout (target 0.8), and 41/48 on Himanshu's benchmark corpus, which was not used for tuning. The holdout labels were assigned before the rules were broadened. The write-up and the confusion matrices are in [docs/EXTRACTOR.md](docs/EXTRACTOR.md).
+Rules intent accuracy, measured 12 Nov 2026, is 6/36 = 0.167 on the blind holdout (below the 0.8 target; this is the independent test), 30/30 on the development gold set, 24/24 on a 24-line tuning holdout that was seen during rule expansion, and 41/48 on Himanshu's benchmark corpus, which was not used for tuning. The write-up, including why the first holdout is no longer independent, is in [docs/EXTRACTOR.md](docs/EXTRACTOR.md).
 
 ## Checks
 

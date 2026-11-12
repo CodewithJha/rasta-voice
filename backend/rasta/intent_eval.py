@@ -1,4 +1,4 @@
-"""Offline intent evaluation for the gold and frozen holdout sets.
+"""Offline intent evaluation for the gold, tuning, and blind holdout sets.
 
 Labels were assigned before any rule or prompt change. This module never
 rewrites them. Accuracy is intent-only; order_id and eta are reported as
@@ -20,7 +20,8 @@ from rasta.schema import Intent
 
 FIXTURES_DIR = Path(__file__).resolve().parents[1] / "tests" / "fixtures"
 GOLD_PATH = FIXTURES_DIR / "intent_gold.jsonl"
-HOLDOUT_PATH = FIXTURES_DIR / "intent_holdout.jsonl"
+TUNING_HOLDOUT_PATH = FIXTURES_DIR / "intent_tuning_holdout.jsonl"
+BLIND_HOLDOUT_PATH = FIXTURES_DIR / "intent_blind_holdout.jsonl"
 # Himanshu's corpus is read-only reference data; this module must not edit it.
 BENCHMARK_CORPUS_PATH = (
     Path(__file__).resolve().parents[2] / "benchmark" / "data" / "utterances.jsonl"
@@ -29,7 +30,16 @@ BENCHMARK_CORPUS_PATH = (
 _FIELDS = frozenset({"id", "intent", "order_id", "eta_minutes", "text"})
 _LONG_DIGITS = re.compile(r"\d{8,}")
 INTENTS = tuple(intent.value for intent in Intent)
+# Issue 02 target for an independent holdout. The first holdout was later
+# used to guide rule expansion, so it is no longer that test. The blind
+# set is. The 0.8 target is not yet met there; do not raise the baseline
+# by retuning rules or relabelling the file.
 HOLDOUT_ACCURACY_TARGET = 0.8
+# First rules scoring of the frozen blind holdout, 12 Nov 2026, and the
+# repeat after the later receive-precision review fix. Both were 6/36.
+BLIND_RULES_BASELINE_CORRECT = 6
+BLIND_RULES_BASELINE_N = 36
+BLIND_RULES_BASELINE = BLIND_RULES_BASELINE_CORRECT / BLIND_RULES_BASELINE_N
 
 
 class FixtureError(ValueError):
