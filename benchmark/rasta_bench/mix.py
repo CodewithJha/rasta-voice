@@ -46,6 +46,7 @@ def traffic(n_samples: int, rng: random.Random, *, sample_rate: int = SAMPLE_RAT
 def horn(n_samples: int, rng: random.Random, *, sample_rate: int = SAMPLE_RATE) -> list:
     """Two tapered sine bursts, separated by silence, even for short clips."""
     result = [0.0] * n_samples
+    frequency: float
     for start, end, frequency in ((0.1, 0.3, 400), (0.55, 0.75, 550)):
         first, last = int(start * n_samples), int(end * n_samples)
         frequency += rng.uniform(-5, 5)

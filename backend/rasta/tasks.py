@@ -33,7 +33,7 @@ async def first_completed(
     """
     if not awaitables:
         raise TypeError("first_completed() requires at least one awaitable")
-    tasks = [
+    tasks: list[asyncio.Task[Any]] = [
         asyncio.create_task(item, name="first-completed")  # type: ignore[arg-type]
         for item in awaitables
     ]

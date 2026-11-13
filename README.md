@@ -157,3 +157,5 @@ The noise benchmark is not scored yet. Issue 12 fills this section with the WER 
 - [MIT license](LICENSE), [changelog](CHANGELOG.md), [code of conduct](CODE_OF_CONDUCT.md)
 
 Supply-chain checks and dependency-lock updates: [docs/SUPPLY_CHAIN.md](docs/SUPPLY_CHAIN.md).
+
+Type, coverage, unit and browser checks: [docs/QUALITY.md](docs/QUALITY.md).
