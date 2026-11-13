@@ -98,7 +98,14 @@ async def _sos_sweep(application: FastAPI) -> None:
         return
 
 
-app = ContractApp(title="Rasta Voice", version="0.1.0", lifespan=lifespan)
+app = ContractApp(
+    title="Rasta Voice",
+    version="0.1.0",
+    lifespan=lifespan,
+    docs_url=None if get_settings().is_production else "/docs",
+    redoc_url=None if get_settings().is_production else "/redoc",
+    openapi_url=None if get_settings().is_production else "/openapi.json",
+)
 install_validation_handler(app)
 
 

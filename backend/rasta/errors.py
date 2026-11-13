@@ -10,7 +10,8 @@ from fastapi.exceptions import RequestValidationError
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from gnani_client.errors import GnaniError, MissingApiKeyError
-from rasta.request_id import RequestIdApp, current_request_id
+from rasta.request_id import current_request_id
+from rasta.security import SecuredApp
 
 SAFE_STATUS_CODES = {
     400: "validation_error",
@@ -276,8 +277,8 @@ class ErrorEnvelope:
         await self.app(scope, receive, send_filtered)
 
 
-class ContractApp(RequestIdApp):
-    """Request IDs enclose the error envelope, which encloses FastAPI's stack."""
+class ContractApp(SecuredApp):
+    """Request IDs and security headers enclose the error envelope and FastAPI."""
 
     def build_middleware_stack(self) -> ASGIApp:
         from rasta.idempotency import IdempotencyMiddleware
