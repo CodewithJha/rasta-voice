@@ -1,6 +1,6 @@
 # Security and data handling
 
-This is the current state at `3383f28`, not a production-security claim. Read
+This is the current state at `22d2676`, not a production-security claim. Read
 [ARCHITECTURE.md](ARCHITECTURE.md) and the
 [production-readiness register](PRODUCTION_READINESS.md) before publishing a
 demo URL. The unresolved controls below matter even with synthetic data.
