@@ -144,3 +144,5 @@ Noise mixing, the scored Prisma matrix, realtime streaming, the spoken reply, de
 The noise benchmark is not scored yet. Issue 12 fills this section with the WER table and chart from a live Prisma run. Until then, `rasta_bench.wer` and `rasta_bench.cer` are the scoring functions the runner will call.
 
 <!-- benchmark:end -->
+
+Supply-chain checks and dependency-lock updates: [docs/SUPPLY_CHAIN.md](docs/SUPPLY_CHAIN.md).
