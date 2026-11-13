@@ -17,7 +17,8 @@ pytest
 python scripts/check_frontend_types.py
 ```
 
-Mypy checks all 42 production files, including bodies of untyped functions.
+Mypy targets the documented Python 3.11 source minimum while CI runs on 3.12.
+It checks all 42 production files, including bodies of untyped functions.
 Test/build directories are excluded; no production module is ignored and no
 new type-ignore or missing-import suppression is added. Existing broad dict/Any
 annotations are not a claim of strict end-to-end typing. The existing
