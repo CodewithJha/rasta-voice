@@ -14,6 +14,7 @@ import re
 import secrets
 import threading
 import time
+from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, Request, Response
@@ -57,6 +58,33 @@ class UnlockLimiter:
     def clear(self, address: str) -> None:
         with self._lock:
             self._failures.pop(address, None)
+
+    def verify_presented(
+        self,
+        address: str,
+        settings: Settings,
+        presented: str,
+        expected: str,
+        *,
+        compare: Callable[[str, str], bool] | None = None,
+        now: float | None = None,
+    ) -> str:
+        """Admit, compare, and record under one lock. Never compares when locked.
+
+        Returns ``ok``, ``mismatch``, or ``locked``.
+        """
+        matcher = passcodes_match if compare is None else compare
+        stamp = time.monotonic() if now is None else now
+        with self._lock:
+            kept = self._prune(address, stamp, settings.dispatch_unlock_window_seconds)
+            if len(kept) >= settings.dispatch_unlock_max_failures:
+                return "locked"
+            if matcher(presented, expected):
+                self._failures.pop(address, None)
+                return "ok"
+            kept.append(stamp)
+            self._failures[address] = kept
+            return "mismatch"
 
 
 def attach_dispatch_auth(app: object, *, replace: bool = False) -> UnlockLimiter:
@@ -144,12 +172,7 @@ def require_dispatch_passcode() -> str:
     return secret
 
 
-def actor_from_request(request: Request, secret: str, header: str | None) -> str | None:
-    presented = (header or "").strip()
-    if presented:
-        if passcodes_match(presented, secret):
-            return "d_header"
-        return None
+def actor_from_cookie(request: Request, secret: str) -> str | None:
     cookie = request.cookies.get(COOKIE_SESSION)
     if not cookie:
         return None
@@ -167,9 +190,24 @@ def csrf_ok(request: Request) -> bool:
 def require_desk_read(
     request: Request,
     secret: Annotated[str, Depends(require_dispatch_passcode)],
+    limiter: Annotated[UnlockLimiter, Depends(get_unlock_limiter)],
     x_dispatch_passcode: Annotated[str | None, Header(alias=HEADER_PASSCODE)] = None,
 ) -> str:
-    actor = actor_from_request(request, secret, x_dispatch_passcode)
+    presented = (x_dispatch_passcode or "").strip()
+    if presented:
+        outcome = limiter.verify_presented(
+            client_address(request), get_settings(), presented, secret
+        )
+        if outcome == "locked":
+            raise HTTPException(
+                status_code=429, detail="Too many unlock attempts. Try again later."
+            )
+        if outcome == "mismatch":
+            raise HTTPException(
+                status_code=401, detail="Unlock the desk to keep polling."
+            )
+        return "d_header"
+    actor = actor_from_cookie(request, secret)
     if actor is None:
         raise HTTPException(
             status_code=401, detail="Unlock the desk to keep polling."

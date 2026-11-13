@@ -10,7 +10,6 @@ from rasta.dispatch_auth import (
     client_address,
     get_unlock_limiter,
     mint_actor,
-    passcodes_match,
     require_desk_read,
     require_dispatch_passcode,
     set_unlock_cookies,
@@ -46,22 +45,21 @@ async def unlock_desk(
     secret = require_dispatch_passcode()
     settings = get_settings()
     address = client_address(request)
-    if limiter.blocked(address, settings):
-        raise HTTPException(
-            status_code=429, detail="Too many unlock attempts. Try again later."
-        )
     try:
         body = await request.json()
     except Exception:
         raise HTTPException(status_code=422, detail="Invalid unlock body.") from None
     if not isinstance(body, dict) or not isinstance(body.get("passcode"), str):
         raise HTTPException(status_code=422, detail="Invalid unlock body.")
-    if not passcodes_match(body["passcode"], secret):
-        limiter.record_failure(address, settings)
+    outcome = limiter.verify_presented(address, settings, body["passcode"], secret)
+    if outcome == "locked":
+        raise HTTPException(
+            status_code=429, detail="Too many unlock attempts. Try again later."
+        )
+    if outcome == "mismatch":
         raise HTTPException(
             status_code=401, detail="Unlock the desk to keep polling."
         )
-    limiter.clear(address)
     actor = mint_actor()
     response = JSONResponse({"ok": True})
     set_unlock_cookies(

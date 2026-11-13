@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
+import httpx
 import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
@@ -199,6 +201,128 @@ def test_fifth_failures_then_lockout_skips_compare(desk_env, monkeypatch: pytest
             "/api/dispatch/unlock", json={"passcode": TEST_PASSCODE}
         )
         assert still.status_code == 429
+
+
+def test_header_guesses_share_the_unlock_lockout(
+    desk_env, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("DISPATCH_UNLOCK_MAX_FAILURES", "5")
+    clear_settings_cache()
+    attach_dispatch_auth(app, replace=True)
+    compares: list[int] = []
+    real = passcodes_match
+
+    def counted(presented: str, expected: str) -> bool:
+        compares.append(1)
+        return real(presented, expected)
+
+    monkeypatch.setattr("rasta.dispatch_auth.passcodes_match", counted)
+    with _client() as client:
+        for attempt in range(5):
+            response = client.get(
+                "/api/events", headers={HEADER_PASSCODE: OTHER_PASSCODE}
+            )
+            assert response.status_code == 401, attempt
+        locked = client.get("/api/events", headers={HEADER_PASSCODE: OTHER_PASSCODE})
+        assert locked.status_code == 429
+        assert OTHER_PASSCODE not in locked.text
+        assert (
+            client.get("/api/events", headers={HEADER_PASSCODE: TEST_PASSCODE}).status_code
+            == 429
+        )
+        assert (
+            client.post(
+                "/api/dispatch/unlock", json={"passcode": TEST_PASSCODE}
+            ).status_code
+            == 429
+        )
+    assert len(compares) == 5
+
+
+def test_unlock_failures_also_lock_the_header_path(
+    desk_env, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("DISPATCH_UNLOCK_MAX_FAILURES", "5")
+    clear_settings_cache()
+    attach_dispatch_auth(app, replace=True)
+    with _client() as client:
+        for attempt in range(5):
+            assert (
+                client.post(
+                    "/api/dispatch/unlock", json={"passcode": OTHER_PASSCODE}
+                ).status_code
+                == 401
+            ), attempt
+        assert (
+            client.get("/api/events", headers={HEADER_PASSCODE: OTHER_PASSCODE}).status_code
+            == 429
+        )
+        assert (
+            client.get("/api/events", headers={HEADER_PASSCODE: TEST_PASSCODE}).status_code
+            == 429
+        )
+
+
+def test_valid_cookie_still_works_when_guesses_are_locked(
+    desk_env, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("DISPATCH_UNLOCK_MAX_FAILURES", "5")
+    clear_settings_cache()
+    attach_dispatch_auth(app, replace=True)
+    with _client() as client:
+        unlocked = client.post(
+            "/api/dispatch/unlock", json={"passcode": TEST_PASSCODE}
+        )
+        assert unlocked.status_code == 200
+        for attempt in range(5):
+            assert (
+                client.get(
+                    "/api/events", headers={HEADER_PASSCODE: OTHER_PASSCODE}
+                ).status_code
+                == 401
+            ), attempt
+        assert (
+            client.get("/api/events", headers={HEADER_PASSCODE: OTHER_PASSCODE}).status_code
+            == 429
+        )
+        # Cookie access is not a new shared-secret guess.
+        listed = client.get("/api/events")
+        assert listed.status_code == 200
+        assert listed.json() == {"events": []}
+
+
+def test_concurrent_wrong_unlocks_do_not_exceed_the_cap(
+    desk_env, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("DISPATCH_UNLOCK_MAX_FAILURES", "5")
+    clear_settings_cache()
+    attach_dispatch_auth(app, replace=True)
+    compares: list[int] = []
+    real = passcodes_match
+
+    def counted(presented: str, expected: str) -> bool:
+        compares.append(1)
+        return real(presented, expected)
+
+    monkeypatch.setattr("rasta.dispatch_auth.passcodes_match", counted)
+
+    async def run() -> list[int]:
+        transport = httpx.ASGITransport(app=app, client=("203.0.113.8", 50000))
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test"
+        ) as client:
+            async def one() -> int:
+                response = await client.post(
+                    "/api/dispatch/unlock", json={"passcode": OTHER_PASSCODE}
+                )
+                return response.status_code
+
+            return list(await asyncio.gather(*[one() for _ in range(10)]))
+
+    codes = asyncio.run(run())
+    assert codes.count(401) == 5, codes
+    assert codes.count(429) == 5, codes
+    assert len(compares) == 5
 
 
 def test_successful_unlock_clears_lockout(desk_env):
