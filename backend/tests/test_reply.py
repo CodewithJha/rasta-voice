@@ -111,7 +111,7 @@ def test_sample_ingest_then_reply(speech, monkeypatch):
         httpx.Client(transport=transport)))
     ingested = client.post("/api/ingest/sample")
     assert ingested.status_code == 200
-    result = client.post(f"/api/reply/{ingested.json()['id']}")
+    result = client.post(f"/api/reply/{ingested.json()['ingest']['id']}")
     assert result.status_code == 200 and "Gate ke paas" in result.json()["text"]
     assert len(seen) == 2
 

@@ -356,7 +356,7 @@ def test_sample_ingest_shares_id_but_does_not_store_sample_text(
 ):
     response = client.post("/api/ingest/sample")
     assert response.status_code == 200
-    body = response.json()
+    body = response.json()["ingest"]
     assert body["sample_text"]
     events = client.get("/api/events").json()["events"]
     assert len(events) == 1
