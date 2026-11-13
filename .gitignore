@@ -15,3 +15,9 @@ coverage.xml
 htmlcov/
 frontend/test-results/
 frontend/playwright-report/
+
+# Default SQLite desk and WAL sidecars (issue 19).
+data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
