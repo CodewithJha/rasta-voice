@@ -8,3 +8,10 @@ __pycache__/
 node_modules/
 frontend/dist/
 benchmark/data/audio/
+
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+frontend/test-results/
+frontend/playwright-report/
