@@ -47,8 +47,22 @@ def _payload(n: int = 0, **extra) -> dict:
     return body
 
 
+TEST_DESK_PASSCODE = "desk-test-passphrase-9f3"
+DESK_HEADERS = {"X-Dispatch-Passcode": TEST_DESK_PASSCODE}
+
+
 @pytest.fixture(autouse=True)
 def _reset_settings_cache():
+    clear_settings_cache()
+    yield
+    clear_settings_cache()
+
+
+@pytest.fixture(autouse=True)
+def _desk_passcode(monkeypatch: pytest.MonkeyPatch):
+    # Issue 20 locks GET /api/events. These tests set a process-local secret
+    # and send it as a header so they keep exercising the store itself.
+    monkeypatch.setenv("DISPATCH_PASSCODE", TEST_DESK_PASSCODE)
     clear_settings_cache()
     yield
     clear_settings_cache()
@@ -314,7 +328,7 @@ def calls(monkeypatch: pytest.MonkeyPatch, make_wav) -> list[httpx.Request]:
 @pytest.fixture
 def client(calls) -> TestClient:
     # Lifespan installs a fresh store so HTTP tests do not share a desk.
-    with TestClient(app) as test_client:
+    with TestClient(app, headers=DESK_HEADERS) as test_client:
         yield test_client
 
 
@@ -400,7 +414,7 @@ def test_events_since_invalid_is_422(client: TestClient, since: str):
 
 def test_events_since_range_overflow_is_422_not_500():
     """Normalization overflow must not become an unhandled 500."""
-    with TestClient(app, raise_server_exceptions=False) as client:
+    with TestClient(app, raise_server_exceptions=False, headers=DESK_HEADERS) as client:
         for since in ("0001-01-01T00:00:00+01:00", "9999-12-31T23:59:59-01:00"):
             response = client.get("/api/events", params={"since": since})
             assert response.status_code == 422, since
@@ -455,7 +469,7 @@ def test_upstream_error_is_not_stored(monkeypatch: pytest.MonkeyPatch, make_wav)
         PrismaSTT, "_http", lambda self: nullcontext(httpx.Client(transport=transport))
     )
     monkeypatch.setenv("GNANI_API_KEY", "test-key")
-    with TestClient(app) as client:
+    with TestClient(app, headers=DESK_HEADERS) as client:
         attach_event_store(app, replace=True)
         response = client.post(
             "/api/ingest", files={"audio_file": ("clip.wav", make_wav(), "audio/wav")}
@@ -466,7 +480,7 @@ def test_upstream_error_is_not_stored(monkeypatch: pytest.MonkeyPatch, make_wav)
 
 def test_missing_key_is_not_stored(monkeypatch: pytest.MonkeyPatch, make_wav):
     monkeypatch.delenv("GNANI_API_KEY", raising=False)
-    with TestClient(app) as client:
+    with TestClient(app, headers=DESK_HEADERS) as client:
         attach_event_store(app, replace=True)
         response = client.post(
             "/api/ingest", files={"audio_file": ("clip.wav", make_wav(), "audio/wav")}
