@@ -32,11 +32,14 @@ rulesets; classic branch protection may still apply. The integration returned
 403 for the classic protection API, so a complete settings audit could not be
 performed through it. No setting was changed by this documentation PR.
 
-Owner verification of administrator bypass, force-push and deletion settings
-is **deferred**, rather than certified as applied. Priyanshu should inspect
-Settings using the steps above and append the verified effective configuration.
-Keep issue 34 open until that verification is recorded or the owner explicitly
-records that permissions prevent applying it.
+Priyanshu inspected the classic protection rule during review of PR 50 on
+13 November 2026: PRs, one code-owner approval, stale-approval dismissal, all
+three checks and an up-to-date branch are required. Force pushes and deletion
+are disabled. Administrator enforcement (`enforce_admins`) is **false**, so
+administrators can bypass the rule. This is reported owner verification, not a
+settings change made by this PR. Keep issue 34 open until that bypass is disabled
+or both owners explicitly record acceptance of the limitation. This document
+does not accept it on their behalf.
 
 License and conduct changes require both owners' agreement. This PR proposes
 the MIT license requested by issue 34; Priyanshu must review that choice and

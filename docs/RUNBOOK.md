@@ -72,8 +72,9 @@ local `.env`, never in browser build variables.
 | RASTA_STREAM_SAMPLE_RATE | 16000; also allows 8000, 44100, 48000 |
 | CORS_ALLOW_ORIGINS | http://localhost:5173,http://127.0.0.1:5173 |
 
-The origin list currently protects WebSocket Origins. Empty explicitly denies
-all Origins; `*` is rejected. HTTP CORS reuse is pending issue 27. Actual bounds
+The same exact origin list already applies to HTTP CORS and WebSocket Origin
+checks. Empty explicitly denies all Origins; `*` is rejected. Issue 27 owns CSP,
+security headers, CSRF and further Origin hardening. Actual bounds
 and provider defaults live in [settings.py](../backend/rasta/settings.py).
 DISPATCH_PASSCODE, a database path and global budget variables are **not current
 settings**. Setting an invented budget variable to zero will not stop spending.
