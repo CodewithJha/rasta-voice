@@ -1,0 +1,114 @@
+/* Phosphor desk tape. Lamp-red stamps sit on a phosphor wash so the
+   HIGH / SOS labels meet 4.5:1; this is not a badge kit. */
+
+.slate .desk-status {
+  margin: 0 0 0.8rem;
+  line-height: 1.45;
+  max-width: 36ch;
+}
+
+.slate .desk-status[data-kind="error"] {
+  color: var(--sodium);
+}
+
+.slate .desk-status[data-kind="loading"],
+.slate .desk-status[data-kind="live"] {
+  color: var(--phosphor);
+}
+
+.desk-tape {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid #2c3824;
+}
+
+.desk-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.8rem;
+  margin: 0;
+  padding: 0.55rem 0 0.6rem;
+  border-bottom: 1px dashed #3a4a32;
+  min-width: 0;
+}
+
+.desk-row-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.7rem;
+  min-width: 0;
+  flex: 1 1 14rem;
+}
+
+.desk-intent {
+  font-weight: 700;
+  color: var(--phosphor);
+}
+
+.desk-order,
+.desk-eta,
+.desk-state {
+  color: var(--phosphor);
+}
+
+.desk-sos,
+.desk-urgency-high {
+  color: #9b2226;
+  background: var(--phosphor);
+  padding: 0.05rem 0.28rem;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.desk-urgency:not(.desk-urgency-high) {
+  color: var(--phosphor);
+  letter-spacing: 0.04em;
+}
+
+.desk-action {
+  flex: 1 1 12rem;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--phosphor);
+}
+
+.desk-acks {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 0;
+}
+
+@media (max-width: 400px) {
+  .slate {
+    overflow-x: hidden;
+  }
+
+  .desk-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.3rem;
+  }
+
+  .desk-row-main {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .desk-intent,
+  .desk-sos {
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .desk-action {
+    flex-basis: auto;
+    width: 100%;
+  }
+}
