@@ -149,3 +149,15 @@ button.talk[aria-pressed="true"] {
 .rider-reply-text[hidden] {
   display: none;
 }
+
+.rider-mic-hint {
+  margin: 0.55rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--stamp);
+  font-weight: 700;
+}
+
+.rider-mic-hint[hidden] {
+  display: none;
+}

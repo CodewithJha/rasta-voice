@@ -1,3 +1,43 @@
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  src: url("/fonts/atkinson-hyperlegible-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  src: url("/fonts/atkinson-hyperlegible-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Fraunces";
+  src: url("/fonts/fraunces-latin-wght-normal.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Martian Mono";
+  src: url("/fonts/martian-mono-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Martian Mono";
+  src: url("/fonts/martian-mono-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --ink: #24180f;
   --paper: #f3e6c8;
@@ -270,7 +310,152 @@ button:active {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chit {
+  .chit,
+  .chit .sticker {
     transform: none;
+  }
+
+  button:active {
+    transform: none;
+  }
+
+  .desk-sos {
+    animation: none;
+  }
+}
+
+.mast-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.7rem 1rem;
+}
+
+.locale-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.locale-btn {
+  background: transparent;
+  color: var(--paper);
+  box-shadow: 3px 3px 0 var(--sodium);
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.35rem 0.7rem;
+}
+
+.locale-btn[aria-pressed="true"] {
+  background: var(--sodium);
+  color: var(--ink);
+  box-shadow: 3px 3px 0 #140e0a;
+}
+
+.app-banner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.9rem;
+  margin: 0;
+  padding: 0.7rem 5vw;
+  background: var(--stamp);
+  color: var(--paper);
+}
+
+.app-banner[hidden] {
+  display: none;
+}
+
+.app-banner p {
+  margin: 0;
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.app-banner button {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 3px 3px 0 #140e0a;
+  min-height: 44px;
+}
+
+.chit-out {
+  margin: 1rem 0 0;
+  min-width: 0;
+}
+
+.chit-facts {
+  margin: 0;
+  display: grid;
+  gap: 0.45rem 0;
+}
+
+.chit-fact {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 0.35rem 0.7rem;
+  min-width: 0;
+}
+
+.chit-facts dt {
+  margin: 0;
+  font-weight: 700;
+}
+
+.chit-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.chit-transcript {
+  margin: 0.85rem 0 0;
+  line-height: 1.4;
+}
+
+.chit-transcript-label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+}
+
+.chit-transcript-text {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chit-raw {
+  margin: 0.8rem 0 0;
+}
+
+.chit-raw summary {
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.chit pre,
+.chit-raw pre {
+  margin: 0.5rem 0 0;
+  padding: 0.8rem;
+  background: #e7d7b4;
+  overflow: auto;
+  font-family: "Martian Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  max-height: 220px;
+}
+
+@media (max-width: 400px) {
+  .chit-fact {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.1rem;
   }
 }
