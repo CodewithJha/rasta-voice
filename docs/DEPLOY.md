@@ -52,10 +52,10 @@ Also set, for a public Space:
 - `RASTA_MAX_CONCURRENT_SPEECH` — production default 2; development default 32 so local and test suites can run concurrent uploads.
 - `RASTA_MAX_SPEECH_SECONDS` — default 30 for ingest and simulate.
 - `LLM_PROVIDER` and, if not `rules`, `GROQ_API_KEY` or `GEMINI_API_KEY`.
-- `RASTA_DB_PATH` — optional writable SQLite path for issue 19. The
-  image creates `/app/data` for the non-root user; a typical value is
-  `/app/data/rasta-events.sqlite`. Until issue 19 lands, the desk is
-  still in-memory.
+- `RASTA_DB_PATH` — SQLite file for the dispatch event store. The
+  default is `data/rasta-events.sqlite` relative to the process
+  working directory (in the image, `/app/data/rasta-events.sqlite`).
+  The image already creates `/app/data` for the non-root user.
 
 A local or Vite dev origin already on `CORS_ALLOW_ORIGINS` can send
 cookies after unlock. Do not widen that list to `*`.
@@ -79,7 +79,10 @@ Free-host disk is ephemeral. A Space rebuild, a hardware recycle, or a
 Render spin-down can delete `/app/data` even when a local restart on the
 same machine does not. Do not claim the dispatch slate is durable, and
 do not switch production back to an in-memory list to "fix" a wiped
-Space. Issue 19 persists events in SQLite at `RASTA_DB_PATH`.
+Space. Events persist in SQLite at `RASTA_DB_PATH` across a local
+restart on the same disk, but not across a host rebuild. A desk
+operator can download a copy with `GET /api/admin/export` after
+unlocking; that file is not an off-site backup (issue 35).
 
 ## Hugging Face Spaces (default)
 

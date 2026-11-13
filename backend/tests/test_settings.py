@@ -10,6 +10,7 @@ from rasta.settings import (
     DEFAULT_GROQ_MODEL,
     DEFAULT_LLM_TIMEOUT_SECONDS,
     DEFAULT_MAX_STREAMS,
+    DEFAULT_RASTA_DB_PATH,
     DEFAULT_STREAM_FRAME_BYTES,
     DEFAULT_STREAM_IDLE_SECONDS,
     DEFAULT_STREAM_SAMPLE_RATE,
@@ -40,6 +41,7 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch):
         "GROQ_API_KEY",
         "GEMINI_API_KEY",
         "EVENT_STORE_CAPACITY",
+        "RASTA_DB_PATH",
         "RASTA_MAX_STREAMS",
         "RASTA_STREAM_SESSION_SECONDS",
         "RASTA_STREAM_IDLE_SECONDS",
@@ -61,6 +63,7 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch):
     assert settings.groq_api_key == ""
     assert settings.gemini_api_key == ""
     assert settings.event_store_capacity == DEFAULT_EVENT_STORE_CAPACITY
+    assert settings.db_path == DEFAULT_RASTA_DB_PATH
     assert settings.max_streams == DEFAULT_MAX_STREAMS
     assert settings.stream_session_seconds == DEFAULT_STREAM_SESSION_SECONDS
     assert settings.stream_idle_seconds == DEFAULT_STREAM_IDLE_SECONDS
@@ -210,3 +213,20 @@ def test_development_budget_default_is_generous(monkeypatch: pytest.MonkeyPatch)
     assert settings.per_ip_requests_per_minute == 10_000
     assert settings.max_concurrent_speech == 32
     clear_settings_cache()
+
+
+def test_db_path_default_and_override(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("RASTA_DB_PATH", raising=False)
+    clear_settings_cache()
+    assert get_settings().db_path == DEFAULT_RASTA_DB_PATH
+    monkeypatch.setenv("RASTA_DB_PATH", "/app/data/rasta-events.sqlite")
+    clear_settings_cache()
+    assert get_settings().db_path == "/app/data/rasta-events.sqlite"
+
+
+@pytest.mark.parametrize("raw", [":memory:", "file:desk?mode=memory"])
+def test_db_path_rejects_in_memory(monkeypatch: pytest.MonkeyPatch, raw: str):
+    monkeypatch.setenv("RASTA_DB_PATH", raw)
+    clear_settings_cache()
+    with pytest.raises(SettingsError, match="RASTA_DB_PATH"):
+        get_settings()

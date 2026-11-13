@@ -139,10 +139,13 @@ def test_missing_or_changed_key_cannot_use_previous_cache(speech, monkeypatch):
     assert client.post(path).status_code == 200 and len(seen) == 2
 
 
-def test_unknown_or_evicted_event_does_not_spend(speech):
+def test_unknown_or_evicted_event_does_not_spend(speech, monkeypatch, tmp_path):
     client, path, seen, _ = speech
     assert client.post("/api/reply/unknown").status_code == 404
     assert client.post(path).status_code == 200
+    # replace=True reopens the same file; point at an empty path to model eviction.
+    monkeypatch.setenv("RASTA_DB_PATH", str(tmp_path / "empty-desk.sqlite"))
+    clear_settings_cache()
     attach_event_store(app, replace=True)
     assert client.post(path).status_code == 404 and len(seen) == 1
 
