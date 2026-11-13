@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -92,6 +93,23 @@ def test_eight_digit_run_is_redacted_and_short_tokens_are_not():
     assert redact_text("order 18") == "order 18"
 
 
+def test_contiguous_digit_runs_are_masked_as_a_whole():
+    long_run = "123456789012345678"
+    assert redact_text(f"id {long_run}") == f"id {REDACTION_PLACEHOLDER}"
+    assert long_run not in redact_text(f"id {long_run}")
+    assert "12345" not in redact_text(f"id {long_run}")
+    assert redact_text(long_run) == REDACTION_PLACEHOLDER
+
+
+def test_country_prefixes_are_consumed_with_the_digit_run():
+    assert redact_text("+919876543210") == REDACTION_PLACEHOLDER
+    assert redact_text("919876543210") == REDACTION_PLACEHOLDER
+    assert redact_text("+91 98765 43210") == REDACTION_PLACEHOLDER
+    assert redact_text("91-98765-43210") == REDACTION_PLACEHOLDER
+    assert "+91" not in redact_text("reach me at +919876543210 today")
+    assert "98765" not in redact_text("reach me at +91 98765 43210 today")
+
+
 def test_redact_record_covers_transcript_fields_only():
     record = redact_record(
         {
@@ -152,6 +170,32 @@ def test_patched_clock_expires_a_row_after_the_ttl():
         store.close()
 
 
+def test_export_omits_expired_rows_before_the_sweeper_runs(tmp_path):
+    clock = {"now": datetime(2026, 11, 14, tzinfo=UTC)}
+
+    def now() -> datetime:
+        return clock["now"]
+
+    store = EventStore(capacity=10, path=str(tmp_path / "live.sqlite"), clock=now, ttl_hours=1)
+    try:
+        stored = store.append(_payload(f"order 18, call {PHONE}"))
+        clock["now"] = clock["now"] + timedelta(hours=2)
+        assert store.list_since(None) == []
+        assert store.get(stored["id"]) is None
+        dest = tmp_path / "export.sqlite"
+        store.export_copy(dest)
+        # The sweeper has not run; the live file may still hold the row,
+        # but the snapshot must not.
+        with sqlite3.connect(dest) as connection:
+            count = int(connection.execute("SELECT COUNT(*) FROM events").fetchone()[0])
+            payloads = [row[0] for row in connection.execute("SELECT payload FROM events")]
+        assert count == 0
+        assert payloads == []
+        assert PHONE not in dest.read_bytes().decode("utf-8", errors="ignore")
+    finally:
+        store.close()
+
+
 def test_delete_removes_a_row_and_wipe_clears_the_desk():
     store = EventStore(capacity=10, path=":memory:")
     try:
@@ -204,7 +248,6 @@ def test_historical_rows_are_redacted_on_open(tmp_path):
         stored = first.append(_payload("clean"))
         # Simulate a pre-redaction row still on disk.
         import json
-        import sqlite3
 
         raw = {
             "id": stored["id"],

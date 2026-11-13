@@ -244,9 +244,11 @@ class EventStore:
         target = sqlite3.connect(dest_path)
         try:
             with self._lock:
+                now = self._clock()
                 self._conn.backup(target)
-            self._redact_connection(target)
-            target.commit()
+                self._drop_expired_from_connection(target, now)
+                self._redact_connection(target)
+                target.commit()
         finally:
             target.close()
 
@@ -356,6 +358,14 @@ class EventStore:
                     "UPDATE events SET payload = ? WHERE id = ?",
                     (json.dumps(redacted), row[0]),
                 )
+
+    def _drop_expired_from_connection(
+        self, connection: sqlite3.Connection, now: datetime
+    ) -> None:
+        rows = connection.execute("SELECT id, payload FROM events").fetchall()
+        for row in rows:
+            if self._is_expired(json.loads(row[1]), now):
+                connection.execute("DELETE FROM events WHERE id = ?", (row[0],))
 
     def _redact_connection(self, connection: sqlite3.Connection) -> None:
         rows = connection.execute("SELECT id, payload FROM events").fetchall()

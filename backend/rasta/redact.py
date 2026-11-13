@@ -10,12 +10,17 @@ from typing import Any
 MIN_DIGIT_RUN = 8
 REDACTION_PLACEHOLDER = "[redacted]"
 
+# Contiguous 8+ digit runs first, including an immediately attached
+# + / +91 / 91 prefix, so a longer run is never partially masked by
+# a 10-digit mobile match in the middle.
+_DIGIT_RUN = re.compile(rf"(?:\+91|\+|91)?\d{{{MIN_DIGIT_RUN},}}")
+
 # Optional +91 / 91 / 0 prefix and common spacing or dashes around a
-# 10-digit Indian mobile starting with 6-9.
-_INDIAN_MOBILE = re.compile(
+# 10-digit Indian mobile starting with 6-9, for forms that are not one
+# contiguous digit run (for example "+91 98765 43210").
+_SEPARATED_MOBILE = re.compile(
     r"(?:(?:\+91|91)[\s-]*|0)?[6-9]\d(?:[\s-]?\d){8}"
 )
-_DIGIT_RUN = re.compile(rf"\d{{{MIN_DIGIT_RUN},}}")
 
 # Only these fields are rewritten. Short order tokens live in event.order_id
 # and are left alone by the length rule above.
@@ -24,9 +29,9 @@ _EVENT_TEXT_KEYS = ("transcript",)
 
 
 def redact_text(value: str) -> str:
-    """Replace Indian mobile shapes and remaining long digit runs."""
-    redacted = _INDIAN_MOBILE.sub(REDACTION_PLACEHOLDER, value)
-    return _DIGIT_RUN.sub(REDACTION_PLACEHOLDER, redacted)
+    """Replace long digit runs and remaining Indian mobile shapes."""
+    redacted = _DIGIT_RUN.sub(REDACTION_PLACEHOLDER, value)
+    return _SEPARATED_MOBILE.sub(REDACTION_PLACEHOLDER, redacted)
 
 
 def redact_record(record: dict[str, Any]) -> dict[str, Any]:
