@@ -1,0 +1,167 @@
+{
+  "date": "2026-11-14 Asia/Kolkata",
+  "local_code_commit": "e9fea31b98fda1aba2fa222c4633abdb748456fe",
+  "code_sha256": {
+    "backend/rasta/main.py": "549d07ec76fa3285179e5d21988ecf7c006e5bb085821f26b531caee91218784",
+    "backend/rasta/security.py": "522cad4a130162f8dfd3ec89befec48ed9de2484bde9fcdc6b1e9641676d0d88",
+    "backend/rasta/idempotency.py": "0c4cfb7b049291cea780ab9419305b4379eca34be530410e7cc37dd00e8bcd82",
+    "backend/rasta/store.py": "e4048938cce5f75e4e0944c875ec01c0afb7ff1fcb35487f4b4f63f2d3f5866a",
+    "backend/rasta/dispatch_auth.py": "548a03bebdcd681f223c098d10fbf3b32d3ec43a62c9e87181e52d1752a7cf1e",
+    "backend/rasta/upload_security.py": "b608d1488fe063513047749ec5175a385fd2514e4e4abd762a763674dc6fe402",
+    "backend/rasta/extract.py": "6903f7c5ccd89339b11c559596487b675629b5a18295ce35ab70581c01e61aed",
+    "backend/rasta/limits.py": "fe05d77135cc211612d2bad14501e37464e0efec0dc9aa3cfb06d367b450575c"
+  },
+  "benchmark_section_sha256": "0186efce7fe9c226f95a3af28038a2470ab18a1ac1b9177812343095cd2c9730",
+  "python": {
+    "passed": 1854,
+    "skipped": 1,
+    "expected_failure": 1,
+    "coverage_percent": 90.93,
+    "coverage_floor_percent": 80
+  },
+  "types": {
+    "production_files": 57,
+    "clean": true
+  },
+  "frontend": {
+    "node_tests": 4,
+    "unit_tests": 23,
+    "source_types_clean": true,
+    "test_types_clean": true,
+    "build_passed": true
+  },
+  "load_before_optimization": {
+    "profile": "local",
+    "ops_vus": 20,
+    "desk_vus": 10,
+    "speech_vus": 0,
+    "configured_ops_seconds": 30,
+    "elapsed_seconds": 30.520639415,
+    "health": {
+      "p50_ms": 19.320352,
+      "p95_ms": 169.10038834999995,
+      "calls": 568
+    },
+    "ready": {
+      "p50_ms": 23.9040355,
+      "p95_ms": 76.3154375,
+      "calls": 568
+    },
+    "desk": {
+      "p50_ms": 23.344653,
+      "p95_ms": 182.44088859999957,
+      "calls": 289
+    },
+    "speech": {
+      "p50_ms": null,
+      "p95_ms": null,
+      "calls": 0
+    },
+    "ops_error_rate": 0,
+    "desk_error_rate": 0,
+    "speech_error_rate": null,
+    "thresholds_passed": false
+  },
+  "load_final": {
+    "profile": "local",
+    "ops_vus": 20,
+    "desk_vus": 10,
+    "speech_vus": 0,
+    "configured_ops_seconds": 30,
+    "elapsed_seconds": 30.719906576,
+    "health": {
+      "p50_ms": 2.6295805,
+      "p95_ms": 20.493268749999977,
+      "calls": 600
+    },
+    "ready": {
+      "p50_ms": 7.3652235,
+      "p95_ms": 64.43921224999994,
+      "calls": 600
+    },
+    "desk": {
+      "p50_ms": 14.060451,
+      "p95_ms": 51.55186670000001,
+      "calls": 300
+    },
+    "speech": {
+      "p50_ms": null,
+      "p95_ms": null,
+      "calls": 0
+    },
+    "ops_error_rate": 0,
+    "desk_error_rate": 0,
+    "speech_error_rate": null,
+    "thresholds_passed": true
+  },
+  "closed_port_negative": {
+    "profile": "local",
+    "ops_vus": 20,
+    "desk_vus": 0,
+    "speech_vus": 0,
+    "configured_ops_seconds": 30,
+    "elapsed_seconds": 30.113892391,
+    "health": {
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "calls": 600
+    },
+    "ready": {
+      "p50_ms": 0,
+      "p95_ms": 0,
+      "calls": 600
+    },
+    "desk": {
+      "p50_ms": null,
+      "p95_ms": null,
+      "calls": 0
+    },
+    "speech": {
+      "p50_ms": null,
+      "p95_ms": null,
+      "calls": 0
+    },
+    "ops_error_rate": 1,
+    "desk_error_rate": null,
+    "speech_error_rate": null,
+    "thresholds_passed": false
+  },
+  "limits": [
+    "Local keyless checks are not public deployment or live Gnani proof.",
+    "The local Chromium binary could not launch because this environment denied a socket. Real browser verification is required from GitHub CI.",
+    "Rules holdout remains 8/36 below 0.8.",
+    "Host account/workspace, field consent/audio, measured read-through, public video/posts and form confirmation remain external gates."
+  ],
+  "load_after_async_optimization": {
+    "profile": "local",
+    "ops_vus": 20,
+    "desk_vus": 10,
+    "speech_vus": 0,
+    "configured_ops_seconds": 30,
+    "elapsed_seconds": 30.793805645,
+    "health": {
+      "p50_ms": 2.401037,
+      "p95_ms": 9.895091399999993,
+      "calls": 600
+    },
+    "ready": {
+      "p50_ms": 7.383078,
+      "p95_ms": 45.10944764999987,
+      "calls": 600
+    },
+    "desk": {
+      "p50_ms": 21.450912000000002,
+      "p95_ms": 47.58748515000003,
+      "calls": 300
+    },
+    "speech": {
+      "p50_ms": null,
+      "p95_ms": null,
+      "calls": 0
+    },
+    "ops_error_rate": 0,
+    "desk_error_rate": 0,
+    "speech_error_rate": null,
+    "thresholds_passed": true
+  }
+}
