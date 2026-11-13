@@ -78,6 +78,11 @@ pip install --no-deps -e ./gnani_client -e ./backend -e ./benchmark
 cp .env.example .env
 ```
 
+If your environment already uses a SOCKS proxy and HTTPX reports that its
+optional SOCKS support is missing, install `httpx[socks]==0.28.1` in this
+virtual environment. Keep the existing proxy configuration. This optional
+network prerequisite is separate from the standard pinned CI environment.
+
 Set `GNANI_API_KEY` and a private `DISPATCH_PASSCODE` in `.env`.
 Real environment variables take precedence. Keep filled values out of git,
 URLs, recordings and screenshots. `LLM_PROVIDER=rules` needs no LLM key;
