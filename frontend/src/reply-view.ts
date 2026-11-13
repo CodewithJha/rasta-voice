@@ -15,7 +15,18 @@ export interface TextTarget {
   hidden?: boolean;
 }
 
-export const REPLY_AUDIO_PREFIX = "data:audio/wav;base64,";
+export const REPLY_AUDIO_PREFIX = "blob:";
+
+/** Same-origin object URLs keep audio compatible with the strict media policy. */
+export function setWavAudio(player: AudioTarget, audioBase64: string): void {
+  const bytes = Uint8Array.from(atob(audioBase64), (character) => character.charCodeAt(0));
+  const url = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }));
+  if (player.src.startsWith(REPLY_AUDIO_PREFIX)) {
+    URL.revokeObjectURL(player.src);
+  }
+  player.src = url;
+  player.hidden = false;
+}
 export const MISSING_REPLY_AUDIO = "The reply had no audio.";
 
 export function renderReplyConfirmation(
@@ -28,8 +39,7 @@ export function renderReplyConfirmation(
     textEl.hidden = false;
     return;
   }
-  player.src = `${REPLY_AUDIO_PREFIX}${payload.audio_base64}`;
-  player.hidden = false;
+  setWavAudio(player, payload.audio_base64);
   if (payload.text) {
     textEl.textContent = payload.text;
     textEl.hidden = false;
