@@ -303,7 +303,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--server-max-retries",
-        default=os.environ.get("RASTA_UPSTREAM_MAX_RETRIES", str(DEFAULT_SERVER_RETRY_CAP)),
+        default=(
+            os.environ.get("RASTA_UPSTREAM_MAX_RETRIES", "").strip()
+            or str(DEFAULT_SERVER_RETRY_CAP)
+        ),
         help="verified remote retry cap (0..2); env RASTA_UPSTREAM_MAX_RETRIES or default 2",
     )
     args = parser.parse_args(argv)

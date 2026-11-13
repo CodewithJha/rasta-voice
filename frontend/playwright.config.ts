@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 import { fileURLToPath } from "node:url";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const live = process.env.RASTA_E2E_LIVE === "1";
 if (live && !process.env.GNANI_API_KEY) {
@@ -10,6 +13,13 @@ if (!process.env.RASTA_E2E_DISPATCH_PASSCODE) {
   process.env.RASTA_E2E_DISPATCH_PASSCODE = "e2e-desk-pass";
 }
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
+// Every run owns a private synthetic store, shared only with its test workers.
+// Never seed or remove a developer's normal RASTA_DB_PATH.
+if (!process.env.RASTA_E2E_DB_PATH) {
+  const directory = mkdtempSync(join(tmpdir(), "rasta-e2e-"));
+  process.env.RASTA_E2E_DB_PATH = join(directory, "events.sqlite");
+  process.on("exit", () => rmSync(directory, { recursive: true, force: true }));
+}
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -36,6 +46,7 @@ export default defineConfig({
         LLM_PROVIDER: "rules",
         CORS_ALLOW_ORIGINS: "",
         RASTA_STATIC_DIR: "frontend/dist",
+        RASTA_DB_PATH: process.env.RASTA_E2E_DB_PATH,
         DISPATCH_PASSCODE: process.env.RASTA_E2E_DISPATCH_PASSCODE,
       },
     },

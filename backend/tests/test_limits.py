@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from rasta.errors import ContractApp
 from rasta.limits import (
     BUDGET,
     BUSY,
@@ -27,7 +28,7 @@ async def _lifespan(app: FastAPI):
 
 
 def _probe() -> FastAPI:
-    app = FastAPI(lifespan=_lifespan)
+    app = ContractApp(lifespan=_lifespan)
     app.add_middleware(SpeechBudgetMiddleware)
 
     @app.post("/api/ingest/sample")
@@ -57,7 +58,7 @@ def test_zero_budget_pauses_speech_and_leaves_health_open(monkeypatch):
     with TestClient(_probe()) as client:
         denied = client.post("/api/ingest/sample")
         assert denied.status_code == 503
-        assert denied.json()["detail"] == PAUSED
+        assert denied.json()["error"]["message"] == PAUSED
         assert client.get("/api/health").json() == {"ok": True}
     clear_settings_cache()
 
@@ -70,7 +71,7 @@ def test_spent_budget_returns_503_without_running_the_route(monkeypatch):
         assert client.post("/api/ingest/sample").json() == {"ok": True, "calls": 2}
         denied = client.post("/api/ingest/sample")
         assert denied.status_code == 503
-        assert denied.json()["detail"] == BUDGET
+        assert denied.json()["error"]["message"] == BUDGET
     clear_settings_cache()
 
 
@@ -82,7 +83,7 @@ def test_per_ip_cap_returns_429(monkeypatch):
         assert client.post("/api/ingest/sample").status_code == 200
         denied = client.post("/api/ingest/sample")
         assert denied.status_code == 429
-        assert denied.json()["detail"] == RATE
+        assert denied.json()["error"]["message"] == RATE
     clear_settings_cache()
 
 
@@ -217,7 +218,7 @@ def test_timeout_keeps_concurrency_slot_until_worker_finishes(monkeypatch):
         attach_speech_guard(app, replace=True)
         yield
 
-    app = FastAPI(lifespan=lifespan)
+    app = ContractApp(lifespan=lifespan)
     app.add_middleware(SpeechBudgetMiddleware)
 
     @app.post("/api/ingest/sample")
@@ -240,7 +241,7 @@ def test_timeout_keeps_concurrency_slot_until_worker_finishes(monkeypatch):
         assert started.is_set()
         second = client.post("/api/ingest/sample")
         assert second.status_code == 503
-        assert second.json()["detail"] == BUSY
+        assert second.json()["error"]["message"] == BUSY
         release.set()
         assert finished.wait(timeout=2)
         hold_workers = False

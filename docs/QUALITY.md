@@ -18,7 +18,8 @@ python scripts/check_frontend_types.py
 ```
 
 Mypy targets the documented Python 3.11 source minimum while CI runs on 3.12.
-It checks all 42 production files, including bodies of untyped functions.
+It checks the production packages above, including bodies of untyped functions.
+The dated integration evidence records the current source count.
 Test/build directories are excluded; no production module is ignored and no
 new type-ignore or missing-import suppression is added. Existing broad dict/Any
 annotations are not a claim of strict end-to-end typing. The existing
@@ -102,3 +103,14 @@ this browser suite. Its public URL, passcode/error/readiness/header checks must
 follow issues 13/20/21/22/26/27. Keep issue 32 open until live verification and
 that dependency are recorded. Both owners must agree to this .github contract
 before merge; add browser-smoke to required branch checks after a green run.
+
+
+## Dispatcher workflow browser regression
+
+The keyless suite exercises the real unlock, Ack and Resolve controls, CSRF
+headers, optimistic versions and stored audit. It creates one explicitly
+labelled synthetic stored event in a per-run temporary SQLite database and
+removes that event afterward. No speech result is fabricated and no mock flag
+is added to the application. The private test database is passed explicitly
+to the server; the normal developer database is never seeded by this suite.
+The live speech suite remains separately opt-in.

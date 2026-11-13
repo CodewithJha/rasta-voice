@@ -243,7 +243,7 @@ def unlock_csrf_ok(request: Request, secret: str, *, now: float | None = None) -
     return _tokens_match(mac, expected)
 
 
-def enforce_desk_csrf(connection: HTTPConnection) -> None:
+async def enforce_desk_csrf(connection: HTTPConnection) -> None:
     """Guard unsafe dispatcher HTTP routes; WebSockets retain their own Origin gate."""
     if connection.scope["type"] != "http":
         return

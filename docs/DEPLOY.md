@@ -202,15 +202,17 @@ structured ready body (`schema_version` or `events_in_store` may be
 ## Rollback
 
 Redeploy the previous git tag or commit on the Space (or Render
-service). There is no in-repo CD yet; issue 33 covers that wiring. The
-free host has no durable disk, so rolling back the image does not
-restore a wiped SQLite file.
+service). The checked-image workflow and manual release handoff are
+described below; it does not update a host automatically. Free-host
+disk can be ephemeral, so rolling back the image does not restore a
+wiped SQLite file.
 
 ## Credits and rate limits in the runbook
 
-Issue 34 will own a longer operator runbook. Until then: set
-`RASTA_DEMO_SPEECH_BUDGET=0` to pause public speech immediately, and
-raise or lower the budget and per-IP cap as Space secrets, then restart.
+The [operator runbook](RUNBOOK.md) covers credit exhaustion and incidents.
+Set `RASTA_DEMO_SPEECH_BUDGET=0` to pause public speech, then restart
+the process for the changed environment to take effect. Raise or lower
+the budget and per-IP cap through the host secret/configuration store.
 
 ## Checked revisions and manual rollback
 
