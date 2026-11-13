@@ -28,8 +28,9 @@ before claiming public readiness.
 ## Recorded local baseline
 
 Measured on 13 November 2026 (IST), against the real single-worker API from
-`8ec65af` on loopback, Python 3.12 and k6 2.4.0. SQLite was file-backed;
-the Gnani key was empty and extraction used rules. No provider calls occurred.
+`8ec65af` on loopback, Python 3.12 and k6 2.4.0. SQLite was file-backed
+with an empty desk; the API and load generator shared this environment.
+The Gnani key was empty and extraction used rules. No provider calls occurred.
 The optional upstream-resilience and dispatcher-workflow PRs were not yet
 merged, so this is a baseline for that revision, not those future changes.
 
