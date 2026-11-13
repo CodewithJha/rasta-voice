@@ -25,7 +25,26 @@ Gnani mapping: HTTP 429 becomes 429 `upstream_rate_limited`; 402 becomes 503 `up
 
 ## Idempotency
 
-Credit-spending POSTs (`/api/ingest`, `/api/ingest/sample`, `/api/simulate`, `/api/reply/{id}`) accept an `Idempotency-Key` header: a UUID or a `^[\w.-]{8,128}$` token. The server stores a hash of the key, the route, a hash of the body, the status, and the response body for 10 minutes in the desk SQLite database. A replay with the same key and the same body returns that stored response and does not call Gnani again. The same key with a different body is 409 `idempotency_conflict`. Keys are hashed at rest. A missing key is still accepted so older clients keep working; the rider UI sends a key on those clicks.
+Credit-spending POSTs (`/api/ingest`, `/api/ingest/sample`, `/api/simulate`, `/api/reply/{id}`) accept an `Idempotency-Key` header: a UUID or a `^[\w.-]{8,128}$` token. The server stores hashes of the key, canonical route and request body, plus status for 10 minutes in the desk SQLite database. Full response bodies (including generated audio) stay only in a bounded 128-entry / 8 MiB process memory cache. A replay with the same key and body returns that response while it is available in memory and does not call Gnani again. After eviction or restart it returns 503 `idempotency_response_unavailable`; the retained key metadata prevents another paid execution during its lifetime. The same key with a different body is 409 `idempotency_conflict`. Keys are hashed at rest. A missing key is still accepted so older clients keep working; the rider UI sends a key on those clicks.
+
+A concurrent identical request returns 409 `idempotency_in_progress` while the
+original runs; reuse the same key after it completes to obtain the stored
+result. A concurrent different body/query is an idempotency conflict. This
+claim is process-local under the documented one-worker topology. Completed key
+metadata persists for ten minutes; a process crash before recording an
+upstream result cannot provide a cross-process exactly-once guarantee.
+Cancellation or an exception before response capture records a conservative
+503 `idempotency_outcome_unknown`, so retrying that key cannot launch uncertain
+paid work again. This is not permission to retry with a new key.
+
+Keyed request bodies are capped at 2 MB plus 64 KiB multipart framing before
+buffering, including chunked or understated lengths. Replays, conflicts and
+validation denials retain the response security policy. Error bodies receive
+the current HTTP `X-Request-ID`; the cached Gnani/event identifiers in a
+successful response remain those of the original work. A response referencing
+a deleted or expired event is unavailable even if its memory TTL has not
+elapsed. SQLite replay rows contain no transcript or base64 audio.
+
 
 ## Pagination
 
