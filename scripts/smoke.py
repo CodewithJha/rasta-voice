@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Opt-in live deployment check, never invoked by default CI as a live script.
 
-One noisy sample triggers at most two Gnani calls (Timbre then Prisma).
-There are no speech retries, extra synthesis calls, or application mock modes.
+One noisy sample starts two logical operations (Timbre then Prisma).
+Server retries can make up to six provider attempts under issue 29's
+two-retry cap per operation. This CLI never retries its sample POST.
+There are no extra synthesis calls or application mock modes.
 Unit tests replace the HTTP transport inside their test file only.
 A valid no-key health response is a clean exit-0 skip. Configured deployments
 must pass the request-id, readiness, unauthorized-error and cookie-auth checks
 from issues 20/21/22/26 before the sample. Positive readiness credit units are
 not assumed to equal provider-call costs. The server still enforces its budget.
-After a charged timeout the reported two-call upper bound is not an exact bill.
+After a charged timeout the conservative upper bound is not an exact bill.
 Use --require-security-headers on the public deployment after issue 27 lands.
 """
 
@@ -31,6 +33,20 @@ SAFE_ID = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 INTENTS = frozenset(
     {"customer_unreachable", "address_issue", "item_missing", "delay", "accident_sos", "other"}
 )
+# Two logical operations, each with one initial attempt plus at most two
+# server retries. Conservative even on deployments without issue 29 retries.
+SAMPLE_LOGICAL_OPERATIONS = 2
+DEFAULT_SERVER_RETRY_CAP = 2  # Published issue 29 default/max; never infer remote settings.
+
+
+def server_retry_cap(value: object) -> int:
+    try:
+        cap = int(str(value))
+    except ValueError:
+        raise SmokeFailure("server retry cap must be an integer from 0 to 2") from None
+    if not 0 <= cap <= DEFAULT_SERVER_RETRY_CAP:
+        raise SmokeFailure("server retry cap must be an integer from 0 to 2")
+    return cap
 
 
 class SmokeFailure(Exception):
@@ -66,12 +82,20 @@ def checked_base_url(value: str) -> str:
 
 class SmokeCheck:
     def __init__(
-        self, client: httpx.Client, passcode: str, emit: Callable[[str], None] = print
+        self,
+        client: httpx.Client,
+        passcode: str,
+        emit: Callable[[str], None] = print,
+        *,
+        max_server_retries: int = DEFAULT_SERVER_RETRY_CAP,
     ) -> None:
         self.client = client
         self.passcode = passcode
         self.emit = emit
         self.speech_calls_upper_bound = 0
+        self.provider_attempts_bound = SAMPLE_LOGICAL_OPERATIONS * (
+            1 + server_retry_cap(max_server_retries)
+        )
         self._redactions = tuple(
             value
             for value in (
@@ -201,7 +225,7 @@ class SmokeCheck:
 
         # From this point a timeout can have spent calls; report the upper bound,
         # never retry the charged POST or claim an unknown actual charge is zero.
-        self.speech_calls_upper_bound = 2
+        self.speech_calls_upper_bound = self.provider_attempts_bound
         sample = self.request(
             "POST",
             "api/ingest/sample",
@@ -267,8 +291,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="require CSP and nosniff on / and health after issue 27",
     )
+    parser.add_argument(
+        "--server-max-retries",
+        default=os.environ.get("RASTA_UPSTREAM_MAX_RETRIES", str(DEFAULT_SERVER_RETRY_CAP)),
+        help="verified remote retry cap (0..2); env RASTA_UPSTREAM_MAX_RETRIES or default 2",
+    )
     args = parser.parse_args(argv)
     try:
+        retry_cap = server_retry_cap(args.server_max_retries)
         base = checked_base_url(args.base_url)
         if not math.isfinite(args.timeout) or not 0 < args.timeout <= 120:
             raise SmokeFailure("timeout must be finite and between 0 and 120 seconds")
@@ -283,7 +313,11 @@ def main(argv: list[str] | None = None) -> int:
         print("speech_calls_upper_bound=0")
         return 1
     with client:
-        check = SmokeCheck(client, os.environ.get("DISPATCH_PASSCODE", "").strip())
+        check = SmokeCheck(
+            client,
+            os.environ.get("DISPATCH_PASSCODE", "").strip(),
+            max_server_retries=retry_cap,
+        )
         try:
             check.run(require_security_headers=args.require_security_headers)
         except SmokeFailure as exc:
