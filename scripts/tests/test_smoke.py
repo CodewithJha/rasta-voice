@@ -172,6 +172,25 @@ def test_cli_uses_operator_retry_cap_and_flag_overrides_env(
     assert len(speech_requests(service)) == 1
 
 
+@pytest.mark.parametrize("value, expected_cap", [("", 2), ("   ", 2), ("0", 0)])
+def test_empty_example_retry_setting_uses_conservative_bound(
+    monkeypatch, capsys, value, expected_cap
+):
+    service = Service()
+    real_client = httpx.Client
+    monkeypatch.setattr(
+        smoke.httpx,
+        "Client",
+        lambda **kwargs: real_client(**kwargs, transport=httpx.MockTransport(service)),
+    )
+    monkeypatch.setenv("DISPATCH_PASSCODE", PASSCODE)
+    monkeypatch.setenv("RASTA_UPSTREAM_MAX_RETRIES", value)
+    assert smoke.main([]) == 0
+    bound = smoke.SAMPLE_LOGICAL_OPERATIONS * (1 + expected_cap)
+    assert f"speech_calls_upper_bound={bound}" in capsys.readouterr().out
+    assert len(speech_requests(service)) == 1
+
+
 def test_success_uses_one_paid_sample_and_checks_the_protected_desk():
     service = Service()
     outcome, check, output = run(service, strict=True)
