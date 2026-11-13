@@ -1,0 +1,64 @@
+name: load
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  load:
+    name: load
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+      - name: Install the locked app and verify the harness
+        run: |
+          pip install -r requirements-ci.lock
+          pip check
+          ruff check loadtest/ci.py loadtest/tests/safety.py
+          node --test loadtest/tests/config.test.mjs
+      - name: Install checksum-verified k6
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --retry 2 \
+            https://github.com/grafana/k6/releases/download/v2.4.0/k6-v2.4.0-linux-amd64.tar.gz \
+            --output "$RUNNER_TEMP/k6.tar.gz"
+          echo "5a5ecf23529ccf93135bc7e5b0c1cd5126ecf5f2672e22eed1556a0ab74abb87  $RUNNER_TEMP/k6.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/k6.tar.gz" -C "$RUNNER_TEMP" k6-v2.4.0-linux-amd64/k6
+      - name: Run real keyless ops and desk load, then prove threshold failure
+        env:
+          K6_NO_USAGE_REPORT: "true"
+          CI: "true"
+          SPEECH: "0"
+        run: |
+          python loadtest/ci.py --k6 "$RUNNER_TEMP/k6-v2.4.0-linux-amd64/k6" \
+            --output-dir "$RUNNER_TEMP/load-results"
+      - name: Record measured load summaries
+        if: always()
+        shell: bash
+        run: |
+          for name in ops-desk closed-port; do
+            file="$RUNNER_TEMP/load-results/$name.json"
+            if [ -f "$file" ]; then
+              printf '\n## %s\n\n```json\n' "$name" >> "$GITHUB_STEP_SUMMARY"
+              cat "$file" >> "$GITHUB_STEP_SUMMARY"
+              printf '\n```\n' >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
