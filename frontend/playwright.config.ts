@@ -5,6 +5,10 @@ const live = process.env.RASTA_E2E_LIVE === "1";
 if (live && !process.env.GNANI_API_KEY) {
   throw new Error("RASTA_E2E_LIVE=1 requires a server-side GNANI_API_KEY");
 }
+// Test-only desk fixture for the local Playwright server. Not a production secret.
+if (!process.env.RASTA_E2E_DISPATCH_PASSCODE) {
+  process.env.RASTA_E2E_DISPATCH_PASSCODE = "e2e-desk-pass";
+}
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
 export default defineConfig({
@@ -31,6 +35,7 @@ export default defineConfig({
         GNANI_API_KEY: live ? process.env.GNANI_API_KEY! : "",
         LLM_PROVIDER: "rules",
         CORS_ALLOW_ORIGINS: "http://127.0.0.1:4173",
+        DISPATCH_PASSCODE: process.env.RASTA_E2E_DISPATCH_PASSCODE,
       },
     },
     {
