@@ -15,7 +15,7 @@ test("noisy synthetic sample produces a real request ID and reaches another desk
   await page.getByRole("radio", { name: "Noisy line", exact: true }).click();
   const ingested = page.waitForResponse((response) =>
     response.url().includes("/api/ingest/sample") && response.request().method() === "POST");
-  await page.getByRole("button", { name: "Speak a sample line", exact: true }).click();
+  await page.getByRole("button", { name: "Ek sample line bolo", exact: true }).click();
   const response = await ingested;
   expect(response.status()).toBe(200);
   const body = await response.json();
@@ -24,8 +24,8 @@ test("noisy synthetic sample produces a real request ID and reaches another desk
   expect(body.ingest.stt.request_id.length).toBeGreaterThan(0);
   expect(body.ingest.event.intent).toBe("customer_unreachable");
   expect(body.ingest.event.order_id).toBe("18");
-  await expect(page.getByRole("region", { name: "What the rider shouted over the horns" }))
-    .toContainText("customer_unreachable");
+  await expect(page.getByRole("region", { name: "Rider ne horns ke upar kya bola" }))
+    .toContainText("customer unreachable");
   const row = desk.locator("li[data-id]").filter({ hasText: "customer unreachable" });
   await expect(row).toHaveCount(1);
   await expect(row).toHaveAttribute("data-id", body.ingest.id);
