@@ -61,6 +61,12 @@ button.talk[aria-pressed="true"] {
   padding: 0.55rem 0.2rem;
 }
 
+/* Native file inputs must be able to shrink inside the mobile flex label. */
+.chit .file input {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .rider-mix-switch button {
   background: transparent;
   color: var(--ink);
