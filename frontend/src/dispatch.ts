@@ -1,3 +1,4 @@
+import { deskCsrfToken } from "./desk-csrf";
 import type { IngestResult } from "./types";
 import { DeskTape, asRecord, readRecords, type DeskRecord } from "./desk-tape";
 import { describeDeskError, deskNeedsUnlock } from "./desk-status";
@@ -391,14 +392,11 @@ export function initDispatch(root: HTMLElement): void {
       const challenge = await fetchWithTimeout("/api/dispatch/csrf", {
         credentials: "same-origin", signal: controller.signal,
       });
-      const data: unknown = challenge.response.ok ? await challenge.response.json() : null;
-      if (!data || typeof data !== "object" || !("csrf_token" in data) || typeof data.csrf_token !== "string") {
-        throw new Error("Desk CSRF challenge unavailable");
-      }
+      const csrf = deskCsrfToken(challenge);
       const { response } = await fetchWithTimeout("/api/dispatch/unlock", {
         method: "POST",
         credentials: "same-origin",
-        headers: { "Content-Type": "application/json", "X-Dispatch-CSRF": data.csrf_token },
+        headers: { "Content-Type": "application/json", "X-Dispatch-CSRF": csrf },
         body: JSON.stringify({ passcode }),
         signal: controller.signal,
       });
