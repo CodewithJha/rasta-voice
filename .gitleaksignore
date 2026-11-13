@@ -1,4 +1,4 @@
 # Exact historical source-digest false positive, not a credential.
 # Owner: himanshu748; review by 2026-11-21.
-# Proof and scope: docs/evidence/integration-2026-11-14.md
+# Proof and scope: docs/SUPPLY_CHAIN.md (source-digest false positive)
 4f609e171d4ba4fa64fbedb6ab70332a1131d8b5:docs/evidence/integration-2026-11-14.json:generic-api-key:9
