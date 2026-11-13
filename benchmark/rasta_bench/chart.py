@@ -80,7 +80,8 @@ def render_svg(scores: dict[str, Any]) -> str:
     )
     desc = (
         f"Raw mean word error rate. {files} distinct synthetic clips, "
-        f"{evaluations} model evaluations. Script mismatch prevents a clean model ranking."
+        f"{evaluations} model evaluations. Script mismatch prevents a clean model ranking. "
+        f"Run timestamp: {scores['run_at']}."
     )
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
@@ -124,7 +125,7 @@ def render_svg(scores: dict[str, Any]) -> str:
         ]
     parts += [
         f'<text x="{left}" y="357" font-size="12">Synthetic rider speech; simulated '
-        "8 kHz μ-law telephone audio, not real calls.</text>",
+        "8 kHz mu-law telephone audio, not real calls.</text>",
         f'<text x="{left}" y="378" font-size="11">Normalized metrics fold case, '
         "punctuation and number words; they do not transliterate scripts.</text>",
     ]
