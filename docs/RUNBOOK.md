@@ -28,14 +28,23 @@ Cheap checks, requiring no speech call:
 
 ```bash
 curl --fail http://127.0.0.1:8000/api/health
-curl --fail http://127.0.0.1:8000/api/events
+curl --fail http://127.0.0.1:8000/api/ready
 ```
 
 Health returns `ok`, `gnani_key_set` and `llm_provider`; it does not test provider
-credit balance. Without a key, speech endpoints return 503. `/api/ready` returns
-404 today (issue 22). To verify speech deliberately, use a synthetic sample once
+credit balance. Without a key, speech endpoints return 503. `/api/ready` checks
+SQLite and reports the remaining local demo budget; it stays 200 for a missing
+key or exhausted budget, with explicit flags. Unauthenticated `/api/events`
+returns 401; unlock the desk before reading its contents.
+To verify speech deliberately, use a synthetic sample once
 through the rider UI: Timbre generates it and Prisma transcribes it, spending
-two calls. Its separate confirmation costs another uncached Timbre call.
+two logical operations. Under issue 29's retry policy, each operation can have
+an initial attempt plus two retries, for up to six provider attempts per sample.
+The smoke CLI sends one sample POST with no client retry and reports that
+conservative six-attempt upper bound after dispatch, including on timeout.
+Preflight failures and keyless skips report zero. This is not an exact bill;
+the server's credit budget remains authoritative. Its separate confirmation
+costs another uncached Timbre operation, outside the smoke CLI's single sample.
 Do not run that check during an exhausted-credit incident.
 
 ## Environment inventory

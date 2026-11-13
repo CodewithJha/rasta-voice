@@ -137,8 +137,11 @@ python scripts/smoke.py --base-url <verified-public-origin> --require-security-h
 
 Paste only safe request IDs, event ID, intent and call upper bound here. The
 CLI checks readiness and authentication before one noisy sample, makes no
-speech retry, and reports a two-call upper bound after a potentially charged
-timeout. That bound is not proof of the provider's actual charge. A keyless
+client speech retry, and reports a conservative six-attempt upper bound after
+dispatch, including a potentially charged timeout. That allows for two logical
+operations with up to two server retries each under issue 29. The earlier
+two-call bound at the original audit checkpoint did not include server retries.
+The bound is not proof of the provider's actual charge. A keyless
 skip is not a completed public smoke.
 
 ## Project explanation for the final form
