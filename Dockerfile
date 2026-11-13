@@ -34,5 +34,5 @@ RUN chmod 755 /app/docker-entrypoint.sh \
 USER rasta
 EXPOSE 7860
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD python -c "import os,urllib.request; p=os.environ.get('PORT','7860'); urllib.request.urlopen(f'http://127.0.0.1:{p}/api/health', timeout=4)"
+    CMD python -c "import os,urllib.request; p=os.environ.get('PORT','7860'); urllib.request.urlopen(f'http://127.0.0.1:{p}/api/ready', timeout=4)"
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

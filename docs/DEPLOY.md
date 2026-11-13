@@ -105,12 +105,12 @@ the `Dockerfile` in this repository.
    `RASTA_PER_IP_REQUESTS_PER_MINUTE`, `RASTA_TRUST_PROXY_HEADERS`,
    `RASTA_DB_PATH`, `GROQ_API_KEY`, `GEMINI_API_KEY`.
 6. Wait for the build. Open the Space URL. Check `GET /api/health`
-   returns JSON, `GET /` returns the desk HTML, and a missing key yields
+   and `GET /api/ready` return JSON, `GET /` returns the desk HTML, and a missing key yields
    503 on `/api/ingest/sample`. With the key set, a noisy sample should
    return `customer_unreachable`, order `18`, and a Prisma `request_id`.
 7. Paste that public HTTPS URL at the top of this file and commit it.
 8. After issue 07, confirm the Talk path in a **secure context**
-   (HTTPS). After issue 22, switch any probe you like to `/api/ready`.
+   (HTTPS). The image health check and operator probes use `/api/ready`.
 
 ### What you must do by hand
 
@@ -163,6 +163,35 @@ must not show a `.env`; the Dockerfile never copies one.
 
 After five wrong unlock attempts from one address inside the window, the
 unlock route returns 429 until the window expires.
+
+## Health and readiness
+
+`GET /api/health` is the cheap liveness probe: the process is up. It
+returns `ok`, `gnani_key_set`, and `llm_provider` only. It does not
+touch disk, the event store, a credit budget, or Gnani.
+
+`GET /api/ready` is readiness, for operators, the issue 24 smoke, and
+the image `HEALTHCHECK`. It reports `gnani_key_set`, `db_writable`,
+`rate_limit`, `demo_credits_remaining`, `demo_credits_exhausted`,
+`schema_version`, `circuit_breaker`, and `events_in_store`.
+`rate_limit` and the credit fields come from issue 13's process
+speech guard. `db_writable` is a cheap write probe of `RASTA_DB_PATH`,
+`schema_version` is `EventStore.schema_version()` (currently `2`), and
+`events_in_store` is the number of rows in that store. Issue 29's
+breaker is not on this branch, so `circuit_breaker` is the string
+`not_deployed`. This process does not invent a second budget or a
+shadow database.
+
+HTTP 200 means the process should stay in rotation. A missing Gnani
+key or a spent credit budget stays 200: speech routes already return
+503, and the payload shows `demo_credits_remaining: 0` and
+`demo_credits_exhausted: true` when the budget is exhausted. HTTP
+503 with `ok: false` is reserved for a configured durable store that
+cannot be written, opened, versioned, or counted, so the host can take
+the process out of rotation. Those 503 responses still return the
+structured ready body (`schema_version` or `events_in_store` may be
+`null`). Neither payload includes `DISPATCH_PASSCODE`,
+`GNANI_API_KEY`, or any other raw secret.
 
 ## Rollback
 
