@@ -304,6 +304,7 @@ class EventStore:
         self._conn = _connect(path)
         self._closed = False
         migrate(self._conn)
+        self._last_change = self._max_change_stamp_unlocked()
 
     @property
     def path(self) -> str:
@@ -337,7 +338,12 @@ class EventStore:
         _stamp_new_envelope(record)
         with self._lock:
             record["created_at"] = self._next_created_at()
-            record.setdefault("updated_at", record["created_at"])
+            if "updated_at" not in record or not record["updated_at"]:
+                record["updated_at"] = self._next_change_stamp(
+                    datetime.fromisoformat(record["created_at"])
+                )
+            else:
+                record["updated_at"] = self._later_stamp(record, str(record["updated_at"]))
             self._conn.execute(
                 "INSERT INTO events (id, created_at, payload) VALUES (?, ?, ?)",
                 (record["id"], record["created_at"], json.dumps(record)),
@@ -588,22 +594,44 @@ class EventStore:
                 item[1],
             )
 
+    def _max_change_stamp_unlocked(self) -> datetime | None:
+        """Latest published created_at/updated_at. Caller may already hold the lock."""
+        latest: datetime | None = None
+        rows = self._conn.execute("SELECT payload FROM events").fetchall()
+        for row in rows:
+            record = json.loads(row[0])
+            for key in ("updated_at", "created_at"):
+                raw = record.get(key)
+                if not raw:
+                    continue
+                try:
+                    when = datetime.fromisoformat(str(raw))
+                except ValueError:
+                    continue
+                if when.tzinfo is None:
+                    continue
+                when = when.astimezone(UTC)
+                if latest is None or when > latest:
+                    latest = when
+        return latest
+
+    def _next_change_stamp(self, suggested: datetime | None = None) -> str:
+        """Allocate a stamp strictly after every published change. Caller holds the lock."""
+        now = suggested if suggested is not None else self._clock()
+        if now.tzinfo is None or now.tzinfo.utcoffset(now) is None:
+            raise ValueError("event-store clock must return a timezone-aware UTC datetime")
+        now = now.astimezone(UTC)
+        last = self._last_change
+        if last is not None and now <= last:
+            now = last + timedelta(microseconds=1)
+        self._last_change = now
+        return now.isoformat()
+
     def _later_stamp(self, record: dict, stamp: str) -> str:
         when = datetime.fromisoformat(stamp)
         if when.tzinfo is None:
-            return stamp
-        when = when.astimezone(UTC)
-        for key in ("updated_at", "created_at"):
-            previous = record.get(key)
-            if not previous:
-                continue
-            last = datetime.fromisoformat(str(previous))
-            if last.tzinfo is None:
-                continue
-            last = last.astimezone(UTC)
-            if when <= last:
-                when = last + timedelta(microseconds=1)
-        return when.isoformat()
+            return self._next_change_stamp()
+        return self._next_change_stamp(when.astimezone(UTC) if when.tzinfo else when)
 
     def _next_created_at(self) -> str:
         # Caller holds self._lock.

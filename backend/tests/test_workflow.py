@@ -328,3 +328,76 @@ def test_reply_stays_unacked_after_auto_escalate_then_changes_on_ack(
     assert second.json()["text"] == ACCIDENT_ACKED_REPLY
     assert seen[-1] == ACCIDENT_ACKED_REPLY
     assert "aa raha" not in second.json()["text"]
+
+
+
+def test_stalled_clock_ack_of_older_row_is_visible():
+    clock = {"now": datetime(2026, 11, 13, 12, 0, tzinfo=UTC)}
+
+    def now() -> datetime:
+        return clock["now"]
+
+    store = EventStore(capacity=10, path=":memory:", clock=now)
+    try:
+        first = store.append(_accident(10))
+        second = store.append(_accident(11))
+        cursor = max(first["updated_at"], second["updated_at"])
+        # Frozen clock: ack the older row without advancing time.
+        updated = store.transition(
+            first["id"], action="ack", actor="d_anju", if_match=1
+        )
+        assert updated["state"] == "acked"
+        assert updated["updated_at"] > cursor
+        changed = store.list_updated_since(cursor)
+        match = next(item for item in changed if item["id"] == first["id"])
+        assert match["state"] == "acked" and match["version"] == 2
+        assert [item["id"] for item in store.list_since(None)] == [
+            first["id"],
+            second["id"],
+        ]
+    finally:
+        store.close()
+
+
+def test_out_of_order_clock_and_concurrent_updates_stay_visible():
+    import threading
+
+    clock = {"now": datetime(2026, 11, 13, 12, 0, tzinfo=UTC)}
+
+    def now() -> datetime:
+        return clock["now"]
+
+    store = EventStore(capacity=10, path=":memory:", clock=now)
+    try:
+        first = store.append(_accident(12))
+        second = store.append(_accident(13))
+        cursor = max(first["updated_at"], second["updated_at"])
+        # A later writer whose clock has gone backwards must still publish
+        # after the global cursor.
+        clock["now"] = clock["now"] - timedelta(seconds=30)
+        errors: list[str] = []
+
+        def ack(row_id: str) -> None:
+            try:
+                store.transition(row_id, action="ack", actor="d_anju", if_match=1)
+            except Exception as exc:
+                errors.append(f"{row_id}:{exc}")
+
+        workers = [
+            threading.Thread(target=ack, args=(first["id"],)),
+            threading.Thread(target=ack, args=(second["id"],)),
+        ]
+        for worker in workers:
+            worker.start()
+        for worker in workers:
+            worker.join(timeout=2)
+        assert errors == []
+        changed = store.list_updated_since(cursor)
+        states = {item["id"]: item["state"] for item in changed}
+        assert states[first["id"]] == "acked"
+        assert states[second["id"]] == "acked"
+        stamps = [item["updated_at"] for item in changed]
+        assert all(stamp > cursor for stamp in stamps)
+        assert stamps[0] != stamps[1]
+    finally:
+        store.close()
