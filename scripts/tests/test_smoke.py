@@ -127,11 +127,53 @@ def speech_requests(service):
     return [r for r in service.requests if r.url.path == "/api/ingest/sample"]
 
 
+@pytest.mark.parametrize("cap", [0, 1, 2])
+def test_explicit_remote_retry_cap_controls_the_bound_without_extra_posts(cap):
+    service = Service()
+    with httpx.Client(
+        base_url="http://localhost/", transport=httpx.MockTransport(service)
+    ) as client:
+        check = smoke.SmokeCheck(client, PASSCODE, lambda _line: None, max_server_retries=cap)
+        assert check.run() == "passed"
+    assert check.speech_calls_upper_bound == smoke.SAMPLE_LOGICAL_OPERATIONS * (1 + cap)
+    assert len(speech_requests(service)) == 1
+
+
+@pytest.mark.parametrize("cap", ["-1", "3", "nan", "secret-invalid-cap"])
+def test_invalid_retry_cap_fails_before_http_without_echoing_input(cap, capsys):
+    assert smoke.main(["--server-max-retries", cap]) == 1
+    output = capsys.readouterr().out
+    assert "speech_calls_upper_bound=0" in output
+    assert cap not in output
+
+
+@pytest.mark.parametrize("cli_cap, expected_cap", [(None, 1), ("0", 0)])
+def test_cli_uses_operator_retry_cap_and_flag_overrides_env(
+    monkeypatch, capsys, cli_cap, expected_cap
+):
+    service = Service()
+    real_client = httpx.Client
+    monkeypatch.setattr(
+        smoke.httpx,
+        "Client",
+        lambda **kwargs: real_client(**kwargs, transport=httpx.MockTransport(service)),
+    )
+    monkeypatch.setenv("DISPATCH_PASSCODE", PASSCODE)
+    monkeypatch.setenv("RASTA_UPSTREAM_MAX_RETRIES", "1")
+    argv = [] if cli_cap is None else ["--server-max-retries", cli_cap]
+    assert smoke.main(argv) == 0
+    bound = smoke.SAMPLE_LOGICAL_OPERATIONS * (1 + expected_cap)
+    assert f"speech_calls_upper_bound={bound}" in capsys.readouterr().out
+    assert len(speech_requests(service)) == 1
+
+
 def test_success_uses_one_paid_sample_and_checks_the_protected_desk():
     service = Service()
     outcome, check, output = run(service, strict=True)
     assert outcome == "passed"
-    assert check.speech_calls_upper_bound == 2
+    assert check.speech_calls_upper_bound == smoke.SAMPLE_LOGICAL_OPERATIONS * (
+        1 + smoke.DEFAULT_SERVER_RETRY_CAP
+    )
     assert len(speech_requests(service)) == 1
     assert EVENT_ID in output and "synthetic-provider-request" in output
     assert PASSCODE not in output and service.transcript not in output
@@ -237,7 +279,9 @@ def test_paid_failures_do_not_retry_or_claim_success(change):
         with pytest.raises(smoke.SmokeFailure):
             check.run()
     assert len(speech_requests(service)) == 1
-    assert check.speech_calls_upper_bound == 2
+    assert check.speech_calls_upper_bound == smoke.SAMPLE_LOGICAL_OPERATIONS * (
+        1 + smoke.DEFAULT_SERVER_RETRY_CAP
+    )
 
 
 def test_known_credentials_in_an_untrusted_request_id_are_redacted(monkeypatch):
@@ -298,7 +342,11 @@ def test_positive_budget_is_not_assumed_to_be_one_credit_per_call():
     service = Service()
     service.ready["demo_credits_remaining"] = 1
     outcome, check, _ = run(service)
-    assert outcome == "passed" and check.speech_calls_upper_bound == 2
+    assert (
+        outcome == "passed"
+        and check.speech_calls_upper_bound
+        == smoke.SAMPLE_LOGICAL_OPERATIONS * (1 + smoke.DEFAULT_SERVER_RETRY_CAP)
+    )
 
 
 def test_nested_budget_shape_is_accepted():
@@ -319,7 +367,8 @@ def test_cli_timeout_reports_possible_spend_without_a_retry(monkeypatch, capsys)
     monkeypatch.setenv("DISPATCH_PASSCODE", PASSCODE)
     assert smoke.main([]) == 1
     output = capsys.readouterr().out
-    assert "speech_calls_upper_bound=2" in output and "failed" in output
+    bound = smoke.SAMPLE_LOGICAL_OPERATIONS * (1 + smoke.DEFAULT_SERVER_RETRY_CAP)
+    assert f"speech_calls_upper_bound={bound}" in output and "failed" in output
     assert len(speech_requests(service)) == 1 and PASSCODE not in output
 
 
