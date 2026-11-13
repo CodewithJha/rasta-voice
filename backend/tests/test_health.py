@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from rasta.main import app
-from rasta.settings import clear_settings_cache
+from rasta.settings import clear_settings_cache, get_settings
 from rasta.store import attach_event_store
 
 
@@ -18,7 +18,8 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setenv("LLM_PROVIDER", "rules")
     monkeypatch.setenv("DISPATCH_PASSCODE", "synthetic-desk-passcode")
     clear_settings_cache()
-    return TestClient(app)
+    with TestClient(app) as client:
+        yield client
 
 
 def test_health_shape_is_unchanged(client: TestClient):
@@ -49,17 +50,21 @@ def test_health_does_not_touch_the_store_or_a_budget(client: TestClient, monkeyp
     assert response.json()["ok"] is True
 
 
-def test_ready_reports_not_deployed_for_unshipped_pieces(client: TestClient):
+def test_ready_reads_issue_13_budget_and_marks_later_issues(client: TestClient):
     attach_event_store(app, replace=True)
+    settings = get_settings()
     response = client.get("/api/ready")
     assert response.status_code == 200
     body = response.json()
     assert body["ok"] is True
     assert body["gnani_key_set"] is True
     assert body["db_writable"] == "not_deployed"
-    assert body["rate_limit"] == "not_deployed"
-    assert body["demo_credits_remaining"] == "not_deployed"
-    assert body["demo_credits_exhausted"] == "not_deployed"
+    assert body["rate_limit"] == {
+        "ok": True,
+        "per_ip_requests_per_minute": settings.per_ip_requests_per_minute,
+    }
+    assert body["demo_credits_remaining"] == settings.demo_speech_budget
+    assert body["demo_credits_exhausted"] is False
     assert body["schema_version"] == "not_deployed"
     assert body["circuit_breaker"] == "not_deployed"
     assert body["events_in_store"] == 0
@@ -100,8 +105,9 @@ def test_ready_200_when_budget_is_exhausted(client: TestClient):
         assert body["demo_credits_exhausted"] is True
         assert body["rate_limit"]["ok"] is True
     finally:
-        if hasattr(app.state, "speech_guard"):
-            delattr(app.state, "speech_guard")
+        from rasta.limits import attach_speech_guard
+
+        attach_speech_guard(app, replace=True)
 
 
 def test_ready_reads_a_remaining_budget(client: TestClient):
@@ -114,10 +120,14 @@ def test_ready_reads_a_remaining_budget(client: TestClient):
         body = client.get("/api/ready").json()
         assert body["demo_credits_remaining"] == 17
         assert body["demo_credits_exhausted"] is False
-        assert body["rate_limit"] == {"ok": True}
+        assert body["rate_limit"] == {
+            "ok": True,
+            "per_ip_requests_per_minute": get_settings().per_ip_requests_per_minute,
+        }
     finally:
-        if hasattr(app.state, "speech_guard"):
-            delattr(app.state, "speech_guard")
+        from rasta.limits import attach_speech_guard
+
+        attach_speech_guard(app, replace=True)
 
 
 def test_payloads_never_include_secrets(client: TestClient):

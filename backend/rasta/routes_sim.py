@@ -1,6 +1,5 @@
 """Demo simulate route: prepare the clip, then ingest it."""
 
-import asyncio
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 
@@ -20,7 +19,7 @@ async def simulate(
         raise HTTPException(status_code=400, detail=CONDITION_HINT)
     data = await read_upload_clip(audio_file)
 
-    from rasta.main import _guard, app
+    from rasta.main import _run_speech, app
 
     def run() -> dict:
         reject_oversize_clip(data)
@@ -28,4 +27,4 @@ async def simulate(
         stamped = attach_event_store(app).append(ingest(wav, "clip.wav"))
         return envelope(condition, wav, stamped)
 
-    return await asyncio.to_thread(_guard, run)
+    return await _run_speech(run)

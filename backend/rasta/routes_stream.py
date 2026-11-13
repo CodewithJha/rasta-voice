@@ -12,6 +12,7 @@ from gnani_client.env import api_key
 from gnani_client.errors import GnaniError, MissingApiKeyError
 from gnani_client.stt_stream import SttStream
 from gnani_client.tts import TimbreTTS
+from rasta.origins import origin_allowed
 from rasta.pipeline import SAMPLE_LINE
 from rasta.request_id import watch_gnani_call
 from rasta.settings import Settings, get_settings
@@ -42,11 +43,18 @@ async def stream_endpoint(websocket: WebSocket) -> None:
     settings = get_settings()
 
     origin = websocket.headers.get("origin")
-    if origin not in settings.cors_allow_origins:
+    if not origin_allowed(origin, settings, websocket.scope):
         await fail(websocket, "Origin is not allowed", CLOSE_ORIGIN)
         return
     if not api_key():
         await fail(websocket, "GNANI_API_KEY is not set", CLOSE_NO_KEY)
+        return
+
+    from rasta.limits import admit_websocket
+
+    budget = admit_websocket(app, websocket.scope)
+    if budget is not None:
+        await fail(websocket, budget.message, CLOSE_BUSY)
         return
 
     slots = app.state.stream_slots
@@ -102,6 +110,13 @@ async def _run_session(websocket: WebSocket, app: Any, settings: Settings) -> No
 
 
 async def _run_sample(websocket: WebSocket, app: Any, settings: Settings) -> None:
+    from rasta.limits import attach_speech_guard
+
+    # Stream admit reserved one Prisma session. Sample also spends a Timbre call.
+    extra = attach_speech_guard(app).reserve_budget(1)
+    if extra is not None:
+        await fail(websocket, extra.message, CLOSE_BUSY)
+        return
     try:
         pcm = await _sample_pcm(app, settings)
     except MissingApiKeyError:
