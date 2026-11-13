@@ -46,6 +46,13 @@ a deleted or expired event is unavailable even if its memory TTL has not
 elapsed. SQLite replay rows contain no transcript or base64 audio. Successful
 cached speech responses are not served while the server Gnani key is absent.
 Usage counters include replays and early idempotency denials exactly once.
+At most 16 keyed requests can retain buffered bodies concurrently. An excess
+request gets 429 `request_busy` before its body is read. This bounds aggregate
+buffering as well as per-request bytes. A definitive speech-admission denial
+(pause, budget, local rate or concurrency guard) is not persisted as completed
+paid work, so denied unique keys cannot grow the replay ledger. Such a request
+can be retried later without repeating any executed work.
+
 Trusted Host and exact CORS policy run before cache lookup, so replays cannot
 bypass the configured host boundary or lose allowed-origin response headers.
 
