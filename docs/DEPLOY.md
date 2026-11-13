@@ -205,3 +205,27 @@ restore a wiped SQLite file.
 Issue 34 will own a longer operator runbook. Until then: set
 `RASTA_DEMO_SPEECH_BUDGET=0` to pause public speech immediately, and
 raise or lower the budget and per-IP cap as Space secrets, then restart.
+
+## Checked revisions and manual rollback
+
+Before publishing a revision, require its `container` job from
+`.github/workflows/cd.yml` to pass. That job builds the Dockerfile, checks
+the keyless non-root image and scans it with Trivy for HIGH/CRITICAL
+vulnerabilities. The image's Python runtime versions come from
+`requirements-runtime.lock`; the frontend uses its committed npm lock.
+
+The workflow also runs on `v*` tag pushes and can be dispatched manually
+from main. Tag/manual runs stop at the built-and-scanned image and a
+handoff summary. They do not publish an image, update a host, create a
+release or read provider/host credentials. Deploy the exact checked
+revision through the host steps below, keeping secret values in its
+secret store. Record the actual public URL and final revision after
+verifying health, desk authentication and the public live smoke.
+
+For rollback, retain the previous verified tag or full commit SHA before
+updating a host. Restore that revision through the same host build path,
+preserve the current secret configuration, and rebuild. Repeat health
+and desk checks before the live smoke; record the restored revision,
+time and result. Free-host local disk can be ephemeral, so code rollback
+is not a database restore. A rollback is unverified until those checks
+have actually run against the public origin.
