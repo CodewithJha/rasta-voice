@@ -12,7 +12,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from gnani_client.env import api_key
 from gnani_client.errors import GnaniError, MissingApiKeyError
 from rasta.extract import extract_event
-from rasta.pipeline import SAMPLE_LINE, ClipTooLarge, EmptyClip, ingest, speak_sample
+from rasta.pipeline import (
+    SAMPLE_LINE,
+    ClipTooLarge,
+    EmptyClip,
+    ingest,
+    read_upload_clip,
+    speak_sample,
+)
 from rasta.routes_events import events_router
 from rasta.routes_reply import reply_router
 from rasta.routes_sim import sim_router
@@ -72,7 +79,7 @@ def health() -> dict:
 
 @app.post("/api/ingest")
 async def ingest_upload(audio_file: UploadFile = File(...)) -> dict:
-    data = await audio_file.read()
+    data = await read_upload_clip(audio_file)
     filename = audio_file.filename or "clip.wav"
     # The pipeline is still sync (Prisma and Timbre clients are sync). Run it
     # in a worker thread so an LLM or STT wait cannot block the event loop.

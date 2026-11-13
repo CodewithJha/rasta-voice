@@ -1,4 +1,5 @@
 import type { IngestResult } from "./types";
+import { renderReplyConfirmation, type ReplyPayload } from "./reply-view";
 import "./rider.css";
 
 const TARGET_RATE = 16_000;
@@ -12,11 +13,6 @@ interface SimulateEnvelope {
   condition: LineCondition;
   audio_base64: string;
   ingest: IngestResult;
-}
-
-interface ReplyPayload {
-  text?: string;
-  audio_base64?: string;
 }
 
 // Live-mic dirt would be a horn buffer summed in this worklet, not a second
@@ -149,10 +145,13 @@ export function initRider(root: HTMLElement): void {
   hear.disabled = true;
   const replyCaption = document.createElement("p");
   replyCaption.textContent = "Sun lo — the Timbre confirmation";
+  const replyText = document.createElement("p");
+  replyText.className = "rider-reply-text";
+  replyText.hidden = true;
   const replyAudio = document.createElement("audio");
   replyAudio.controls = true;
   replyAudio.hidden = true;
-  replyPlayer.append(hear, replyCaption, replyAudio);
+  replyPlayer.append(hear, replyCaption, replyText, replyAudio);
 
   players.append(clipPlayer, replyPlayer);
 
@@ -268,7 +267,7 @@ export function initRider(root: HTMLElement): void {
 
   hear.addEventListener("click", () => {
     if (busy || !lastEventId) return;
-    void withBusy(hear, () => postReply(`/api/reply/${lastEventId}`, out, replyAudio));
+    void withBusy(hear, () => postReply(`/api/reply/${lastEventId}`, out, replyAudio, replyText));
   });
 
   async function withBusy(button: HTMLButtonElement, work: () => Promise<void>): Promise<void> {
@@ -590,7 +589,12 @@ async function post(
   }
 }
 
-async function postReply(url: string, out: HTMLElement, player: HTMLAudioElement): Promise<void> {
+async function postReply(
+  url: string,
+  out: HTMLElement,
+  player: HTMLAudioElement,
+  textEl: HTMLElement,
+): Promise<void> {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -600,12 +604,7 @@ async function postReply(url: string, out: HTMLElement, player: HTMLAudioElement
       showError(out, response.status, text);
       return;
     }
-    const payload = JSON.parse(text) as ReplyPayload;
-    if (!payload.audio_base64) {
-      out.textContent = "The reply had no audio.";
-      return;
-    }
-    setAudio(player, payload.audio_base64);
+    renderReplyConfirmation(JSON.parse(text) as ReplyPayload, player, textEl);
   } catch (err) {
     out.textContent = errorMessage(err);
   } finally {

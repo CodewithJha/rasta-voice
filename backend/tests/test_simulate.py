@@ -16,8 +16,8 @@ from fastapi.testclient import TestClient
 from gnani_client.stt import PrismaSTT
 from gnani_client.tts import TimbreTTS
 from rasta.main import app
-from rasta.pipeline import SAMPLE_LINE
-from rasta.simulate import PHONE_RATE, read_pcm, write_wav
+from rasta.pipeline import CLIP_TOO_LARGE, MAX_CLIP_BYTES, SAMPLE_LINE
+from rasta.simulate import PHONE_RATE, prepare_for_ingest, read_pcm, write_wav
 
 LINE = (
     "Bhaiya, gate band hai aur customer phone nahi utha raha. "
@@ -225,3 +225,54 @@ def test_write_roundtrip_matches_read(make_wav):
     again, rate_again = read_pcm(write_wav(samples, rate))
     assert again == samples
     assert rate_again == rate
+
+
+def _wav_of_size(size: int, rate: int = 16000) -> bytes:
+    """A valid mono 16-bit WAV whose exact file size is ``size`` bytes."""
+    if size < 44 or size % 2:
+        raise ValueError("size must be an even WAV length of at least one header")
+    samples = [0] * ((size - 44) // 2)
+    blob = write_wav(samples, rate)
+    if len(blob) != size:
+        raise AssertionError(f"expected {size} bytes, wrote {len(blob)}")
+    return blob
+
+
+def test_oversize_upload_skips_prepare_and_prisma(client: TestClient, calls, monkeypatch):
+    seen: list[bytes] = []
+
+    def spy(audio: bytes, condition: str) -> bytes:
+        seen.append(audio)
+        return prepare_for_ingest(audio, condition)
+
+    monkeypatch.setattr("rasta.routes_sim.prepare_for_ingest", spy)
+    oversized = _wav_of_size(MAX_CLIP_BYTES + 44)  # 2,000,044 bytes, valid header
+    assert len(oversized) > MAX_CLIP_BYTES
+    response = client.post(
+        "/api/simulate",
+        params={"condition": "noisy"},
+        files={"audio_file": ("clip.wav", oversized, "audio/wav")},
+    )
+    assert response.status_code == 413
+    assert CLIP_TOO_LARGE in response.json()["detail"]
+    assert seen == []
+    assert calls == []
+
+
+def test_clip_at_the_limit_is_still_prepared(client: TestClient, calls, monkeypatch):
+    seen: list[int] = []
+    monkeypatch.setattr(
+        "rasta.routes_sim.prepare_for_ingest",
+        lambda audio, condition: seen.append(len(audio)) or write_wav([0], 8000),
+    )
+    # ingest still runs after prepare; keep Prisma mocked via ``calls``.
+    # A 2 MB file is allowed; one byte past it is not (previous test).
+    at_limit = _wav_of_size(MAX_CLIP_BYTES)
+    response = client.post(
+        "/api/simulate",
+        params={"condition": "clean"},
+        files={"audio_file": ("clip.wav", at_limit, "audio/wav")},
+    )
+    assert response.status_code == 200
+    assert seen == [MAX_CLIP_BYTES]
+    assert [r.url.path for r in calls] == ["/stt/v3"]

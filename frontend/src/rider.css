@@ -137,3 +137,15 @@ button.talk[aria-pressed="true"] {
     width: 100%;
   }
 }
+
+.rider-reply-text {
+  margin: 0.35rem 0 0.4rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+
+.rider-reply-text[hidden] {
+  display: none;
+}
