@@ -64,7 +64,12 @@ class Service:
             body = {"ok": self.health_ok, "gnani_key_set": self.key_set, "llm_provider": "rules"}
         elif path == "/api/ready":
             status, body = self.ready_status, self.ready
+        elif path == "/api/dispatch/csrf":
+            body = {"csrf_token": "synthetic-test-csrf"}
+            headers["Set-Cookie"] = "rasta_unlock_csrf=synthetic-test-csrf; Path=/; HttpOnly"
         elif path == "/api/dispatch/unlock":
+            assert request.headers.get("X-Dispatch-CSRF") == "synthetic-test-csrf"
+
             status = self.unlock_status
             self.unlocked = status == 200
             headers["Set-Cookie"] = "rasta_desk=synthetic-session; Path=/; HttpOnly; SameSite=Lax"
