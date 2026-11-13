@@ -41,6 +41,6 @@ settings change made by this PR. Keep issue 34 open until that bypass is disable
 or both owners explicitly record acceptance of the limitation. This document
 does not accept it on their behalf.
 
-License and conduct changes require both owners' agreement. This PR proposes
-the MIT license requested by issue 34; Priyanshu must review that choice and
-the conduct policy before merging.
+License and conduct changes require both owners' agreement. The MIT license
+and conduct policy are merged through PR 50; this update changes neither.
+The administrator-bypass limitation above remains unresolved on issue 34.
