@@ -64,9 +64,6 @@ test("desk unlock rejects a wrong passcode and accepts the test fixture", async 
   await expect(form).toBeHidden();
 });
 
-// Acknowledgement controls are still waiting on issue 25.
-test.skip("desk acknowledgement flow awaits issue 25", () => {});
-
 test("locale toggle switches chrome and survives a reload", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang", "hi");
