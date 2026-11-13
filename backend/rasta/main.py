@@ -38,11 +38,13 @@ from rasta.settings import get_settings
 from rasta.simulate import CONDITION_HINT, CONDITIONS, BadClip, envelope, prepare_for_ingest
 from rasta.store import attach_event_store
 from rasta.stream_runtime import attach_stream_runtime
+from rasta.tasks import run_until_stopped
 
 # Real env vars win over .env, so a deploy secret is never shadowed.
 load_dotenv()
 configure_rasta_logging()
 log = logging.getLogger("rasta")
+
 
 
 @asynccontextmanager
@@ -54,8 +56,20 @@ async def lifespan(app: FastAPI):
     attach_dispatch_auth(app, replace=True)
     attach_speech_guard(app, replace=True)
     attach_upstream_runtime(app, replace=True)
+    ttl_stopped = asyncio.Event()
     try:
-        yield
+        async with asyncio.TaskGroup() as group:
+            group.create_task(
+                run_until_stopped(
+                    attach_event_store(app).purge_expired,
+                    get_settings().event_ttl_sweep_seconds,
+                    ttl_stopped,
+                )
+            )
+            try:
+                yield
+            finally:
+                ttl_stopped.set()
     finally:
         # Stop new speech first, close live streams, drain inflight Gnani
         # work, then close the HTTP client and the SQLite store.

@@ -3,7 +3,7 @@
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from rasta.dispatch_auth import (
     UnlockLimiter,
@@ -35,6 +35,17 @@ def list_events(
     except InvalidSince as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"events": events}
+
+
+@events_router.delete("/api/events/{event_id}")
+def delete_event(
+    event_id: str,
+    store: EventStore = Depends(get_event_store),
+    _actor: str = Depends(require_desk_read),
+):
+    if not store.delete(event_id):
+        raise HTTPException(status_code=404, detail="Event not found.")
+    return Response(status_code=204)
 
 
 @events_router.post("/api/dispatch/unlock")
