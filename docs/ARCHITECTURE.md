@@ -1,7 +1,8 @@
 # Architecture
 
-This describes merged behavior at `3383f28` on 13 November 2026, after issues
-04, 07, 08 and 09. Open work is identified below. The older README diagram is
+This describes merged behavior at `22d2676` on 13 November 2026, after issues
+04, 07, 08, 09 and the runner implementation in PR 48. Open work is identified below.
+The older README diagram is
 the original skeleton plan; its dashed arrows are not a release checklist.
 The [production-readiness register](PRODUCTION_READINESS.md) remains the source
 of outstanding production work.
@@ -81,8 +82,12 @@ contract review; do not silently add fields inside the frozen event.
 The offline preparation tools in `benchmark/rasta_bench/` create cached
 synthetic speech, five controlled noise families and simulated 8 kHz
 mu-law/G.711 phone-quality clips. Those audio files are not real phone calls.
-The batch client exists; the issue 11 runner and issue 12 live score/chart
-are still pending and are not part of the running application's diagram.
+The issue 11 batch runner implementation has merged in PR 48. It checkpoints
+live jobs and caches transcript provenance by audio/configuration hash;
+uncached runs require an explicit credit budget and credits/audio-minute rate.
+Its default grid is 80 files and 400 model evaluations. Complete live scores
+are still pending under issue 11, and issue 12's chart must wait for them.
+This separate CLI is not part of the running application's diagram.
 
 Production deployment and global speech budgets (13), persistence (19), desk
 authentication (20), structured logs (21), readiness (22), security headers
