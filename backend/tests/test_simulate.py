@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 from gnani_client.stt import PrismaSTT
 from gnani_client.tts import TimbreTTS
 from rasta.main import app
-from rasta.pipeline import CLIP_TOO_LARGE, MAX_CLIP_BYTES, SAMPLE_LINE
+from rasta.pipeline import MAX_CLIP_BYTES, SAMPLE_LINE
 from rasta.simulate import PHONE_RATE, prepare_for_ingest, read_pcm, write_wav
 
 LINE = (
@@ -127,11 +127,14 @@ def test_noisy_is_deterministic(client: TestClient, make_wav):
         files={"audio_file": ("clip.wav", source, "audio/wav")},
     ).json()["audio_base64"]
     assert first == second
-    assert first != client.post(
-        "/api/simulate",
-        params={"condition": "clean"},
-        files={"audio_file": ("clip.wav", source, "audio/wav")},
-    ).json()["audio_base64"]
+    assert (
+        first
+        != client.post(
+            "/api/simulate",
+            params={"condition": "clean"},
+            files={"audio_file": ("clip.wav", source, "audio/wav")},
+        ).json()["audio_base64"]
+    )
 
 
 def test_bad_condition_is_400_and_skips_prisma(client: TestClient, calls, make_wav):
@@ -145,13 +148,14 @@ def test_bad_condition_is_400_and_skips_prisma(client: TestClient, calls, make_w
     assert calls == []
 
 
-def test_non_wav_and_bad_rate_are_400(client: TestClient, calls, make_wav):
+def test_bad_container_is_415_and_simulator_bad_rate_is_400(client: TestClient, calls, make_wav):
     mp3 = client.post(
         "/api/simulate",
         params={"condition": "clean"},
         files={"audio_file": ("clip.mp3", b"ID3fake", "audio/mpeg")},
     )
-    assert mp3.status_code == 400
+    assert mp3.status_code == 415
+    assert mp3.json()["error"]["code"] == "unsupported_media_type"
     odd = client.post(
         "/api/simulate",
         params={"condition": "noisy"},
@@ -254,25 +258,28 @@ def test_oversize_upload_skips_prepare_and_prisma(client: TestClient, calls, mon
         files={"audio_file": ("clip.wav", oversized, "audio/wav")},
     )
     assert response.status_code == 413
-    assert CLIP_TOO_LARGE in response.json()["detail"]
+    assert response.json()["error"]["code"] == "payload_too_large"
     assert seen == []
     assert calls == []
 
 
-def test_clip_at_the_limit_is_still_prepared(client: TestClient, calls, monkeypatch):
+def test_clip_at_byte_limit_still_obeys_thirty_second_duration_limit(
+    client: TestClient, calls, monkeypatch
+):
     seen: list[int] = []
     monkeypatch.setattr(
         "rasta.routes_sim.prepare_for_ingest",
         lambda audio, condition: seen.append(len(audio)) or write_wav([0], 8000),
     )
     # ingest still runs after prepare; keep Prisma mocked via ``calls``.
-    # A 2 MB file is allowed; one byte past it is not (previous test).
+    # Byte size alone is insufficient: this 16 kHz mono clip is over 30 seconds.
     at_limit = _wav_of_size(MAX_CLIP_BYTES)
     response = client.post(
         "/api/simulate",
         params={"condition": "clean"},
         files={"audio_file": ("clip.wav", at_limit, "audio/wav")},
     )
-    assert response.status_code == 200
-    assert seen == [MAX_CLIP_BYTES]
-    assert [r.url.path for r in calls] == ["/stt/v3"]
+    assert response.status_code == 413
+    assert response.json()["error"]["code"] == "payload_too_large"
+    assert seen == []
+    assert calls == []
