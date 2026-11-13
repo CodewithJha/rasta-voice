@@ -1,20 +1,14 @@
 import type { IngestResult } from "./types";
 import { DeskTape, asRecord, readRecords, type DeskRecord } from "./desk-tape";
-import {
-  describeDeskError,
-  deskNeedsUnlock,
-  UPSTREAM_COPY,
-} from "./desk-status";
+import { describeDeskError, deskNeedsUnlock } from "./desk-status";
+import { describeNetworkError } from "./errors";
+import { fetchWithTimeout } from "./http";
+import { onLocaleChange, t } from "./i18n";
 import "./dispatch.css";
 
 const POLL_INTERVAL_MS = 2_000;
 const BACKOFF_START_MS = 4_000;
 const BACKOFF_MAX_MS = 32_000;
-const FETCH_TIMEOUT_MS = 10_000;
-
-const EMPTY_COPY = "Dark. No drop has come in on this desk.";
-const LOADING_COPY = "Listening for the desk…";
-const LIVE_COPY = "Desk is live.";
 
 export function initDispatch(root: HTMLElement): void {
   const slate = document.createElement("section");
@@ -23,30 +17,25 @@ export function initDispatch(root: HTMLElement): void {
 
   const title = document.createElement("h2");
   title.id = "dispatch-title";
-  title.textContent = "Dispatch slate";
 
   const status = document.createElement("p");
   status.className = "desk-status";
   status.tabIndex = 0;
   status.dataset.kind = "loading";
-  status.textContent = LOADING_COPY;
 
   const list = document.createElement("ol");
   list.className = "desk-tape";
   list.setAttribute("aria-live", "polite");
   list.setAttribute("aria-relevant", "additions");
-  list.setAttribute("aria-label", "Dispatch tape");
   list.hidden = true;
 
   const form = document.createElement("form");
   form.className = "desk-unlock";
-  form.setAttribute("aria-label", "Unlock the desk");
   form.hidden = true;
 
   const label = document.createElement("label");
   label.className = "desk-unlock-label";
   const labelText = document.createElement("span");
-  labelText.textContent = "Desk passcode";
   const input = document.createElement("input");
   input.type = "password";
   input.name = "passcode";
@@ -57,7 +46,6 @@ export function initDispatch(root: HTMLElement): void {
 
   const button = document.createElement("button");
   button.type = "submit";
-  button.textContent = "Unlock desk";
   form.append(label, button);
 
   slate.append(title, status, form, list);
@@ -75,7 +63,7 @@ export function initDispatch(root: HTMLElement): void {
     form.hidden = !unlockOpen;
     if (!loaded) {
       status.dataset.kind = "loading";
-      status.textContent = LOADING_COPY;
+      status.textContent = t("desk.loading");
       return;
     }
     if (fault) {
@@ -85,14 +73,24 @@ export function initDispatch(root: HTMLElement): void {
     }
     if (tape.size === 0) {
       status.dataset.kind = "empty";
-      status.textContent = EMPTY_COPY;
+      status.textContent = t("desk.empty");
       list.hidden = true;
       return;
     }
     status.dataset.kind = "live";
-    status.textContent = LIVE_COPY;
+    status.textContent = t("desk.live");
     list.hidden = false;
   };
+
+  const paintLabels = (): void => {
+    title.textContent = t("desk.title");
+    list.setAttribute("aria-label", t("desk.tapeLabel"));
+    form.setAttribute("aria-label", t("desk.unlockForm"));
+    labelText.textContent = t("desk.passcode");
+    button.textContent = t("desk.unlock");
+    paintChrome();
+  };
+  paintLabels();
 
   const mount = (record: DeskRecord): void => {
     const row = renderRow(record);
@@ -141,9 +139,8 @@ export function initDispatch(root: HTMLElement): void {
     inflight?.abort();
     const controller = new AbortController();
     inflight = controller;
-    const timerId = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
-      const response = await fetch(tape.url(), {
+      const response = await fetchWithTimeout(tape.url(), {
         signal: controller.signal,
         credentials: "same-origin",
       });
@@ -164,11 +161,10 @@ export function initDispatch(root: HTMLElement): void {
         }
       }
       loaded = true;
-      fault = UPSTREAM_COPY;
+      fault = describeNetworkError(err);
       paintChrome();
       return "backoff";
     } finally {
-      window.clearTimeout(timerId);
       if (inflight === controller) {
         inflight = null;
       }
@@ -196,9 +192,8 @@ export function initDispatch(root: HTMLElement): void {
     inflight?.abort();
     const controller = new AbortController();
     inflight = controller;
-    const timerId = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
-      const response = await fetch("/api/dispatch/unlock", {
+      const response = await fetchWithTimeout("/api/dispatch/unlock", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
@@ -223,11 +218,10 @@ export function initDispatch(root: HTMLElement): void {
         }
       }
       loaded = true;
-      fault = UPSTREAM_COPY;
+      fault = describeNetworkError(err);
       unlockOpen = true;
       paintChrome();
     } finally {
-      window.clearTimeout(timerId);
       if (inflight === controller) {
         inflight = null;
       }
@@ -240,6 +234,8 @@ export function initDispatch(root: HTMLElement): void {
     input.value = "";
     void unlockDesk(passcode);
   });
+
+  onLocaleChange(paintLabels);
 
   window.addEventListener("rasta:event", (event) => {
     const record = asRecord((event as CustomEvent<IngestResult>).detail);
