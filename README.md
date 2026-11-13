@@ -6,6 +6,8 @@ This repository is the skeleton: one working path from an audio upload to that e
 
 Built for Gnani AI's Great Indian AI Internship Challenge. Target award: **Noise Canceller**. Speech is synthetic. No real phone numbers, calls, or customer records.
 
+Docs: [Current architecture](docs/ARCHITECTURE.md), [security and open gaps](docs/SECURITY.md), [contributing](docs/CONTRIBUTING.md). ADRs and the operator runbook follow in issue 34.
+
 ## Team
 
 The team is exactly these two people. No one else is a contributor.
