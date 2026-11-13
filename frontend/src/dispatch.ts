@@ -1,4 +1,5 @@
-import type { IngestResult, RiderEvent } from "./types";
+import type { IngestResult } from "./types";
+import { DeskTape, asRecord, readRecords, type DeskRecord } from "./desk-tape";
 import "./dispatch.css";
 
 const POLL_INTERVAL_MS = 2_000;
@@ -15,13 +16,6 @@ const NOT_READY_COPY = "Desk isn't ready";
 const UPSTREAM_COPY = "Upstream failed";
 const RATE_LIMIT_COPY = "Desk is rate-limited, polling will retry";
 
-interface DeskRecord {
-  id: string;
-  created_at: string;
-  event: RiderEvent;
-  state?: string;
-}
-
 export function initDispatch(root: HTMLElement): void {
   const slate = document.createElement("section");
   slate.className = "slate";
@@ -37,18 +31,17 @@ export function initDispatch(root: HTMLElement): void {
   status.dataset.kind = "loading";
   status.textContent = LOADING_COPY;
 
-  const tape = document.createElement("ol");
-  tape.className = "desk-tape";
-  tape.setAttribute("aria-live", "polite");
-  tape.setAttribute("aria-relevant", "additions");
-  tape.setAttribute("aria-label", "Dispatch tape");
-  tape.hidden = true;
+  const list = document.createElement("ol");
+  list.className = "desk-tape";
+  list.setAttribute("aria-live", "polite");
+  list.setAttribute("aria-relevant", "additions");
+  list.setAttribute("aria-label", "Dispatch tape");
+  list.hidden = true;
 
-  slate.append(title, status, tape);
+  slate.append(title, status, list);
   root.append(slate);
 
-  const seen = new Map<string, string>();
-  let lastCreatedAt: string | undefined;
+  const tape = new DeskTape();
   let loaded = false;
   let fault: string | undefined;
   let delay = POLL_INTERVAL_MS;
@@ -66,47 +59,54 @@ export function initDispatch(root: HTMLElement): void {
       status.textContent = fault;
       return;
     }
-    if (seen.size === 0) {
+    if (tape.size === 0) {
       status.dataset.kind = "empty";
       status.textContent = EMPTY_COPY;
-      tape.hidden = true;
+      list.hidden = true;
       return;
     }
     status.dataset.kind = "live";
     status.textContent = LIVE_COPY;
-    tape.hidden = false;
+    list.hidden = false;
   };
 
-  const adopt = (record: DeskRecord): boolean => {
-    if (seen.has(record.id)) {
-      return false;
-    }
-    seen.set(record.id, record.created_at);
+  const mount = (record: DeskRecord): void => {
     const row = renderRow(record);
-    const next = nextRow(tape, record.created_at);
+    const index = tape.ids.indexOf(record.id);
+    const nextId = index >= 0 ? tape.ids[index + 1] : undefined;
+    const next = nextId ? list.querySelector(`[data-id="${cssEscape(nextId)}"]`) : null;
     if (next) {
-      tape.insertBefore(row, next);
+      list.insertBefore(row, next);
     } else {
-      tape.append(row);
+      list.append(row);
     }
-    if (!lastCreatedAt || isLater(record.created_at, lastCreatedAt)) {
-      lastCreatedAt = record.created_at;
-    }
-    return true;
   };
 
-  const ingest = (records: DeskRecord[]): void => {
-    let added = 0;
-    for (const record of records) {
-      if (adopt(record)) {
-        added += 1;
+  const ingestLocal = (record: DeskRecord): void => {
+    if (!tape.adoptLocal(record)) {
+      return;
+    }
+    mount(record);
+    loaded = true;
+    fault = undefined;
+    paintChrome();
+  };
+
+  const ingestFetched = (records: DeskRecord[]): void => {
+    const before = new Set(tape.ids);
+    tape.acceptFetched(records);
+    for (const id of tape.ids) {
+      if (before.has(id)) {
+        continue;
+      }
+      const record = records.find((item) => item.id === id);
+      if (record) {
+        mount(record);
       }
     }
-    if (added > 0 || loaded) {
-      loaded = true;
-      fault = undefined;
-      paintChrome();
-    }
+    loaded = true;
+    fault = undefined;
+    paintChrome();
   };
 
   const pull = async (): Promise<"ok" | "backoff"> => {
@@ -114,24 +114,15 @@ export function initDispatch(root: HTMLElement): void {
     const controller = new AbortController();
     inflight = controller;
     const timerId = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    const url = lastCreatedAt
-      ? `/api/events?since=${encodeURIComponent(lastCreatedAt)}`
-      : "/api/events";
     try {
-      const response = await fetch(url, { signal: controller.signal });
+      const response = await fetch(tape.url(), { signal: controller.signal });
       if (!response.ok) {
         loaded = true;
         fault = describeDeskError(response.status);
         paintChrome();
         return shouldBackoff(response.status) ? "backoff" : "ok";
       }
-      const records = readRecords(await response.json());
-      ingest(records);
-      if (!loaded) {
-        loaded = true;
-        fault = undefined;
-        paintChrome();
-      }
+      ingestFetched(readRecords(await response.json()));
       return "ok";
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -173,7 +164,7 @@ export function initDispatch(root: HTMLElement): void {
     if (!record) {
       return;
     }
-    ingest([record]);
+    ingestLocal(record);
   });
 
   void tick();
@@ -237,89 +228,6 @@ function renderRow(record: DeskRecord): HTMLLIElement {
   return row;
 }
 
-function nextRow(tape: HTMLOListElement, createdAt: string): HTMLLIElement | null {
-  for (const child of Array.from(tape.children)) {
-    if (!(child instanceof HTMLLIElement)) {
-      continue;
-    }
-    const stamp = child.dataset.createdAt;
-    if (stamp && isLater(stamp, createdAt)) {
-      return child;
-    }
-  }
-  return null;
-}
-
-function readRecords(body: unknown): DeskRecord[] {
-  if (!body || typeof body !== "object" || !("events" in body)) {
-    return [];
-  }
-  const events = (body as { events: unknown }).events;
-  if (!Array.isArray(events)) {
-    return [];
-  }
-  const records: DeskRecord[] = [];
-  for (const item of events) {
-    const record = asRecord(item);
-    if (record) {
-      records.push(record);
-    }
-  }
-  return records;
-}
-
-function asRecord(value: unknown): DeskRecord | null {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-  const row = value as Record<string, unknown>;
-  if (typeof row.id !== "string" || row.id.length === 0) {
-    return null;
-  }
-  if (typeof row.created_at !== "string" || row.created_at.length === 0) {
-    return null;
-  }
-  const event = asEvent(row.event);
-  if (!event) {
-    return null;
-  }
-  const record: DeskRecord = { id: row.id, created_at: row.created_at, event };
-  if (typeof row.state === "string" && row.state.length > 0) {
-    record.state = row.state;
-  }
-  return record;
-}
-
-function asEvent(value: unknown): RiderEvent | null {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-  const event = value as Record<string, unknown>;
-  if (typeof event.intent !== "string" || typeof event.urgency !== "string") {
-    return null;
-  }
-  if (typeof event.dispatch_action !== "string") {
-    return null;
-  }
-  const orderId = event.order_id;
-  const eta = event.eta_minutes;
-  if (orderId !== null && orderId !== undefined && typeof orderId !== "string") {
-    return null;
-  }
-  if (eta !== null && eta !== undefined && typeof eta !== "number") {
-    return null;
-  }
-  return {
-    intent: event.intent as RiderEvent["intent"],
-    order_id: typeof orderId === "string" ? orderId : null,
-    eta_minutes: typeof eta === "number" ? eta : null,
-    urgency: event.urgency as RiderEvent["urgency"],
-    dispatch_action: event.dispatch_action,
-    transcript: typeof event.transcript === "string" ? event.transcript : "",
-    confidence: typeof event.confidence === "number" ? event.confidence : 0,
-  };
-}
-
 function describeDeskError(status: number): string {
   if (status === 401) return UNLOCK_COPY;
   if (status === 404) return NOT_UP_COPY;
@@ -340,11 +248,10 @@ function nextBackoff(current: number): number {
   return Math.min(current * 2, BACKOFF_MAX_MS);
 }
 
-function isLater(left: string, right: string): boolean {
-  const a = Date.parse(left);
-  const b = Date.parse(right);
-  if (!Number.isNaN(a) && !Number.isNaN(b) && a !== b) {
-    return a > b;
+function cssEscape(value: string): string {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+    return CSS.escape(value);
   }
-  return left > right;
+  return value.replace(/["\\]/g, "\\$&");
 }
+
