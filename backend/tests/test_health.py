@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 
 import pytest
 from fastapi.testclient import TestClient
@@ -50,7 +51,9 @@ def test_health_does_not_touch_the_store_or_a_budget(client: TestClient, monkeyp
     assert response.json()["ok"] is True
 
 
-def test_ready_reads_issue_13_budget_and_marks_later_issues(client: TestClient):
+def test_ready_reads_issue_13_budget_and_issue_19_store(client: TestClient):
+    from rasta.store import CURRENT_SCHEMA_VERSION
+
     attach_event_store(app, replace=True)
     settings = get_settings()
     response = client.get("/api/ready")
@@ -58,14 +61,15 @@ def test_ready_reads_issue_13_budget_and_marks_later_issues(client: TestClient):
     body = response.json()
     assert body["ok"] is True
     assert body["gnani_key_set"] is True
-    assert body["db_writable"] == "not_deployed"
+    assert body["db_writable"] is True
     assert body["rate_limit"] == {
         "ok": True,
         "per_ip_requests_per_minute": settings.per_ip_requests_per_minute,
     }
     assert body["demo_credits_remaining"] == settings.demo_speech_budget
     assert body["demo_credits_exhausted"] is False
-    assert body["schema_version"] == "not_deployed"
+    assert body["schema_version"] == CURRENT_SCHEMA_VERSION
+    assert body["schema_version"] == attach_event_store(app).schema_version()
     assert body["circuit_breaker"] == "not_deployed"
     assert body["events_in_store"] == 0
 
@@ -75,6 +79,79 @@ def test_ready_counts_in_memory_events(client: TestClient):
     body = client.get("/api/ready").json()
     assert body["events_in_store"] == 1
     assert client.get("/api/health").json()["ok"] is True
+
+
+
+def test_ready_503_when_schema_version_cannot_be_read(client: TestClient):
+    class BrokenStore:
+        closed = False
+
+        def schema_version(self):
+            raise sqlite3.Error("disk I/O error")
+
+        def list_since(self, since):
+            return []
+
+        def close(self):
+            self.closed = True
+
+    app.state.event_store = BrokenStore()
+    try:
+        response = client.get("/api/ready")
+        assert response.status_code == 503
+        body = response.json()
+        assert body["ok"] is False
+        assert body["schema_version"] is None
+        assert body["circuit_breaker"] == "not_deployed"
+        assert "events_in_store" in body
+        assert "db_writable" in body
+        assert client.get("/api/health").status_code == 200
+    finally:
+        attach_event_store(app, replace=True)
+
+
+def test_ready_503_when_the_store_cannot_be_counted(client: TestClient):
+    class BrokenStore:
+        closed = False
+
+        def schema_version(self):
+            return 2
+
+        def list_since(self, since):
+            raise sqlite3.Error("database is locked")
+
+        def close(self):
+            self.closed = True
+
+    app.state.event_store = BrokenStore()
+    try:
+        response = client.get("/api/ready")
+        assert response.status_code == 503
+        body = response.json()
+        assert body["ok"] is False
+        assert body["schema_version"] == 2
+        assert body["events_in_store"] is None
+        assert client.get("/api/health").status_code == 200
+    finally:
+        attach_event_store(app, replace=True)
+
+
+def test_ready_503_when_the_store_cannot_be_opened(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+):
+    def boom(*_args, **_kwargs):
+        raise sqlite3.Error("unable to open database file")
+
+    app.state.event_store = None
+    monkeypatch.setattr("rasta.store.attach_event_store", boom)
+    response = client.get("/api/ready")
+    assert response.status_code == 503
+    body = response.json()
+    assert body["ok"] is False
+    assert body["schema_version"] is None
+    assert body["events_in_store"] is None
+    assert "circuit_breaker" in body
+    assert client.get("/api/health").status_code == 200
 
 
 def test_ready_503_when_configured_store_is_not_writable(

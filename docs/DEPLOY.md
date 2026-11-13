@@ -175,20 +175,23 @@ the image `HEALTHCHECK`. It reports `gnani_key_set`, `db_writable`,
 `rate_limit`, `demo_credits_remaining`, `demo_credits_exhausted`,
 `schema_version`, `circuit_breaker`, and `events_in_store`.
 `rate_limit` and the credit fields come from issue 13's process
-speech guard. Issue 19's SQLite store and issue 29's breaker are not
-on this branch, so `db_writable`, `schema_version`, and
-`circuit_breaker` are the string `not_deployed`. This process does
-not invent a second budget or a shadow database. `events_in_store` is
-the current in-memory desk length.
+speech guard. `db_writable` is a cheap write probe of `RASTA_DB_PATH`,
+`schema_version` is `EventStore.schema_version()` (currently `2`), and
+`events_in_store` is the number of rows in that store. Issue 29's
+breaker is not on this branch, so `circuit_breaker` is the string
+`not_deployed`. This process does not invent a second budget or a
+shadow database.
 
 HTTP 200 means the process should stay in rotation. A missing Gnani
 key or a spent credit budget stays 200: speech routes already return
 503, and the payload shows `demo_credits_remaining: 0` and
 `demo_credits_exhausted: true` when the budget is exhausted. HTTP
-503 with `ok: false` and `db_writable: false` is reserved for a
-configured durable store that cannot be written, so the host can take
-the process out of rotation. Neither payload includes
-`DISPATCH_PASSCODE`, `GNANI_API_KEY`, or any other raw secret.
+503 with `ok: false` is reserved for a configured durable store that
+cannot be written, opened, versioned, or counted, so the host can take
+the process out of rotation. Those 503 responses still return the
+structured ready body (`schema_version` or `events_in_store` may be
+`null`). Neither payload includes `DISPATCH_PASSCODE`,
+`GNANI_API_KEY`, or any other raw secret.
 
 ## Rollback
 

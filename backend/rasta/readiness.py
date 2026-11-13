@@ -1,9 +1,8 @@
 """Readiness snapshots for /api/ready (issue 22).
 
-Missing issue 13 / 19 / 29 pieces are reported as ``not_deployed`` rather
-than inventing a second budget, a shadow database, or a fake breaker.
-When those issues later attach their objects on the app or settings, this
-module reads them instead of forking a parallel counter.
+Issue 13's speech guard and issue 19's SQLite store are read from the
+objects already attached on the app. Missing issue 29 breaker state is
+reported as ``not_deployed`` rather than inventing a fake breaker.
 """
 
 from __future__ import annotations
@@ -67,18 +66,39 @@ def limiter_fields(app: Any) -> tuple[ReadyValue, ReadyValue, ReadyValue]:
     return remaining, remaining <= 0, rate_limit
 
 
-def events_in_store(app: Any) -> int:
-    """Count rows in the current (in-memory or later durable) desk store."""
-    from rasta.store import attach_event_store
+def _live_store(app: Any) -> Any | None:
+    """Return the process store, or None if it cannot be opened."""
+    store = getattr(app.state, "event_store", None)
+    if store is not None and not getattr(store, "closed", False):
+        return store
+    try:
+        from rasta.store import attach_event_store
 
-    return len(attach_event_store(app).list_since(None))
+        return attach_event_store(app)
+    except Exception:
+        return None
 
 
-def schema_version() -> ReadyValue:
-    value = getattr(get_settings(), "schema_version", None)
-    if value is None or value == "":
-        return NOT_DEPLOYED
-    return value
+def events_in_store(app: Any) -> tuple[ReadyValue, bool]:
+    """Count stored events. The boolean is False when the store cannot be read."""
+    store = _live_store(app)
+    if store is None:
+        return None, False
+    try:
+        return len(store.list_since(None)), True
+    except Exception:
+        return None, False
+
+
+def schema_version(app: Any) -> tuple[ReadyValue, bool]:
+    """Read EventStore.schema_version(). False when the store cannot be queried."""
+    store = _live_store(app)
+    if store is None:
+        return None, False
+    try:
+        return store.schema_version(), True
+    except Exception:
+        return None, False
 
 
 def circuit_breaker(app: Any) -> ReadyValue:
