@@ -1,7 +1,7 @@
 # Architecture
 
-This describes merged behavior at `22d2676` on 13 November 2026, after issues
-04, 07, 08, 09 and the runner implementation in PR 48. Open work is identified below.
+This describes merged behavior at `c9c3693` on 13 November 2026, after issues
+04, 07, 08, 09, 10 and the runner implementation in PR 48. Open work is identified below.
 The older README diagram is
 the original skeleton plan; its dashed arrows are not a release checklist.
 The [production-readiness register](PRODUCTION_READINESS.md) remains the source
@@ -15,6 +15,7 @@ flowchart TD
   extract --> store["In-memory event store"]
   store -->|"Stamped ingest response"| rider
   rider -->|"Same-tab rasta:event"| slate["Dispatch slate"]
+  slate -->|"Poll GET /api/events"| api
   rider -->|"POST reply with event id"| reply["Reply route"]
   store -->|"Stored event"| reply
   reply --> timbre["Timbre"]
@@ -60,9 +61,11 @@ Issue 04's `EventStore` is a thread-safe, copy-on-read/write in-memory ring,
 normally 200 records (`EVENT_STORE_CAPACITY`). It stamps UUID `id` and strictly
 increasing UTC `created_at`. Restart clears it; separate workers have separate
 stores. `GET /api/events` lists oldest first and accepts a strict-after `since`
-timestamp. SQLite persistence is still issue 19. The merged slate currently
-shows the latest `rasta:event` in its own browser tab; cross-tab polling is
-issue 10 / PR 47 and is not shipped at this revision.
+timestamp. SQLite persistence is still issue 19. PR 47's merged slate loads and polls
+ordered records every two seconds, deduplicates local fast-path events and backs
+off after failures. Only successfully fetched records advance its polling cursor;
+a later local row cannot skip an unseen remote interval. Browser layout and
+cross-window playback remain manual smoke-test follow-ups.
 
 Issue 08's reply route loads the stored event by id, chooses a pure Hinglish
 template, and sends it to Timbre v3.0 / Shivani / hi-en. It ignores client text.
@@ -93,5 +96,9 @@ Production deployment and global speech budgets (13), persistence (19), desk
 authentication (20), structured logs (21), readiness (22), security headers
 (27), privacy retention/deletion (28) and shared resilience (29) remain open
 at this revision. [SECURITY.md](SECURITY.md) describes the current boundaries.
-Issue 34 will add the ADRs and runbook; links should be added here once those
-files exist, rather than linking to nonexistent documents.
+Operational procedures are in the [runbook](RUNBOOK.md). Decision records cover
+[real speech APIs](adr/0001-real-speech-apis.md),
+[the frozen envelope](adr/0002-frozen-event-envelope.md),
+[proposed SQLite topology](adr/0003-sqlite-single-worker.md), and
+[the proposed shared passcode](adr/0004-shared-desk-passcode.md).
+Proposed decisions are not implemented features.

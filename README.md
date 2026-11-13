@@ -6,7 +6,8 @@ This repository is the skeleton: one working path from an audio upload to that e
 
 Built for Gnani AI's Great Indian AI Internship Challenge. Target award: **Noise Canceller**. Speech is synthetic. No real phone numbers, calls, or customer records.
 
-Docs: [Current architecture](docs/ARCHITECTURE.md), [security and open gaps](docs/SECURITY.md), [contributing](docs/CONTRIBUTING.md). ADRs and the operator runbook follow in issue 34.
+Docs: [Current architecture](docs/ARCHITECTURE.md), [security and open gaps](docs/SECURITY.md), [contributing](docs/CONTRIBUTING.md). See the Operations and project policies section below for the runbook, ADRs,
+license, changelog, conduct policy and governance.
 
 ## Team
 
@@ -144,5 +145,15 @@ Noise mixing, the scored Prisma matrix, realtime streaming, the spoken reply, de
 The noise benchmark is not scored yet. Issue 12 fills this section with the WER table and chart from a live Prisma run. Until then, `rasta_bench.wer` and `rasta_bench.cer` are the scoring functions the runner will call.
 
 <!-- benchmark:end -->
+
+## Operations and project policies
+
+- [Operator runbook](docs/RUNBOOK.md)
+- [Governance and branch protection](docs/GOVERNANCE.md)
+- [Decision 1: real speech APIs](docs/adr/0001-real-speech-apis.md)
+- [Decision 2: frozen event envelope](docs/adr/0002-frozen-event-envelope.md)
+- [Decision 3: proposed SQLite topology](docs/adr/0003-sqlite-single-worker.md)
+- [Decision 4: proposed desk passcode](docs/adr/0004-shared-desk-passcode.md)
+- [MIT license](LICENSE), [changelog](CHANGELOG.md), [code of conduct](CODE_OF_CONDUCT.md)
 
 Supply-chain checks and dependency-lock updates: [docs/SUPPLY_CHAIN.md](docs/SUPPLY_CHAIN.md).
