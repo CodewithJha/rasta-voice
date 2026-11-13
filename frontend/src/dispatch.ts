@@ -1,5 +1,10 @@
 import type { IngestResult } from "./types";
 import { DeskTape, asRecord, readRecords, type DeskRecord } from "./desk-tape";
+import {
+  describeDeskError,
+  deskNeedsUnlock,
+  UPSTREAM_COPY,
+} from "./desk-status";
 import "./dispatch.css";
 
 const POLL_INTERVAL_MS = 2_000;
@@ -10,11 +15,6 @@ const FETCH_TIMEOUT_MS = 10_000;
 const EMPTY_COPY = "Dark. No drop has come in on this desk.";
 const LOADING_COPY = "Listening for the desk…";
 const LIVE_COPY = "Desk is live.";
-const UNLOCK_COPY = "Unlock the desk to keep polling.";
-const NOT_UP_COPY = "Desk list isn't up";
-const NOT_READY_COPY = "Desk isn't ready";
-const UPSTREAM_COPY = "Upstream failed";
-const RATE_LIMIT_COPY = "Desk is rate-limited, polling will retry";
 
 export function initDispatch(root: HTMLElement): void {
   const slate = document.createElement("section");
@@ -38,17 +38,41 @@ export function initDispatch(root: HTMLElement): void {
   list.setAttribute("aria-label", "Dispatch tape");
   list.hidden = true;
 
-  slate.append(title, status, list);
+  const form = document.createElement("form");
+  form.className = "desk-unlock";
+  form.setAttribute("aria-label", "Unlock the desk");
+  form.hidden = true;
+
+  const label = document.createElement("label");
+  label.className = "desk-unlock-label";
+  const labelText = document.createElement("span");
+  labelText.textContent = "Desk passcode";
+  const input = document.createElement("input");
+  input.type = "password";
+  input.name = "passcode";
+  input.autocomplete = "current-password";
+  input.required = true;
+  input.minLength = 1;
+  label.append(labelText, input);
+
+  const button = document.createElement("button");
+  button.type = "submit";
+  button.textContent = "Unlock desk";
+  form.append(label, button);
+
+  slate.append(title, status, form, list);
   root.append(slate);
 
   const tape = new DeskTape();
   let loaded = false;
   let fault: string | undefined;
+  let unlockOpen = false;
   let delay = POLL_INTERVAL_MS;
   let timer = 0;
   let inflight: AbortController | null = null;
 
   const paintChrome = (): void => {
+    form.hidden = !unlockOpen;
     if (!loaded) {
       status.dataset.kind = "loading";
       status.textContent = LOADING_COPY;
@@ -88,7 +112,11 @@ export function initDispatch(root: HTMLElement): void {
     }
     mount(record);
     loaded = true;
-    fault = undefined;
+    // Keep the unlock field up if the desk poll is still locked; the rider
+    // event can still appear on the tape in the same tab.
+    if (!unlockOpen) {
+      fault = undefined;
+    }
     paintChrome();
   };
 
@@ -115,13 +143,18 @@ export function initDispatch(root: HTMLElement): void {
     inflight = controller;
     const timerId = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
-      const response = await fetch(tape.url(), { signal: controller.signal });
+      const response = await fetch(tape.url(), {
+        signal: controller.signal,
+        credentials: "same-origin",
+      });
       if (!response.ok) {
         loaded = true;
         fault = describeDeskError(response.status);
+        unlockOpen = deskNeedsUnlock(response.status);
         paintChrome();
         return shouldBackoff(response.status) ? "backoff" : "ok";
       }
+      unlockOpen = false;
       ingestFetched(readRecords(await response.json()));
       return "ok";
     } catch (err) {
@@ -158,6 +191,55 @@ export function initDispatch(root: HTMLElement): void {
     }
     schedule(delay);
   };
+
+  const unlockDesk = async (passcode: string): Promise<void> => {
+    inflight?.abort();
+    const controller = new AbortController();
+    inflight = controller;
+    const timerId = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const response = await fetch("/api/dispatch/unlock", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passcode }),
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        loaded = true;
+        fault = describeDeskError(response.status);
+        unlockOpen = true;
+        paintChrome();
+        return;
+      }
+      unlockOpen = false;
+      fault = undefined;
+      delay = POLL_INTERVAL_MS;
+      void tick();
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        if (controller.signal.aborted && inflight !== controller) {
+          return;
+        }
+      }
+      loaded = true;
+      fault = UPSTREAM_COPY;
+      unlockOpen = true;
+      paintChrome();
+    } finally {
+      window.clearTimeout(timerId);
+      if (inflight === controller) {
+        inflight = null;
+      }
+    }
+  };
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const passcode = input.value;
+    input.value = "";
+    void unlockDesk(passcode);
+  });
 
   window.addEventListener("rasta:event", (event) => {
     const record = asRecord((event as CustomEvent<IngestResult>).detail);
@@ -226,15 +308,6 @@ function renderRow(record: DeskRecord): HTMLLIElement {
   }
   row.append(acks);
   return row;
-}
-
-function describeDeskError(status: number): string {
-  if (status === 401) return UNLOCK_COPY;
-  if (status === 404) return NOT_UP_COPY;
-  if (status === 429) return RATE_LIMIT_COPY;
-  if (status === 503) return NOT_READY_COPY;
-  if (status === 502) return UPSTREAM_COPY;
-  return `Desk failed (${status}).`;
 }
 
 function shouldBackoff(status: number): boolean {

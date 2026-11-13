@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { E2E_DISPATCH_PASSCODE, unlockDesk } from "./unlock.ts";
+
 test.skip(process.env.RASTA_E2E_LIVE === "1", "Key-less suite uses a deliberately empty server key");
 
 for (const width of [1280, 360, 400]) {
@@ -17,6 +19,7 @@ for (const width of [1280, 360, 400]) {
     const slate = page.getByRole("region", { name: "Dispatch slate" });
     await expect(rider).toBeVisible();
     await expect(slate).toBeVisible();
+    await unlockDesk(page);
     await expect(slate).toContainText("Dark. No drop has come in on this desk.");
     const sample = rider.getByRole("button", { name: "Speak a sample line", exact: true });
     for (let step = 0; step < 12; step++) {
@@ -46,6 +49,20 @@ for (const width of [1280, 360, 400]) {
   });
 }
 
-// Do not simulate successful controls that have not been implemented yet.
-test.skip("desk unlock flow awaits issue 20", () => {});
+test("desk unlock rejects a wrong passcode and accepts the test fixture", async ({ page }) => {
+  await page.goto("/");
+  const slate = page.getByRole("region", { name: "Dispatch slate" });
+  const form = page.getByRole("form", { name: "Unlock the desk" });
+  await expect(form).toBeVisible();
+  await form.getByLabel("Desk passcode").fill("wrong-pass");
+  await form.getByRole("button", { name: "Unlock desk" }).click();
+  await expect(slate).toContainText("Unlock the desk to keep polling.");
+  await expect(form).toBeVisible();
+  await form.getByLabel("Desk passcode").fill(E2E_DISPATCH_PASSCODE);
+  await form.getByRole("button", { name: "Unlock desk" }).click();
+  await expect(slate).toContainText("Dark. No drop has come in on this desk.");
+  await expect(form).toBeHidden();
+});
+
+// Acknowledgement controls are still waiting on issue 25.
 test.skip("desk acknowledgement flow awaits issue 25", () => {});

@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from gnani_client.env import api_key
 from gnani_client.errors import GnaniError, MissingApiKeyError
+from rasta.dispatch_auth import attach_dispatch_auth
 from rasta.extract import extract_event
 from rasta.pipeline import (
     SAMPLE_LINE,
@@ -42,6 +43,7 @@ async def lifespan(app: FastAPI):
         log.error("GNANI_API_KEY is not set. Every speech request will fail with 503.")
     attach_event_store(app, replace=True)
     attach_stream_runtime(app, replace=True)
+    attach_dispatch_auth(app, replace=True)
     try:
         yield
     finally:
@@ -63,6 +65,7 @@ app.add_middleware(
     allow_origins=list(get_settings().cors_allow_origins),
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 app.include_router(events_router)
 app.include_router(reply_router)

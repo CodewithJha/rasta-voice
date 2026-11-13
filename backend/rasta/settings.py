@@ -2,8 +2,9 @@
 
 Issue 02 owns the LLM keys, model ids, timeout, and retry cap. Issue 04
 owns the in-memory event-store capacity. Issue 07 owns the realtime
-stream limits, timeouts, frame size, and CORS origin allow list. Issue 21
-owns the structured log line size cap. Call ``get_settings()`` rather
+stream limits, timeouts, frame size, and CORS origin allow list. Issue 20
+owns the dispatcher passcode and unlock lockout. Issue 21 owns the
+structured log line size cap. Call ``get_settings()`` rather
 than ``os.environ`` so a typo, a negative timeout, or a non-positive
 capacity fails in one place. ``clear_settings_cache`` exists so tests
 can change the env without restarting the process.
@@ -42,6 +43,9 @@ ENV_STREAM_FRAME_BYTES = "RASTA_STREAM_FRAME_BYTES"
 ENV_STREAM_QUEUE_MAX = "RASTA_STREAM_QUEUE_MAX"
 ENV_STREAM_SAMPLE_RATE = "RASTA_STREAM_SAMPLE_RATE"
 ENV_CORS_ALLOW_ORIGINS = "CORS_ALLOW_ORIGINS"
+ENV_DISPATCH_PASSCODE = "DISPATCH_PASSCODE"
+ENV_DISPATCH_UNLOCK_MAX_FAILURES = "DISPATCH_UNLOCK_MAX_FAILURES"
+ENV_DISPATCH_UNLOCK_WINDOW_SECONDS = "DISPATCH_UNLOCK_WINDOW_SECONDS"
 ENV_LOG_LINE_MAX_BYTES = "RASTA_LOG_LINE_MAX_BYTES"
 
 # Checked 12 Nov 2026 against Groq deprecations: llama-3.1-8b-instant was
@@ -92,6 +96,12 @@ ALLOWED_STREAM_SAMPLE_RATES = frozenset({8000, 16000, 44100, 48000})
 DEFAULT_CORS_ALLOW_ORIGINS = (
     "http://localhost:5173,http://127.0.0.1:5173"
 )
+# Issue 20 desk unlock lockout. The passcode itself has no default; empty
+# means desk routes fail closed with 503.
+DEFAULT_DISPATCH_UNLOCK_MAX_FAILURES = 5
+MAX_DISPATCH_UNLOCK_MAX_FAILURES = 100
+DEFAULT_DISPATCH_UNLOCK_WINDOW_SECONDS = 600.0
+MAX_DISPATCH_UNLOCK_WINDOW_SECONDS = 3600.0
 DEFAULT_LOG_LINE_MAX_BYTES = 4096
 MAX_LOG_LINE_MAX_BYTES = 65_536
 
@@ -249,6 +259,9 @@ class Settings:
     stream_queue_max: int
     stream_sample_rate: int
     cors_allow_origins: tuple[str, ...]
+    dispatch_passcode: str
+    dispatch_unlock_max_failures: int
+    dispatch_unlock_window_seconds: float
     log_line_max_bytes: int
 
     @classmethod
@@ -335,6 +348,17 @@ class Settings:
             ),
             cors_allow_origins=_origin_list(
                 ENV_CORS_ALLOW_ORIGINS, DEFAULT_CORS_ALLOW_ORIGINS
+            ),
+            dispatch_passcode=_raw(ENV_DISPATCH_PASSCODE),
+            dispatch_unlock_max_failures=_positive_int(
+                ENV_DISPATCH_UNLOCK_MAX_FAILURES,
+                DEFAULT_DISPATCH_UNLOCK_MAX_FAILURES,
+                MAX_DISPATCH_UNLOCK_MAX_FAILURES,
+            ),
+            dispatch_unlock_window_seconds=_bounded_float(
+                ENV_DISPATCH_UNLOCK_WINDOW_SECONDS,
+                DEFAULT_DISPATCH_UNLOCK_WINDOW_SECONDS,
+                MAX_DISPATCH_UNLOCK_WINDOW_SECONDS,
             ),
             log_line_max_bytes=_positive_int(
                 ENV_LOG_LINE_MAX_BYTES,

@@ -112,3 +112,65 @@
     width: 100%;
   }
 }
+
+.desk-unlock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.55rem 0.7rem;
+  margin: 0 0 0.9rem;
+  padding: 0.55rem 0 0.65rem;
+  border-top: 1px dashed #3a4a32;
+  border-bottom: 1px dashed #3a4a32;
+  max-width: 36ch;
+}
+
+.desk-unlock[hidden] {
+  display: none;
+}
+
+.desk-unlock-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1 1 12rem;
+  min-width: 0;
+  color: var(--phosphor);
+  font: 0.85rem/1.4 "Atkinson Hyperlegible", sans-serif;
+}
+
+.desk-unlock input[type="password"] {
+  font-family: "Martian Mono", ui-monospace, monospace;
+  font-size: 0.9rem;
+  color: var(--phosphor);
+  background: #141a12;
+  border: 1px solid #3a4a32;
+  border-left: 6px solid #9b2226;
+  padding: 0.35rem 0.5rem;
+  min-height: 44px;
+  width: 100%;
+}
+
+.desk-unlock input[type="password"]:focus {
+  outline: 3px solid var(--sodium);
+  outline-offset: 2px;
+}
+
+.desk-unlock button {
+  font-family: "Atkinson Hyperlegible", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #141a12;
+  background: var(--phosphor);
+  border: 0;
+  min-height: 44px;
+  padding: 0.35rem 0.75rem;
+  box-shadow: 3px 3px 0 #9b2226;
+  cursor: pointer;
+}
+
+.desk-unlock button:focus,
+.desk-unlock button:hover {
+  outline: 3px solid var(--sodium);
+  outline-offset: 2px;
+}
