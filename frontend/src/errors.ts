@@ -44,6 +44,9 @@ export function describeNetworkError(err: unknown): string {
 export function parseDetail(text: string): unknown {
   try {
     const parsed: unknown = JSON.parse(text);
+    if (parsed && typeof parsed === "object" && "error" in parsed) {
+      return (parsed as { error: unknown }).error;
+    }
     if (parsed && typeof parsed === "object" && "detail" in parsed) {
       return (parsed as { detail: unknown }).detail;
     }
@@ -62,7 +65,11 @@ function readUpstream(detail: object): number | undefined {
 
 function readErrorMessage(detail: unknown): string | undefined {
   if (typeof detail === "string") return detail;
-  if (detail && typeof detail === "object" && "error" in detail) {
+  if (!detail || typeof detail !== "object") return undefined;
+  if ("message" in detail && typeof (detail as { message: unknown }).message === "string") {
+    return (detail as { message: string }).message;
+  }
+  if ("error" in detail) {
     const error = (detail as { error: unknown }).error;
     if (typeof error === "string") return error;
   }
