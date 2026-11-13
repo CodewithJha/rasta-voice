@@ -142,7 +142,51 @@ Noise mixing, the scored Prisma matrix, realtime streaming, the spoken reply, de
 
 <!-- benchmark:start -->
 
-The noise benchmark is not scored yet. Issue 12 fills this section with the WER table and chart from a live Prisma run. Until then, `rasta_bench.wer` and `rasta_bench.cer` are the scoring functions the runner will call.
+Synthetic rider speech was mixed with traffic, horn, wind, crowd and crosstalk,
+then converted to simulated 8 kHz μ-law telephone audio. Five Prisma batch
+systems compare v2.5 and v3.0, v2.5 bias hints, v3.0 keyterms and v3.0 denoise.
+This is synthetic speech, not a real call corpus. Each system scores the same
+80 unique clips; the complete default grid has 400 model evaluations.
+
+| System | Raw WER | Raw CER | Normalized WER | Normalized CER | Intent accuracy | n |
+| --- | --- | --- | --- | --- | --- | --- |
+| v25 | 0.8429 | 0.8123 | 0.8012 | 0.8107 | 0.0000 | 80 |
+| v25-bias | 0.8429 | 0.8123 | 0.8012 | 0.8107 | 0.0000 | 80 |
+| v30 | 0.7461 | 0.5833 | 0.6546 | 0.5316 | 0.2250 | 80 |
+| v30-key | 0.7439 | 0.5828 | 0.6546 | 0.5316 | 0.2250 | 80 |
+| v30-key-denoise | 0.7292 | 0.5625 | 0.6334 | 0.5077 | 0.2000 | 80 |
+
+![WER by system](benchmark/results/wer.svg)
+
+Run: **13 Nov 2026, 15:04 IST** (`2026-11-13T09:34:05.153014+00:00`).
+Grid: **8 utterances × 5 noises × 2 SNRs (0 and 10 dB) × 5 systems = 80 distinct
+files and 400 completed evaluations**. The bars are per-system mean **raw WER**;
+the table is copied from [scores.md](benchmark/results/scores.md).
+[The live summary](benchmark/results/scores.json) records 20 batch job IDs and
+links the per-evaluation audio/config hashes to [raw transcripts](benchmark/results/raw/).
+Batch responses did not return request IDs; the recorded job IDs are not REST request IDs.
+
+Normalization applies Unicode NFKC, case folding, punctuation/symbol removal,
+whitespace folding, decimal-digit normalization and English/Hindi number-word
+folding. It performs **no translation or script transliteration**. Between 58
+and 60 of 80 hypotheses per system are cross-script relative to the references;
+v3.0 used `format=codemix`. These descriptive WER results are **not a clean
+model ranking**, and rules intent accuracy also reflects extractor script
+coverage. Denoise is not uniformly better: raw WER falls for traffic, crowd and
+crosstalk, but rises for horn and wind. The mean raw WER difference from v3.0 to
+v3.0-key-denoise is 0.0169, while intent accuracy changes from 0.2250 to 0.2000.
+
+Reproduce with `python -m rasta_bench.run --limit 8 --credit-budget <cap> --credits-per-minute <verified-rate>`
+from the installed repository, with `GNANI_API_KEY` supplied privately. Preserve
+cache/checkpoints to resume; do not automatically repeat a charged run. The cap
+and rate are operator inputs, not a provider-reported balance. This run records
+a cap of 40 and rate of 1.0, with a resume-time estimated new-credit upper bound
+of 24.0533, excluding 40 previously cached evaluations. It does not establish an
+actual charge or remaining balance. Audio is gitignored: restore the exact
+matching WAVs or regenerate manifests with the pipeline before a new run;
+Timbre output is not bit-stable. This default-grid regeneration used u01–u08,
+so u08's crosstalk partner wraps to u01 rather than u09. To redraw only the
+figure, run `python -m rasta_bench.chart`; that command makes no API calls.
 
 <!-- benchmark:end -->
 
