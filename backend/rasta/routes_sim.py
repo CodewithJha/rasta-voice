@@ -1,13 +1,13 @@
 """Demo simulate route: prepare the clip, then ingest it."""
 
-
 from fastapi import APIRouter, File, Header, HTTPException, Query, UploadFile
 
 from rasta.pipeline import ingest, read_upload_clip, reject_oversize_clip
 from rasta.simulate import CONDITION_HINT, CONDITIONS, envelope, prepare_for_ingest
 from rasta.store import attach_event_store, bind_rider_header, reset_rider_header
+from rasta.upload_security import AudioUploadRoute
 
-sim_router = APIRouter()
+sim_router = APIRouter(route_class=AudioUploadRoute)
 
 
 @sim_router.post("/api/simulate")
