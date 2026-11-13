@@ -7,8 +7,9 @@ commit; green unit tests do not replace a working public demonstration.
 
 **Benchmark follow-up:** main `7b78f9c` now contains the completed live default
 grid, scored 13 Nov 2026 at 15:04 IST: 80 distinct files, 400 evaluations,
-20 batch job IDs and raw transcripts in `benchmark/results/`. Issue 12 still
-owns the README table and SVG. The public-smoke CLI is merged in `3154f30`;
+20 batch job IDs and raw transcripts in `benchmark/results/`. Main `0b2b393`
+also contains #73: the README table and committed SVG are now published, and
+issue 12 is complete. The public-smoke CLI is merged in `3154f30`;
 its deployed run remains outstanding. Other audit evidence below stays dated
 to `af11363`.
 
@@ -31,7 +32,7 @@ passing test with a substituted HTTP transport is not live provider evidence.
 | Gnani is actually used | no | Code calls Prisma and Timbre, and clean manifests record synthetic Timbre durations, but this checkpoint has no fresh provider request ID paired with a measured live clip. Himanshu: attach both after the live run. |
 | No runtime mock paths | yes | Case-insensitive `mock`, `GNANI_MOCK` and `canned` search of the four runtime source trees returned no matches. Tests remain separate; details below. |
 | Missing key is loud | yes | A real local Uvicorn server with an empty speech key returned HTTP 503 from `POST /api/ingest/sample`, with the missing-key message and request ID `de6c0efb-74d6-406a-8666-df3c6de6b4c0`. No provider call occurred. |
-| Benchmark section | no | The completed live default grid from #70 is committed in `benchmark/results/scores.json`: 80 files, 400 evaluations, 20 batch job IDs and raw transcripts. The README benchmark section still needs its table and SVG. Himanshu, issue 12: publish those from these scores with the raw/normalized and cross-script caveats. |
+| Benchmark section | yes | Main `0b2b393` includes #73: the README markers contain the exact `scores.md` table, committed `wer.svg`, run date, 80-file/400-evaluation counts, synthetic-data statement, operator-supplied credit wording and the raw/normalized cross-script caveats. #70 provides all 400 evaluations, 20 batch job IDs and raw transcripts. |
 | No real personal data in inspected repository text | yes | The digit scan produced 869 matching lines, manually classified below. No actual personal identifier was found in those matches. This static check does not establish runtime redaction or retention; Priyanshu's issue 28 remains open. |
 | Demo script read-through | no | `demo-script.md` is a planned 60-second shot list, with 52 spoken words and budgeted provider waits. No timed read-through or completed take was performed. Priyanshu, issues 14/18: time the actual working-app take. |
 | Public video watched | no | No public video URL is recorded. Priyanshu, issue 18: provide it; Himanshu must watch it and compare audio, transcript and event before marking this yes. |
@@ -151,7 +152,8 @@ controlled synthetic noise and simulated telephone audio. It does not establish
 accuracy on real telephone calls. The live default grid now has 400 completed
 evaluations from #70. Raw mean WER ranges from 0.7292 to 0.8429, but many
 outputs use a different script from the Latin references; this is not a
-clean model ranking. Issue 12 still owns the README table and chart.
+clean model ranking. The README table and raw-WER chart are committed from #73
+in main `0b2b393`; issue 12 is complete.
 
 Actual integration paths to name in the form: Prisma v3.0 REST STT at
 `POST /stt/v3`, its streaming route at `/stt/v3/stream`, and Timbre v3.0 TTS at
