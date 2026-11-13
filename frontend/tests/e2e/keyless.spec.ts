@@ -32,9 +32,17 @@ for (const width of [1280, 360, 400]) {
     await expect(sample).toBeEnabled();
     await expect(rider.getByRole("button", { name: "Hear dispatch", exact: true })).toBeDisabled();
     await expect(slate.getByRole("listitem")).toHaveCount(0);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    expect(runtimeErrors).toEqual([]);
     await page.screenshot({ path: test.info().outputPath(`keyless-${width}.png`), fullPage: true });
+    const layout = await page.evaluate(() => ({
+      viewport: window.innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      overflowing: Array.from(document.querySelectorAll("body *"))
+        .filter((element) => element.getBoundingClientRect().right > window.innerWidth + 1)
+        .map((element) => ({ tag: element.tagName, class: element.className,
+          right: element.getBoundingClientRect().right })),
+    }));
+    expect(layout.scrollWidth, JSON.stringify(layout)).toBeLessThanOrEqual(layout.viewport);
+    expect(runtimeErrors).toEqual([]);
   });
 }
 
