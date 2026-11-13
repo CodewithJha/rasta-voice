@@ -87,9 +87,10 @@ reason, owner and expiry; do not use a blanket `continue-on-error` or ignore lis
 Issue 13 has not supplied a Dockerfile or deployed service. Docker build/Trivy,
 CD tag/manual workflows, release tagging and host rollback verification must
 follow that implementation. Nothing here deploys, creates a release or certifies
-a production host. Issue 32's mypy, coverage, Vitest and key-less Playwright gates
-are not implemented here; preserve the existing checks until that contract lands,
-then wire its verified commands in a follow-up. Issue 33 stays open.
+a production host. Issue 32's [quality gates](QUALITY.md) add mypy, an 80% production coverage
+floor, Vitest and a real key-less Playwright job. The live browser path remains
+opt-in and is not a CI requirement. The deployed API smoke (24), Docker/Trivy
+and release/CD still remain; issue 33 stays open.
 
 The four new job names must be added to required branch checks by the repository
 owner after this workflow passes on a PR. A workflow file alone cannot change

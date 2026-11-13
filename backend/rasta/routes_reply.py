@@ -11,6 +11,7 @@ import threading
 import time
 from collections import OrderedDict, deque
 from collections.abc import Callable
+from typing import TypedDict
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request
@@ -31,6 +32,13 @@ REPLY_REQUESTS_PER_MINUTE = 6
 _attach_lock = threading.Lock()
 
 
+class ReplyAudioPayload(TypedDict):
+    text: str
+    audio_base64: str
+    content_type: str
+    audio_seconds: float
+
+
 class ReplySpeech:
     """Thread-safe cache and admission for synchronous FastAPI worker threads."""
 
@@ -38,7 +46,7 @@ class ReplySpeech:
         self.clock = clock
         self._state = threading.Lock()
         self._upstream = threading.Lock()
-        self._cache: OrderedDict[tuple, tuple[float, dict]] = OrderedDict()
+        self._cache: OrderedDict[tuple, tuple[float, ReplyAudioPayload]] = OrderedDict()
         self._clients: OrderedDict[str, deque] = OrderedDict()
         self._size = 0
 
@@ -91,8 +99,12 @@ class ReplySpeech:
             if (not audio.startswith(b"RIFF") or len(audio) > 1_000_000
                     or seconds is None or not 0 < seconds <= 30):
                 raise GnaniError("Timbre TTS returned invalid reply WAV audio", status=200)
-            payload = {"text": text, "audio_base64": base64.b64encode(audio).decode("ascii"),
-                       "content_type": "audio/wav", "audio_seconds": seconds}
+            payload: ReplyAudioPayload = {
+                "text": text,
+                "audio_base64": base64.b64encode(audio).decode("ascii"),
+                "content_type": "audio/wav",
+                "audio_seconds": seconds,
+            }
             with self._state:
                 self._cache[cache_key] = (self.clock() + REPLY_TTL_SECONDS, payload)
                 self._size += len(payload["audio_base64"])
