@@ -8,6 +8,9 @@ UNCERTAIN_REPLY = (
 ACCIDENT_REPLY = (
     "Kya aap theek hain, surakshit jagah rukiye aur turant dispatch se madad maangiye."
 )
+ACCIDENT_ACKED_REPLY = (
+    "Dispatch ne aapki baat note kar li hai, surakshit jagah rukiye."
+)
 _HINDI = (
     "shoonya ek do teen chaar paanch chhah saat aath nau das gyarah barah terah "
     "chaudah pandrah solah satrah atharah unnees bees ikkees baees teis chaubees "
@@ -40,13 +43,16 @@ def _english_under_100(value: int) -> str:
     )
 
 
-def reply_text(event: RiderEvent) -> str:
+def reply_text(event: RiderEvent, state: str | None = None) -> str:
     """Use cautious wording until a human acknowledgement exists in the envelope.
 
     No transcript, order token or dispatch_action is spoken. Even an accident
     classified with low confidence gets the audible safety/human-review line.
+    After ack (or later), the line still does not claim help is on the way.
     """
     if event.intent == Intent.accident_sos:
+        if state in {"acked", "resolved", "escalated"}:
+            return ACCIDENT_ACKED_REPLY
         return ACCIDENT_REPLY
     # Matched rules use 0.5; lower-confidence classifications request review.
     if event.intent == Intent.other or event.confidence < 0.5:

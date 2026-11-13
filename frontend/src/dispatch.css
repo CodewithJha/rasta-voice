@@ -174,3 +174,55 @@
   outline: 3px solid var(--sodium);
   outline-offset: 2px;
 }
+
+.desk-banner {
+  margin: 0 0 0.55rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--phosphor);
+  color: #9b2226;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.desk-banner[hidden],
+.desk-usage[hidden] {
+  display: none;
+}
+
+.desk-usage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1rem;
+  margin: 0 0 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.desk-action-button,
+.desk-mute {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.7rem;
+  border: 1px solid var(--phosphor);
+  background: transparent;
+  color: var(--phosphor);
+  font: inherit;
+  cursor: pointer;
+}
+
+.desk-action-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.desk-acks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.desk-row-msg {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--phosphor);
+}

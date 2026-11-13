@@ -7,6 +7,9 @@ export interface DeskRecord {
   created_at: string;
   event: RiderEvent;
   state?: string;
+  version?: number;
+  rider_id?: string;
+  ack_at?: string | null;
 }
 
 export function eventsUrl(since?: string): string {
@@ -117,6 +120,15 @@ export function asRecord(value: unknown): DeskRecord | null {
   const record: DeskRecord = { id: row.id, created_at: row.created_at, event };
   if (typeof row.state === "string" && row.state.length > 0) {
     record.state = row.state;
+  }
+  if (typeof row.version === "number" && Number.isFinite(row.version)) {
+    record.version = row.version;
+  }
+  if (typeof row.rider_id === "string" && row.rider_id.length > 0) {
+    record.rider_id = row.rider_id;
+  }
+  if (row.ack_at === null || typeof row.ack_at === "string") {
+    record.ack_at = row.ack_at;
   }
   return record;
 }
