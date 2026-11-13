@@ -24,16 +24,19 @@ post target is 14 Nov, 18:00 IST. Neither target is a submission confirmation.
 The draft integration in [PR 92](https://github.com/CodewithJha/rasta-voice/pull/92)
 combines the pending security, privacy and API repairs with their prerequisites.
 It is not merged or deployed. Its [dated integration evidence](evidence/integration-2026-11-14.md)
-records 1,854 passing Python tests, 90.93% coverage, 57 typed source files,
+records 1,859 passing Python tests, 91.00% coverage, 57 typed source files,
 23 frontend unit tests, real keyless Ack/Resolve browser coverage, a scanned
 non-root image and bounded keyless load. It preserves the first failed load
 measurement and the exact source-digest secret-scan false-positive record.
-The README now records the conditional SOCKS prerequisite; this is not a claim
-that a new clean install or public live smoke has been completed here.
+The README records the conditional SOCKS prerequisite. A new locked virtual
+environment and fresh npm install now pass the checks after the copied-
+environment repairs in PR 93; the earlier startup and smoke failures are
+retained in that evidence. No public live smoke was performed.
 
 Before the final checklist can become all yes:
 
-- Priyanshu reviews the small pending PRs. Upload/CSRF 86/87 land before their
+- Priyanshu reviews the small pending PRs, including standalone setup fix 93.
+  Upload/CSRF 86/87 land before their
   dependent browser test 90. Repairs 88/89 target his privacy/API branches
   83/85; Himanshu re-reviews those updated peer PRs before merging. Rule fix
   91 leaves the 8/36 versus 0.8 acceptance failure open. The draft aggregate
