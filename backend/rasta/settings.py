@@ -35,6 +35,7 @@ ENV_GEMINI_MODEL = "GEMINI_MODEL"
 ENV_GROQ_BASE_URL = "GROQ_BASE_URL"
 ENV_GEMINI_BASE_URL = "GEMINI_BASE_URL"
 ENV_EVENT_STORE_CAPACITY = "EVENT_STORE_CAPACITY"
+ENV_RASTA_DB_PATH = "RASTA_DB_PATH"
 ENV_RASTA_MAX_STREAMS = "RASTA_MAX_STREAMS"
 ENV_STREAM_SESSION_SECONDS = "RASTA_STREAM_SESSION_SECONDS"
 ENV_STREAM_IDLE_SECONDS = "RASTA_STREAM_IDLE_SECONDS"
@@ -81,6 +82,7 @@ DEFAULT_LLM_RETRY_BACKOFF_SECONDS = 0.25
 # The issue 04 cap is 200. EventStore receives the validated value; it
 # does not read the environment itself.
 DEFAULT_EVENT_STORE_CAPACITY = 200
+DEFAULT_RASTA_DB_PATH = "data/rasta-events.sqlite"
 # Hard ceiling so a typo cannot allocate unbounded memory in one process.
 MAX_EVENT_STORE_CAPACITY = 10_000
 
@@ -141,6 +143,17 @@ class SettingsError(ValueError):
 
 def _raw(name: str, default: str = "") -> str:
     return environ.get(name, default).strip()
+
+
+def _db_path(name: str, default: str) -> str:
+    """File path for the event store. In-memory URIs are rejected."""
+    raw = _raw(name, default).strip() or default
+    lowered = raw.lower()
+    if raw == ":memory:" or (lowered.startswith("file:") and "mode=memory" in lowered):
+        raise SettingsError(f"{name} must be a file path, not an in-memory database")
+    if "\0" in raw:
+        raise SettingsError(f"{name} is not a usable file path")
+    return raw
 
 
 def _positive_float(name: str, default: float) -> float:
@@ -345,6 +358,7 @@ class Settings:
     groq_api_key: str
     gemini_api_key: str
     event_store_capacity: int
+    db_path: str
     max_streams: int
     stream_session_seconds: float
     stream_idle_seconds: float
@@ -442,6 +456,7 @@ class Settings:
                 DEFAULT_EVENT_STORE_CAPACITY,
                 MAX_EVENT_STORE_CAPACITY,
             ),
+            db_path=_db_path(ENV_RASTA_DB_PATH, DEFAULT_RASTA_DB_PATH),
             max_streams=_positive_int(
                 ENV_RASTA_MAX_STREAMS, DEFAULT_MAX_STREAMS, MAX_MAX_STREAMS
             ),

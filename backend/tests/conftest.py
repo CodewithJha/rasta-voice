@@ -27,3 +27,14 @@ def tone_wav(seconds: float = 0.3, rate: int = 8000, freq: float = 440.0) -> byt
 def make_wav():
     """Factory for a short synthetic PCM WAV (a sine, not speech)."""
     return tone_wav
+
+
+@pytest.fixture(autouse=True)
+def _isolate_event_store(monkeypatch: pytest.MonkeyPatch, tmp_path):
+    """Point the process store at a unique temp file so tests cannot share a desk."""
+    from rasta.settings import clear_settings_cache
+
+    monkeypatch.setenv("RASTA_DB_PATH", str(tmp_path / "rasta-events.sqlite"))
+    clear_settings_cache()
+    yield
+    clear_settings_cache()
