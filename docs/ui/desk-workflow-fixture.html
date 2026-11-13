@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rasta desk workflow</title>
+<style>@font-face {
+  font-family: "Atkinson Hyperlegible";
+  src: url("/fonts/atkinson-hyperlegible-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  src: url("/fonts/atkinson-hyperlegible-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Fraunces";
+  src: url("/fonts/fraunces-latin-wght-normal.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Martian Mono";
+  src: url("/fonts/martian-mono-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Martian Mono";
+  src: url("/fonts/martian-mono-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --ink: #24180f;
+  --paper: #f3e6c8;
+  --stamp: #9b2226;
+  --sodium: #ffb703;
+  --asphalt: #2a2118;
+  --phosphor: #c6f6b0;
+  --slate: #121410;
+  color: var(--ink);
+  background: var(--asphalt);
+  font-family: "Atkinson Hyperlegible", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    linear-gradient(var(--sodium), var(--sodium)) 0 0 / 100% 14px no-repeat,
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 18px,
+      rgba(255, 183, 3, 0.05) 18px 19px
+    ),
+    var(--asphalt);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--sodium);
+  outline-offset: 3px;
+}
+
+.wall {
+  position: fixed;
+  z-index: 0;
+  left: -1vw;
+  bottom: -6vh;
+  margin: 0;
+  font-family: Fraunces, serif;
+  font-size: 26vw;
+  font-weight: 700;
+  line-height: 0.75;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(255, 214, 140, 0.28);
+  pointer-events: none;
+  user-select: none;
+}
+
+.mast,
+.layout,
+.colophon {
+  position: relative;
+  z-index: 1;
+}
+
+.mast {
+  padding: 2.4rem 5vw 0;
+  color: var(--paper);
+  max-width: 40rem;
+}
+
+.kicker {
+  margin: 0;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  color: var(--sodium);
+}
+
+.mast h1 {
+  margin: 0.2rem 0 0.4rem;
+  font-family: Fraunces, serif;
+  font-size: clamp(3rem, 7vw, 5.4rem);
+  font-weight: 560;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+}
+
+.lede {
+  margin: 0;
+  max-width: 36rem;
+  font-size: 1.15rem;
+  line-height: 1.4;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+  gap: 2.2rem;
+  padding: 2rem 5vw 2.5rem;
+  align-items: start;
+}
+
+.chit {
+  position: relative;
+  background: var(--paper);
+  color: var(--ink);
+  transform: rotate(-1.1deg);
+  border-left: 14px solid var(--stamp);
+  box-shadow: 10px 10px 0 #140e0a;
+  padding: 1.6rem 1.4rem 1.4rem 1.3rem;
+}
+
+.sticker {
+  position: absolute;
+  top: -22px;
+  right: 22px;
+  width: 86px;
+  height: 86px;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--stamp);
+  border-radius: 50%;
+  background: #ffe08a;
+  transform: rotate(11deg);
+  font-family: Fraunces, serif;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.05;
+  font-size: 0.95rem;
+}
+
+.chit h2,
+.slate h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.7rem;
+}
+
+.chit h2 {
+  font-family: Fraunces, serif;
+  font-weight: 560;
+  max-width: 16ch;
+}
+
+.hint,
+.fine {
+  margin: 0 0 1rem;
+  line-height: 1.4;
+}
+
+.fine {
+  margin: 0.8rem 0 0;
+  font-size: 0.85rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.file {
+  display: inline-block;
+  padding: 0.55rem 0;
+  border-bottom: 2px solid var(--ink);
+  cursor: pointer;
+}
+
+.file input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+button {
+  background: var(--ink);
+  color: var(--paper);
+  border: 0;
+  padding: 0.7rem 0.9rem;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--stamp);
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: 4px 4px 0 var(--sodium);
+}
+
+button:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--stamp);
+}
+
+.chit pre {
+  margin: 1rem 0 0;
+  padding: 0.8rem;
+  background: #e7d7b4;
+  overflow: auto;
+  font-family: "Martian Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  max-height: 220px;
+}
+
+.err {
+  color: var(--stamp);
+  font-weight: 700;
+}
+
+.slate {
+  background: var(--slate);
+  color: var(--phosphor);
+  min-height: 420px;
+  padding: 1.2rem 1.1rem 1.4rem;
+  box-shadow: inset 0 0 0 8px #2c3824;
+  font-family: "Martian Mono", ui-monospace, monospace;
+}
+
+.slate h2 {
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sodium);
+  font-weight: 600;
+}
+
+.slate p {
+  margin: 0 0 0.8rem;
+  line-height: 1.45;
+}
+
+.slate dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 7.2rem 1fr;
+  gap: 0.45rem 0.6rem;
+}
+
+.slate dt {
+  color: #8ea884;
+}
+
+.slate dd {
+  margin: 0;
+}
+
+.colophon {
+  margin: 0;
+  padding: 0 5vw 2rem;
+  color: #d9c7a4;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chit {
+    transform: none;
+  }
+
+  .wall {
+    font-size: 48vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chit,
+  .chit .sticker {
+    transform: none;
+  }
+
+  button:active {
+    transform: none;
+  }
+
+  .desk-sos {
+    animation: none;
+  }
+}
+
+.mast-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.7rem 1rem;
+}
+
+.locale-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.locale-btn {
+  background: transparent;
+  color: var(--paper);
+  box-shadow: 3px 3px 0 var(--sodium);
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.35rem 0.7rem;
+}
+
+.locale-btn[aria-pressed="true"] {
+  background: var(--sodium);
+  color: var(--ink);
+  box-shadow: 3px 3px 0 #140e0a;
+}
+
+.app-banner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.9rem;
+  margin: 0;
+  padding: 0.7rem 5vw;
+  background: var(--stamp);
+  color: var(--paper);
+}
+
+.app-banner[hidden] {
+  display: none;
+}
+
+.app-banner p {
+  margin: 0;
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.app-banner button {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 3px 3px 0 #140e0a;
+  min-height: 44px;
+}
+
+.chit-out {
+  margin: 1rem 0 0;
+  min-width: 0;
+}
+
+.chit-facts {
+  margin: 0;
+  display: grid;
+  gap: 0.45rem 0;
+}
+
+.chit-fact {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 0.35rem 0.7rem;
+  min-width: 0;
+}
+
+.chit-facts dt {
+  margin: 0;
+  font-weight: 700;
+}
+
+.chit-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.chit-transcript {
+  margin: 0.85rem 0 0;
+  line-height: 1.4;
+}
+
+.chit-transcript-label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+}
+
+.chit-transcript-text {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chit-raw {
+  margin: 0.8rem 0 0;
+}
+
+.chit-raw summary {
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.chit pre,
+.chit-raw pre {
+  margin: 0.5rem 0 0;
+  padding: 0.8rem;
+  background: #e7d7b4;
+  overflow: auto;
+  font-family: "Martian Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  max-height: 220px;
+}
+
+@media (max-width: 400px) {
+  .chit-fact {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.1rem;
+  }
+}
+
+/* Phosphor desk tape. Lamp-red stamps sit on a phosphor wash so the
+   HIGH / SOS labels meet 4.5:1; this is not a badge kit. */
+
+.slate .desk-status {
+  margin: 0 0 0.8rem;
+  line-height: 1.45;
+  max-width: 36ch;
+}
+
+.slate .desk-status[data-kind="error"] {
+  color: var(--sodium);
+}
+
+.slate .desk-status[data-kind="loading"],
+.slate .desk-status[data-kind="live"] {
+  color: var(--phosphor);
+}
+
+.desk-tape {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid #2c3824;
+}
+
+.desk-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.8rem;
+  margin: 0;
+  padding: 0.55rem 0 0.6rem;
+  border-bottom: 1px dashed #3a4a32;
+  min-width: 0;
+}
+
+.desk-row-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.7rem;
+  min-width: 0;
+  flex: 1 1 14rem;
+}
+
+.desk-intent {
+  font-weight: 700;
+  color: var(--phosphor);
+}
+
+.desk-order,
+.desk-eta,
+.desk-state {
+  color: var(--phosphor);
+}
+
+.desk-sos,
+.desk-urgency-high {
+  color: #9b2226;
+  background: var(--phosphor);
+  padding: 0.05rem 0.28rem;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.desk-urgency:not(.desk-urgency-high) {
+  color: var(--phosphor);
+  letter-spacing: 0.04em;
+}
+
+.desk-action {
+  flex: 1 1 12rem;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--phosphor);
+}
+
+.desk-acks {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 0;
+}
+
+@media (max-width: 400px) {
+  .slate {
+    overflow-x: hidden;
+  }
+
+  .desk-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.3rem;
+  }
+
+  .desk-row-main {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .desk-intent,
+  .desk-sos {
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .desk-action {
+    flex-basis: auto;
+    width: 100%;
+  }
+}
+
+.desk-unlock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.55rem 0.7rem;
+  margin: 0 0 0.9rem;
+  padding: 0.55rem 0 0.65rem;
+  border-top: 1px dashed #3a4a32;
+  border-bottom: 1px dashed #3a4a32;
+  max-width: 36ch;
+}
+
+.desk-unlock[hidden] {
+  display: none;
+}
+
+.desk-unlock-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1 1 12rem;
+  min-width: 0;
+  color: var(--phosphor);
+  font: 0.85rem/1.4 "Atkinson Hyperlegible", sans-serif;
+}
+
+.desk-unlock input[type="password"] {
+  font-family: "Martian Mono", ui-monospace, monospace;
+  font-size: 0.9rem;
+  color: var(--phosphor);
+  background: #141a12;
+  border: 1px solid #3a4a32;
+  border-left: 6px solid #9b2226;
+  padding: 0.35rem 0.5rem;
+  min-height: 44px;
+  width: 100%;
+}
+
+.desk-unlock input[type="password"]:focus {
+  outline: 3px solid var(--sodium);
+  outline-offset: 2px;
+}
+
+.desk-unlock button {
+  font-family: "Atkinson Hyperlegible", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #141a12;
+  background: var(--phosphor);
+  border: 0;
+  min-height: 44px;
+  padding: 0.35rem 0.75rem;
+  box-shadow: 3px 3px 0 #9b2226;
+  cursor: pointer;
+}
+
+.desk-unlock button:focus,
+.desk-unlock button:hover {
+  outline: 3px solid var(--sodium);
+  outline-offset: 2px;
+}
+
+.desk-banner {
+  margin: 0 0 0.55rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--phosphor);
+  color: #9b2226;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.desk-banner[hidden],
+.desk-usage[hidden] {
+  display: none;
+}
+
+.desk-usage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1rem;
+  margin: 0 0 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.desk-action-button,
+.desk-mute {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.7rem;
+  border: 1px solid var(--phosphor);
+  background: transparent;
+  color: var(--phosphor);
+  font: inherit;
+  cursor: pointer;
+}
+
+.desk-action-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.desk-acks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.desk-row-msg {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--phosphor);
+}
+
+body { margin: 1.5rem; background: #0b0f0c; }
+</style>
+</head>
+<body>
+<main class="slate" aria-label="Dispatch slate">
+  <h1>Dispatch slate</h1>
+  <p class="desk-status">Live</p>
+  <p class="desk-banner" aria-live="assertive">Unacked SOS on the desk.</p>
+  <p class="desk-usage">Credits remaining: 42 · Unacked SOS: 1
+    <button type="button" class="desk-mute">Mute SOS tone</button>
+  </p>
+  <ol class="desk-tape">
+    <li class="desk-row" data-id="e1">
+      <p class="desk-main">accident_sos · high</p>
+      <p class="desk-action">stay safe and contact dispatch</p>
+      <span class="desk-state">new</span>
+      <span class="desk-order">r_demo</span>
+      <div class="desk-acks">
+        <button type="button" class="desk-action-button">Ack</button>
+      </div>
+    </li>
+    <li class="desk-row" data-id="e2">
+      <p class="desk-main">delay · medium</p>
+      <p class="desk-action">inform rider</p>
+      <span class="desk-state">acked</span>
+      <div class="desk-acks">
+        <button type="button" class="desk-action-button">Resolve</button>
+      </div>
+      <p class="desk-row-msg">desk changed, try again</p>
+    </li>
+  </ol>
+</main>
+</body>
+</html>

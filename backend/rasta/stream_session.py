@@ -29,7 +29,7 @@ from rasta.extract import extract_event_with_source
 from rasta.pipeline import STT_FORMAT
 from rasta.request_id import log_gnani_call
 from rasta.settings import Settings
-from rasta.store import attach_event_store
+from rasta.store import attach_event_store, bind_rider_header, reset_rider_header
 from rasta.tasks import cancel_all, first_completed
 
 log = logging.getLogger("rasta.stream")
@@ -384,7 +384,16 @@ async def _emit_event(
         "extractor_source": extracted.source,
         "fallback_reason": extracted.fallback_reason,
     }
-    stamped = attach_event_store(app).append(payload)
+    header = None
+    for key, value in (websocket.headers.items() if hasattr(websocket, "headers") else []):
+        if key.lower() == "x-rider-id":
+            header = value
+            break
+    token = bind_rider_header(header)
+    try:
+        stamped = attach_event_store(app).append(payload)
+    finally:
+        reset_rider_header(token)
     await send_json(websocket, {"type": "event", **stamped})
     log.info("stream event id=%s request_id=%s", stamped.get("id"), request_id)
 

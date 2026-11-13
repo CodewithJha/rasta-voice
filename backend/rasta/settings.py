@@ -61,6 +61,7 @@ ENV_PER_IP_REQUESTS_PER_MINUTE = "RASTA_PER_IP_REQUESTS_PER_MINUTE"
 ENV_TRUST_PROXY_HEADERS = "RASTA_TRUST_PROXY_HEADERS"
 ENV_MAX_SPEECH_SECONDS = "RASTA_MAX_SPEECH_SECONDS"
 ENV_MAX_CONCURRENT_SPEECH = "RASTA_MAX_CONCURRENT_SPEECH"
+ENV_SOS_ACK_SECONDS = "SOS_ACK_SECONDS"
 ENV_CONNECT_TIMEOUT_SECONDS = "RASTA_CONNECT_TIMEOUT_SECONDS"
 ENV_STT_READ_TIMEOUT_SECONDS = "RASTA_STT_READ_TIMEOUT_SECONDS"
 ENV_TTS_READ_TIMEOUT_SECONDS = "RASTA_TTS_READ_TIMEOUT_SECONDS"
@@ -149,6 +150,8 @@ DEFAULT_PER_IP_REQUESTS_PRODUCTION = 10
 DEFAULT_PER_IP_REQUESTS_DEVELOPMENT = 10_000
 MAX_PER_IP_REQUESTS_PER_MINUTE = 10_000
 DEFAULT_MAX_SPEECH_SECONDS = 30.0
+DEFAULT_SOS_ACK_SECONDS = 60.0
+MAX_SOS_ACK_SECONDS = 3600.0
 DEFAULT_CONNECT_TIMEOUT_SECONDS = 5.0
 DEFAULT_STT_READ_TIMEOUT_SECONDS = 15.0
 DEFAULT_TTS_READ_TIMEOUT_SECONDS = 20.0
@@ -228,6 +231,15 @@ def _non_negative_float(name: str, default: float) -> float:
         raise SettingsError(f"{name} must be a number >= 0, got {raw!r}") from exc
     if not math.isfinite(value) or value < 0:
         raise SettingsError(f"{name} must be a finite number >= 0, got {raw!r}")
+    return value
+
+
+def _non_negative_bounded_float(name: str, default: float, maximum: float) -> float:
+    value = _non_negative_float(name, default)
+    if value > maximum:
+        raise SettingsError(
+            f"{name} must be a number between 0 and {maximum}, got {value!r}"
+        )
     return value
 
 
@@ -433,6 +445,7 @@ class Settings:
     trust_proxy_headers: bool
     max_speech_seconds: float
     max_concurrent_speech: int
+    sos_ack_seconds: float = 60.0
     connect_timeout_seconds: float = 5.0
     stt_read_timeout_seconds: float = 15.0
     tts_read_timeout_seconds: float = 20.0
@@ -618,6 +631,9 @@ class Settings:
                 ENV_MAX_CONCURRENT_SPEECH,
                 concurrent_default,
                 MAX_MAX_CONCURRENT_SPEECH,
+            ),
+            sos_ack_seconds=_non_negative_bounded_float(
+                ENV_SOS_ACK_SECONDS, DEFAULT_SOS_ACK_SECONDS, MAX_SOS_ACK_SECONDS
             ),
             connect_timeout_seconds=_bounded_float(
                 ENV_CONNECT_TIMEOUT_SECONDS,

@@ -73,3 +73,11 @@ async def run_until_stopped(
             return
         func()
 
+
+def start_task(
+    awaitable: Awaitable[Any],
+    *,
+    name: str,
+) -> asyncio.Task[Any]:
+    """Spawn one owned background task. Callers must cancel and await it."""
+    return asyncio.create_task(awaitable, name=name)  # type: ignore[arg-type]

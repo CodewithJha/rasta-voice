@@ -13,6 +13,7 @@ describe("desk unlock copy", () => {
     expect(describeDeskError(401)).toBe("Unlock the desk to keep polling.");
     expect(describeDeskError(503)).toBe("Desk passcode isn't set on the server.");
     expect(describeDeskError(429)).toBe("Desk is rate-limited, polling will retry");
+    expect(describeDeskError(0)).toBe("Network error, try again");
     setLocale("hi-en");
     expect(describeDeskError(401)).toBe("Polling jaari rakhne ke liye desk unlock karo.");
     setLocale("hi-en");

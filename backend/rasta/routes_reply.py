@@ -69,9 +69,17 @@ class ReplySpeech:
             return dict(self._cache[cache_key][1])
         return None
 
-    def reply(self, event_id: str, event: RiderEvent, client_ip: str) -> dict:
+    def reply(
+        self,
+        event_id: str,
+        event: RiderEvent,
+        client_ip: str,
+        *,
+        state: str | None = None,
+        acked: bool = False,
+    ) -> dict:
         key = require_api_key()  # Missing/revoked configuration cannot use old cached audio.
-        text = reply_text(event)
+        text = reply_text(event, state, acked=acked)
         profile = hashlib.sha256(f"{key}\n{base_url()}".encode()).hexdigest()
         cache_key = (event_id, text, profile)
         with self._state:
@@ -169,6 +177,9 @@ def reply_to_event(event_id: str, request: Request) -> dict:
             attached = (store, ReplySpeech())
             request.app.state.reply_speech = attached
     client_ip = request.client.host if request.client else "unknown"
+    event = RiderEvent.model_validate(record["event"])
+    acked = bool(record.get("ack_at") or record.get("ack_by"))
+    state = record.get("state") if isinstance(record.get("state"), str) else None
     return _guard(lambda: attached[1].reply(
-        event_id, RiderEvent.model_validate(record["event"]), client_ip,
+        event_id, event, client_ip, state=state, acked=acked,
     ))

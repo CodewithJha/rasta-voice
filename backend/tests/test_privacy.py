@@ -196,6 +196,43 @@ def test_export_omits_expired_rows_before_the_sweeper_runs(tmp_path):
         store.close()
 
 
+def test_delete_wipe_and_ttl_remove_audit_details(tmp_path):
+    clock = {"now": datetime(2026, 11, 14, tzinfo=UTC)}
+
+    def now() -> datetime:
+        return clock["now"]
+
+    store = EventStore(
+        capacity=10, path=str(tmp_path / "desk.sqlite"), clock=now, ttl_hours=1
+    )
+    try:
+        first = store.append(_payload("first"))
+        second = store.append(_payload("second"))
+        assert store.list_audit(first["id"])
+        details = [str(item["detail"]) for item in store.list_audit(first["id"])]
+        assert all("transcript" not in detail for detail in details)
+        assert store.delete(first["id"]) is True
+        assert store.list_audit(first["id"]) == []
+        assert store.list_audit(second["id"])
+        store.wipe()
+        assert store.list_since(None) == []
+        assert store.list_audit(second["id"]) == []
+
+        again = store.append(_payload("ttl"))
+        assert store.list_audit(again["id"])
+        clock["now"] = clock["now"] + timedelta(hours=2)
+        dest = tmp_path / "export.sqlite"
+        store.export_copy(dest)
+        with sqlite3.connect(dest) as connection:
+            events = int(connection.execute("SELECT COUNT(*) FROM events").fetchone()[0])
+            audits = int(connection.execute("SELECT COUNT(*) FROM audit").fetchone()[0])
+        assert events == 0 and audits == 0
+        assert store.purge_expired() == [again["id"]]
+        assert store.list_audit(again["id"]) == []
+    finally:
+        store.close()
+
+
 def test_delete_removes_a_row_and_wipe_clears_the_desk():
     store = EventStore(capacity=10, path=":memory:")
     try:

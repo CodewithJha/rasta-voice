@@ -10,15 +10,19 @@ from __future__ import annotations
 import copy
 import json
 import logging
+import re
+import secrets
 import sqlite3
 import threading
 import uuid
 from collections.abc import Callable
+from contextvars import ContextVar
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 from rasta.redact import redact_record
+from rasta.request_id import current_request_id
 from rasta.settings import DEFAULT_EVENT_TTL_HOURS, get_settings
 
 # One lock for installing the process-wide store onto app.state.
@@ -27,11 +31,128 @@ log = logging.getLogger("rasta")
 
 # Current schema. Version 1 is an events table only (id, created_at, payload).
 # Version 2 adds the schema_version table and the created_at index.
-CURRENT_SCHEMA_VERSION = 2
+# Version 3 adds the audit table for desk workflow (issue 25).
+CURRENT_SCHEMA_VERSION = 3
 RESOLVED_STATE = "resolved"
 ACCIDENT_SOS_INTENT = "accident_sos"
 WIPE_CONFIRM = "wipe"
 BUSY_TIMEOUT_MS = 3000
+RIDER_ID_RE = re.compile(r"^r_[A-Za-z0-9_-]{1,32}$")
+ACTOR_RE = re.compile(r"^d_[A-Za-z0-9_-]{1,32}$")
+WORKFLOW_STATES = ("new", "acked", "resolved", "escalated")
+_rider_override: ContextVar[str | None] = ContextVar("rasta_rider_id", default=None)
+
+
+class EventNotFound(KeyError):
+    """No event exists for the requested id."""
+
+
+class VersionConflict(Exception):
+    """If-Match did not equal the stored version."""
+
+    def __init__(self, version: int) -> None:
+        super().__init__("desk changed, try again")
+        self.version = version
+        self.code = "version_conflict"
+
+
+class IllegalTransition(Exception):
+    """The requested action is not allowed from the current state."""
+
+    def __init__(self, state: str, action: str) -> None:
+        super().__init__(f"cannot {action} a {state} event")
+        self.state = state
+        self.action = action
+        self.code = "illegal_transition"
+
+
+def mint_rider_id() -> str:
+    return "r_" + secrets.token_hex(8)
+
+
+def normalize_rider_id(raw: str | None) -> str:
+    text = (raw or "").strip()
+    if RIDER_ID_RE.fullmatch(text):
+        return text
+    return mint_rider_id()
+
+
+def bind_rider_header(raw: str | None):
+    return _rider_override.set(normalize_rider_id(raw) if (raw or "").strip() else None)
+
+
+def reset_rider_header(token) -> None:
+    _rider_override.reset(token)
+
+
+def normalize_actor(raw: str | None) -> str | None:
+    text = (raw or "").strip()
+    if ACTOR_RE.fullmatch(text):
+        return text
+    return None
+
+
+def parse_if_match(raw: str | None) -> int | None:
+    if raw is None:
+        return None
+    text = raw.strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in {'"', "'"}:
+        text = text[1:-1]
+    if not text.isdigit():
+        return None
+    return int(text)
+
+def _stamp_new_envelope(record: dict) -> None:
+    """Fill default desk-lifecycle fields without overwriting caller values."""
+    record.setdefault("state", "new")
+    record.setdefault("version", 1)
+    override = _rider_override.get()
+    existing = record.get("rider_id")
+    if not isinstance(existing, str) or not RIDER_ID_RE.fullmatch(existing):
+        record["rider_id"] = override or mint_rider_id()
+    record.setdefault("ack_by", None)
+    record.setdefault("ack_at", None)
+    record.setdefault("resolved_by", None)
+    record.setdefault("resolved_at", None)
+    record.setdefault("escalated_at", None)
+
+
+def _apply_transition(
+    record: dict,
+    *,
+    action: str,
+    actor: str,
+    at: str,
+    also_ack: bool = False,
+) -> None:
+    state = record.get("state") or "new"
+    if action == "ack":
+        if state not in {"new", "escalated"}:
+            raise IllegalTransition(state, action)
+        record["state"] = "acked"
+        record["ack_by"] = actor
+        record["ack_at"] = at
+    elif action == "escalate":
+        if state not in {"new", "acked"}:
+            raise IllegalTransition(state, action)
+        record["state"] = "escalated"
+        record["escalated_at"] = at
+    elif action == "resolve":
+        already_acked = bool(record.get("ack_at") or record.get("ack_by"))
+        if state == "acked" or (state == "escalated" and (already_acked or also_ack)):
+            if also_ack and not already_acked:
+                record["ack_by"] = actor
+                record["ack_at"] = at
+            record["state"] = "resolved"
+            record["resolved_by"] = actor
+            record["resolved_at"] = at
+        else:
+            raise IllegalTransition(state, action)
+    else:
+        raise IllegalTransition(state, action)
+    record["version"] = int(record.get("version") or 1) + 1
+
+
 
 # ISO 8601 instants with a numeric offset are well under this length.
 # Longer input is rejected up front so the parser stays bounded.
@@ -103,12 +224,38 @@ def migrate(connection: sqlite3.Connection) -> None:
         connection.execute(
             "CREATE INDEX IF NOT EXISTS events_created_at_idx ON events (created_at)"
         )
-        connection.execute("DELETE FROM schema_version")
+        _write_schema_version(connection, 2)
+        version = 2
+    if version < 3:
         connection.execute(
-            "INSERT INTO schema_version (version) VALUES (?)",
-            (CURRENT_SCHEMA_VERSION,),
+            """
+            CREATE TABLE IF NOT EXISTS audit (
+                at TEXT NOT NULL,
+                event_id TEXT NOT NULL,
+                actor TEXT NOT NULL,
+                action TEXT NOT NULL,
+                request_id TEXT,
+                detail TEXT NOT NULL
+            )
+            """
         )
-        connection.commit()
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS audit_event_id_at_idx ON audit (event_id, at)"
+        )
+        _write_schema_version(connection, CURRENT_SCHEMA_VERSION)
+        version = CURRENT_SCHEMA_VERSION
+    connection.commit()
+
+
+def _write_schema_version(connection: sqlite3.Connection, version: int) -> None:
+    connection.execute(
+        "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)"
+    )
+    connection.execute("DELETE FROM schema_version")
+    connection.execute(
+        "INSERT INTO schema_version (version) VALUES (?)",
+        (version,),
+    )
 
 
 def _schema_version(connection: sqlite3.Connection) -> int:
@@ -170,6 +317,7 @@ class EventStore:
         with self._lock:
             self._redact_existing_locked()
             self._conn.commit()
+        self._last_change = self._max_change_stamp_unlocked()
 
     @property
     def path(self) -> str:
@@ -200,11 +348,25 @@ class EventStore:
         """Stamp a copy of ``result`` with ``id`` and ``created_at``, then store it."""
         record = redact_record(copy.deepcopy(result))
         record["id"] = str(uuid.uuid4())
+        _stamp_new_envelope(record)
         with self._lock:
             record["created_at"] = self._next_created_at()
+            if "updated_at" not in record or not record["updated_at"]:
+                record["updated_at"] = self._next_change_stamp(
+                    datetime.fromisoformat(record["created_at"])
+                )
+            else:
+                record["updated_at"] = self._later_stamp(record, str(record["updated_at"]))
             self._conn.execute(
                 "INSERT INTO events (id, created_at, payload) VALUES (?, ?, ?)",
                 (record["id"], record["created_at"], json.dumps(record)),
+            )
+            self._audit_locked(
+                record["created_at"],
+                record["id"],
+                str(record.get("rider_id") or "r_unknown"),
+                "ingest",
+                {"state": record.get("state"), "version": record.get("version")},
             )
             self._trim_locked()
             self._conn.commit()
@@ -235,6 +397,185 @@ class EventStore:
             ]
         return [redact_record(copy.deepcopy(event)) for event in events]
 
+    def list_updated_since(self, since: str | None) -> list[dict]:
+        """Return rows created or updated after ``since``, in creation order."""
+        events = self.list_since(None)
+        if since is None or (isinstance(since, str) and not since.strip()):
+            return events
+        cutoff = parse_since(since)
+        changed = []
+        for event in events:
+            stamp = event.get("updated_at") or event.get("created_at")
+            when = datetime.fromisoformat(str(stamp))
+            if when.tzinfo is None:
+                continue
+            if when.astimezone(UTC) > cutoff:
+                changed.append(event)
+        return changed
+
+    def list_audit(self, event_id: str) -> list[dict]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT at, event_id, actor, action, request_id, detail "
+                "FROM audit WHERE event_id = ? ORDER BY at ASC",
+                (event_id,),
+            ).fetchall()
+        events = []
+        for row in rows:
+            item = {
+                "at": row[0],
+                "event_id": row[1],
+                "actor": row[2],
+                "action": row[3],
+                "request_id": row[4],
+                "detail": json.loads(row[5]),
+            }
+            events.append(item)
+        return events
+
+    def counts_by_state(self) -> dict[str, int]:
+        counts = {state: 0 for state in WORKFLOW_STATES}
+        with self._lock:
+            rows = self._conn.execute("SELECT payload FROM events").fetchall()
+        now = self._clock()
+        for row in rows:
+            record = json.loads(row[0])
+            if self._is_expired(record, now):
+                continue
+            state = record.get("state") or "new"
+            if state not in counts:
+                counts[state] = 0
+            counts[state] += 1
+        return counts
+
+    def sos_unacked(self) -> int:
+        with self._lock:
+            rows = self._conn.execute("SELECT payload FROM events").fetchall()
+        now = self._clock()
+        total = 0
+        for row in rows:
+            record = json.loads(row[0])
+            if self._is_expired(record, now):
+                continue
+            event = record.get("event") or {}
+            state = record.get("state") or "new"
+            if event.get("intent") == "accident_sos" and state in {"new", "escalated"}:
+                total += 1
+        return total
+
+    def transition(
+        self,
+        event_id: str,
+        *,
+        action: str,
+        actor: str,
+        if_match: int,
+        also_ack: bool = False,
+    ) -> dict:
+        now = self._clock()
+        if now.tzinfo is None or now.tzinfo.utcoffset(now) is None:
+            raise ValueError("event-store clock must return a timezone-aware UTC datetime")
+        stamp = now.astimezone(UTC).isoformat()
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT payload FROM events WHERE id = ?",
+                (event_id,),
+            ).fetchone()
+            if row is None:
+                raise EventNotFound(event_id)
+            record = json.loads(row[0])
+            version = int(record.get("version") or 1)
+            if if_match != version:
+                raise VersionConflict(version)
+            _apply_transition(record, action=action, actor=actor, at=stamp, also_ack=also_ack)
+            record["updated_at"] = self._later_stamp(record, stamp)
+            self._conn.execute(
+                "UPDATE events SET payload = ? WHERE id = ?",
+                (json.dumps(record), event_id),
+            )
+            self._audit_locked(
+                stamp,
+                event_id,
+                actor,
+                action,
+                {"state": record.get("state"), "version": record.get("version")},
+            )
+            self._conn.commit()
+            return copy.deepcopy(record)
+
+    def escalate_overdue(self, timeout_seconds: float) -> int:
+        """Auto-escalate unacked accident_sos rows older than ``timeout_seconds``."""
+        now = self._clock()
+        if now.tzinfo is None or now.tzinfo.utcoffset(now) is None:
+            raise ValueError("event-store clock must return a timezone-aware UTC datetime")
+        now = now.astimezone(UTC)
+        updated = 0
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT id, created_at, payload FROM events"
+            ).fetchall()
+            for row in rows:
+                record = json.loads(row[2])
+                if self._is_expired(record, now):
+                    continue
+                event = record.get("event") or {}
+                state = record.get("state") or "new"
+                if event.get("intent") != "accident_sos" or state != "new":
+                    continue
+                created = datetime.fromisoformat(record.get("created_at") or row[1])
+                if created.tzinfo is None:
+                    continue
+                age = (now - created.astimezone(UTC)).total_seconds()
+                if age < timeout_seconds:
+                    continue
+                stamp = now.isoformat()
+                version = int(record.get("version") or 1)
+                _apply_transition(
+                    record, action="escalate", actor="d_system", at=stamp, also_ack=False
+                )
+                record["updated_at"] = self._later_stamp(record, stamp)
+                self._conn.execute(
+                    "UPDATE events SET payload = ? WHERE id = ?",
+                    (json.dumps(record), row[0]),
+                )
+                self._audit_locked(
+                    stamp,
+                    row[0],
+                    "d_system",
+                    "escalate",
+                    {
+                        "state": record.get("state"),
+                        "version": record.get("version"),
+                        "reason": "sos_timeout",
+                        "from_version": version,
+                    },
+                )
+                updated += 1
+            if updated:
+                self._conn.commit()
+        return updated
+
+    def _audit_locked(
+        self,
+        at: str,
+        event_id: str,
+        actor: str,
+        action: str,
+        detail: dict[str, Any],
+    ) -> None:
+        self._conn.execute(
+            "INSERT INTO audit (at, event_id, actor, action, request_id, detail) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                at,
+                event_id,
+                actor,
+                action,
+                current_request_id(),
+                json.dumps(detail),
+            ),
+        )
+
     def export_copy(self, dest: str | Path) -> None:
         """Write a consistent SQLite copy to ``dest``."""
         dest_path = Path(dest)
@@ -261,6 +602,7 @@ class EventStore:
             if row is None:
                 return False
             self._conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
+            self._delete_audit_locked(event_id)
             self._conn.commit()
         log.info("event store deleted id=%s action=delete", event_id)
         return True
@@ -275,6 +617,7 @@ class EventStore:
                 for item in self._conn.execute("SELECT id FROM events").fetchall()
             ]
             self._conn.execute("DELETE FROM events")
+            self._conn.execute("DELETE FROM audit")
             self._conn.commit()
         log.info(
             "event store wiped count=%s action=wipe ids=%s",
@@ -297,6 +640,7 @@ class EventStore:
                     expired.append((row[0], row[1]))
             for event_id, _created in expired:
                 self._conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
+                self._delete_audit_locked(event_id)
             if expired:
                 self._conn.commit()
         ids = [item[0] for item in expired]
@@ -359,13 +703,26 @@ class EventStore:
                     (json.dumps(redacted), row[0]),
                 )
 
+    def _delete_audit_locked(self, event_id: str) -> None:
+        self._conn.execute("DELETE FROM audit WHERE event_id = ?", (event_id,))
+
     def _drop_expired_from_connection(
         self, connection: sqlite3.Connection, now: datetime
     ) -> None:
         rows = connection.execute("SELECT id, payload FROM events").fetchall()
+        expired_ids = []
         for row in rows:
             if self._is_expired(json.loads(row[1]), now):
+                expired_ids.append(row[0])
                 connection.execute("DELETE FROM events WHERE id = ?", (row[0],))
+        if expired_ids:
+            connection.executemany(
+                "DELETE FROM audit WHERE event_id = ?",
+                [(event_id,) for event_id in expired_ids],
+            )
+        connection.execute(
+            "DELETE FROM audit WHERE event_id NOT IN (SELECT id FROM events)"
+        )
 
     def _redact_connection(self, connection: sqlite3.Connection) -> None:
         rows = connection.execute("SELECT id, payload FROM events").fetchall()
@@ -397,6 +754,7 @@ class EventStore:
         stale = sorted(resolved, key=sort_key) + sorted(others, key=sort_key)
         for event_id, created_at, record in stale[:overflow]:
             self._conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
+            self._delete_audit_locked(event_id)
             if self._is_live_sos(record):
                 log.info(
                     "event store evicted id=%s created_at=%s action=evicted intent=%s",
@@ -410,6 +768,45 @@ class EventStore:
                     event_id,
                     created_at,
                 )
+
+    def _max_change_stamp_unlocked(self) -> datetime | None:
+        """Latest published created_at/updated_at. Caller may already hold the lock."""
+        latest: datetime | None = None
+        rows = self._conn.execute("SELECT payload FROM events").fetchall()
+        for row in rows:
+            record = json.loads(row[0])
+            for key in ("updated_at", "created_at"):
+                raw = record.get(key)
+                if not raw:
+                    continue
+                try:
+                    when = datetime.fromisoformat(str(raw))
+                except ValueError:
+                    continue
+                if when.tzinfo is None:
+                    continue
+                when = when.astimezone(UTC)
+                if latest is None or when > latest:
+                    latest = when
+        return latest
+
+    def _next_change_stamp(self, suggested: datetime | None = None) -> str:
+        """Allocate a stamp strictly after every published change. Caller holds the lock."""
+        now = suggested if suggested is not None else self._clock()
+        if now.tzinfo is None or now.tzinfo.utcoffset(now) is None:
+            raise ValueError("event-store clock must return a timezone-aware UTC datetime")
+        now = now.astimezone(UTC)
+        last = self._last_change
+        if last is not None and now <= last:
+            now = last + timedelta(microseconds=1)
+        self._last_change = now
+        return now.isoformat()
+
+    def _later_stamp(self, record: dict, stamp: str) -> str:
+        when = datetime.fromisoformat(stamp)
+        if when.tzinfo is None:
+            return self._next_change_stamp()
+        return self._next_change_stamp(when.astimezone(UTC) if when.tzinfo else when)
 
     def _next_created_at(self) -> str:
         # Caller holds self._lock.

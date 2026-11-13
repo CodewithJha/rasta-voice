@@ -550,7 +550,7 @@ def test_migrates_a_v1_file(tmp_path):
 
     store = EventStore(capacity=10, path=path)
     try:
-        assert store.schema_version() == 2
+        assert store.schema_version() == 3
         events = store.list_since(None)
         assert [event["id"] for event in events] == ["legacy-id"]
         assert events[0]["transcript"] == "line 1"

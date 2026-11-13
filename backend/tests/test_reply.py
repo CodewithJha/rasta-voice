@@ -15,7 +15,7 @@ from gnani_client.tts import AUDIO_TAGS, TimbreTTS
 from rasta import routes_reply
 from rasta.main import app
 from rasta.pipeline import SAMPLE_LINE
-from rasta.reply import ACCIDENT_REPLY, UNCERTAIN_REPLY, reply_text
+from rasta.reply import ACCIDENT_ACKED_REPLY, ACCIDENT_REPLY, UNCERTAIN_REPLY, reply_text
 from rasta.schema import Intent, RiderEvent
 from rasta.settings import clear_settings_cache
 from rasta.store import attach_event_store
@@ -39,6 +39,13 @@ def test_intent_templates_exclude_untrusted_fields(intent):
 
 def test_emergency_and_uncertain_replies_do_not_promise_assistance():
     assert reply_text(event(Intent.accident_sos, confidence=0.1)) == ACCIDENT_REPLY
+    assert reply_text(event(Intent.accident_sos), state="acked") == ACCIDENT_ACKED_REPLY
+    assert reply_text(event(Intent.accident_sos), state="escalated") == ACCIDENT_REPLY
+    assert (
+        reply_text(event(Intent.accident_sos), state="escalated", acked=True)
+        == ACCIDENT_ACKED_REPLY
+    )
+    assert "aa raha" not in ACCIDENT_ACKED_REPLY
     assert "surakshit" in ACCIDENT_REPLY and "turant dispatch" in ACCIDENT_REPLY
     assert "<" not in ACCIDENT_REPLY and "aa raha" not in ACCIDENT_REPLY
     assert reply_text(event(Intent.other)) == UNCERTAIN_REPLY
