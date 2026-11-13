@@ -20,7 +20,7 @@ from rasta.pipeline import (
     read_upload_clip,
     speak_sample,
 )
-from rasta.request_id import RequestIdMiddleware, configure_rasta_logging
+from rasta.request_id import RequestIdApp, configure_rasta_logging
 from rasta.routes_events import events_router
 from rasta.routes_reply import reply_router
 from rasta.routes_sim import sim_router
@@ -57,15 +57,13 @@ async def lifespan(app: FastAPI):
         close_shared_client()
 
 
-app = FastAPI(title="Rasta Voice", version="0.1.0", lifespan=lifespan)
+app = RequestIdApp(title="Rasta Voice", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(get_settings().cors_allow_origins),
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# Added last, so it is the outermost wrapper and can stamp 4xx/5xx too.
-app.add_middleware(RequestIdMiddleware)
 app.include_router(events_router)
 app.include_router(reply_router)
 app.include_router(stream_router)

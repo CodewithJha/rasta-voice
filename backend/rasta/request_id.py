@@ -7,9 +7,11 @@ import logging
 import re
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, MutableMapping
 from contextvars import ContextVar
-from typing import Any
+from typing import Any, TypeVar
+
+from fastapi import FastAPI
 
 from gnani_client.errors import GnaniError, MissingApiKeyError
 from gnani_client.wav import wav_duration_seconds
@@ -102,32 +104,38 @@ def request_id_from_headers(headers: list[tuple[bytes, bytes]]) -> str:
     return resolve_request_id(None)
 
 
-class RequestIdMiddleware:
-    """Bind and echo ``X-Request-ID`` on HTTP responses and WebSocket accepts."""
+async def _run_with_request_id(
+    scope: MutableMapping[str, Any], receive: Callable, send: Callable, app: Callable
+) -> None:
+    """Stamp ``X-Request-ID`` on the ASGI response, including unhandled 500s."""
+    if scope["type"] not in {"http", "websocket"}:
+        await app(scope, receive, send)
+        return
+    rid = request_id_from_headers(scope.get("headers") or [])
+    token = bind_request_id(rid)
+    header = (b"x-request-id", rid.encode("ascii"))
 
-    def __init__(self, app: Any) -> None:
-        self.app = app
+    async def send_with_id(message: dict) -> None:
+        if message["type"] in {"http.response.start", "websocket.accept"}:
+            headers = list(message.get("headers") or [])
+            headers = [pair for pair in headers if pair[0].lower() != b"x-request-id"]
+            headers.append(header)
+            message = {**message, "headers": headers}
+        await send(message)
 
-    async def __call__(self, scope: dict, receive: Callable, send: Callable) -> None:
-        if scope["type"] not in {"http", "websocket"}:
-            await self.app(scope, receive, send)
-            return
-        rid = request_id_from_headers(scope.get("headers") or [])
-        token = bind_request_id(rid)
-        header = (b"x-request-id", rid.encode("ascii"))
+    try:
+        await app(scope, receive, send_with_id)
+    finally:
+        reset_request_id(token)
 
-        async def send_with_id(message: dict) -> None:
-            if message["type"] in {"http.response.start", "websocket.accept"}:
-                headers = list(message.get("headers") or [])
-                headers = [pair for pair in headers if pair[0].lower() != b"x-request-id"]
-                headers.append(header)
-                message = {**message, "headers": headers}
-            await send(message)
 
-        try:
-            await self.app(scope, receive, send_with_id)
-        finally:
-            reset_request_id(token)
+class RequestIdApp(FastAPI):
+    """FastAPI app that stamps request IDs outside ServerErrorMiddleware."""
+
+    async def __call__(
+        self, scope: MutableMapping[str, Any], receive: Callable, send: Callable
+    ) -> None:
+        await _run_with_request_id(scope, receive, send, super().__call__)
 
 
 class JsonLogFormatter(logging.Formatter):
@@ -241,7 +249,10 @@ def log_gnani_call(
     logging.getLogger(GNANI_LOGGER).info("gnani_call", extra=payload)
 
 
-def watch_gnani_call[T](
+T = TypeVar("T")
+
+
+def watch_gnani_call(  # noqa: UP047  # PEP 695 is 3.12+; we support 3.11
     endpoint: str,
     func: Callable[[], T],
     *,

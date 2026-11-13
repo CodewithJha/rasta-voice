@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import logging
 from contextlib import nullcontext
+from pathlib import Path
 
 import httpx
 import pytest
@@ -276,3 +278,29 @@ def test_log_line_cap_rejects_invalid(monkeypatch: pytest.MonkeyPatch):
 
 def test_current_request_id_is_unbound_outside_a_request():
     assert current_request_id() is None
+
+
+def test_request_id_module_parses_as_python_311():
+    source = Path(__file__).resolve().parents[1] / "rasta" / "request_id.py"
+    ast.parse(source.read_text(encoding="utf-8"), filename=str(source), feature_version=(3, 11))
+
+
+def test_unhandled_500_echoes_the_request_id():
+    path = "/__test/unhandled-500"
+
+    def boom() -> None:
+        raise RuntimeError("review-boom")
+
+    app.add_api_route(path, boom, methods=["GET"])
+    try:
+        with TestClient(app, raise_server_exceptions=False) as client:
+            ok = client.get("/api/health", headers={REQUEST_ID_HEADER: "review-ok"})
+            assert ok.status_code == 200
+            assert _header(ok) == "review-ok"
+            response = client.get(path, headers={REQUEST_ID_HEADER: "review-fail"})
+            assert response.status_code == 500
+            assert _header(response) == "review-fail"
+    finally:
+        app.router.routes = [
+            route for route in app.router.routes if getattr(route, "path", None) != path
+        ]
