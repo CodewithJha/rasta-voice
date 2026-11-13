@@ -21,18 +21,6 @@ interface SimulateEnvelope {
 // Live-mic dirt would be a horn buffer summed in this worklet, not a second
 // server mix. This issue ships the upload / REST sample path as the demo
 // dirt; Talk and Stream a sample line stay a clean mic.
-const WORKLET_SRC = `
-class RastaPcm extends AudioWorkletProcessor {
-  process(inputs) {
-    const channel = inputs[0] && inputs[0][0];
-    if (channel && channel.length) {
-      this.port.postMessage(channel);
-    }
-    return true;
-  }
-}
-registerProcessor("rasta-pcm", RastaPcm);
-`;
 
 export function initRider(root: HTMLElement): void {
   const chit = document.createElement("section");
@@ -454,14 +442,11 @@ class MicSession {
   }
 
   private async attachWorklet(context: AudioContext, packer: PcmPacker): Promise<boolean> {
-    const url = URL.createObjectURL(new Blob([WORKLET_SRC], { type: "application/javascript" }));
     try {
-      await context.audioWorklet.addModule(url);
+      await context.audioWorklet.addModule("/pcm-worklet.js");
     } catch {
-      URL.revokeObjectURL(url);
       return false;
     }
-    URL.revokeObjectURL(url);
     const worklet = new AudioWorkletNode(context, "rasta-pcm");
     worklet.port.onmessage = (event: MessageEvent<Float32Array>) => {
       packer.push(event.data);
