@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+<title id="title">Live Prisma on synthetic 8 kHz phone clips</title>
+<desc id="desc">Raw mean word error rate. 80 distinct synthetic clips, 400 model evaluations. Script mismatch prevents a clean model ranking.</desc>
+<path d="M0 0H720V420H0Z" fill="#f3e6c8"/>
+<g font-family="system-ui, sans-serif" fill="#24180f">
+<text x="62" y="32" font-size="23" font-weight="700">Live Prisma on synthetic 8 kHz phone clips</text>
+<text x="62" y="56" font-size="12">Run: 13 Nov 2026, 15:04 IST</text>
+<text x="62" y="77" font-size="12">Raw mean WER · 80 distinct clips · 400 model evaluations · sodium bar: denoise</text>
+<text x="62" y="99" fill="#9b2226" font-size="12" font-weight="600">Cross-script outputs: descriptive results, not a model ranking.</text>
+<path d="M62 300.00H698" stroke="#24180f" opacity="0.15"/>
+<text x="52" y="304.00" text-anchor="end" font-size="11">0.0</text>
+<path d="M62 280.44H698" stroke="#24180f" opacity="0.15"/>
+<text x="52" y="284.44" text-anchor="end" font-size="11">0.1</text>
+<path d="M62 260.89H698" stroke="#24180f" opacity="0.15"/>
+<text x="52" y="264.89" text-anchor="end" font-size="11">0.2</text>
+<path d="M62 241.33H698" stroke="#24180f" opacity="0.15"/>
+<text x="52" y="245.33" text-anchor="end" font-size="11">0.3</text>
+<path d="M62 221.78H698" stroke="#24180f" opacity="0.15"/>
+<text x="52" y="225.78" text-anchor="end" font-size="11">0.4</text>
+<path d="M62 202.22H698" stroke="#24180f" opacity="0.15"/>
+<text x="52" y="206.22" text-anchor="end" font-size="11">0.5</text>
+<path d="M62 182.67H698" stroke="#24180f" opacity="0.15"/>
+<text x="52" y="186.67" text-anchor="end" font-size="11">0.6</text>
+<path d="M62 163.11H698" stroke="#24180f" opacity="0.15"/>
+<text x="52" y="167.11" text-anchor="end" font-size="11">0.7</text>
+<path d="M62 143.56H698" stroke="#24180f" opacity="0.15"/>
+<text x="52" y="147.56" text-anchor="end" font-size="11">0.8</text>
+<path d="M62 124.00H698" stroke="#24180f" opacity="0.15"/>
+<text x="52" y="128.00" text-anchor="end" font-size="11">0.9</text>
+<path d="M62 124V300H698" fill="none" stroke="#24180f"/>
+<rect x="94.60" y="135.17" width="62.00" height="164.83" fill="#24180f" data-system="v25"><title>v25: raw WER 0.8429</title></rect>
+<text x="125.60" y="127.17" text-anchor="middle" font-size="13" font-weight="700">0.84</text>
+<text x="125.60" y="322" text-anchor="middle" font-size="11">v25</text>
+<rect x="221.80" y="135.17" width="62.00" height="164.83" fill="#24180f" data-system="v25-bias"><title>v25-bias: raw WER 0.8429</title></rect>
+<text x="252.80" y="127.17" text-anchor="middle" font-size="13" font-weight="700">0.84</text>
+<text x="252.80" y="322" text-anchor="middle" font-size="11">v25-bias</text>
+<rect x="349.00" y="154.09" width="62.00" height="145.91" fill="#24180f" data-system="v30"><title>v30: raw WER 0.7461</title></rect>
+<text x="380.00" y="146.09" text-anchor="middle" font-size="13" font-weight="700">0.75</text>
+<text x="380.00" y="322" text-anchor="middle" font-size="11">v30</text>
+<rect x="476.20" y="154.53" width="62.00" height="145.47" fill="#24180f" data-system="v30-key"><title>v30-key: raw WER 0.7439</title></rect>
+<text x="507.20" y="146.53" text-anchor="middle" font-size="13" font-weight="700">0.74</text>
+<text x="507.20" y="322" text-anchor="middle" font-size="11">v30-key</text>
+<rect x="603.40" y="157.40" width="62.00" height="142.60" fill="#ffb703" data-system="v30-key-denoise"><title>v30-key-denoise: raw WER 0.7292</title></rect>
+<text x="634.40" y="149.40" text-anchor="middle" font-size="13" font-weight="700">0.73</text>
+<text x="634.40" y="322" text-anchor="middle" font-size="11">v30-key-denoise</text>
+<text x="62" y="357" font-size="12">Synthetic rider speech; simulated 8 kHz μ-law telephone audio, not real calls.</text>
+<text x="62" y="378" font-size="11">Normalized metrics fold case, punctuation and number words; they do not transliterate scripts.</text>
+</g>
+</svg>
