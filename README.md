@@ -146,6 +146,8 @@ The noise benchmark is not scored yet. Issue 12 fills this section with the WER 
 
 <!-- benchmark:end -->
 
+Opt-in live API smoke: `python scripts/smoke.py --base-url http://127.0.0.1:8000` (needs `DISPATCH_PASSCODE` locally when the remote speech key is set; no-key health skips with zero speech calls; configured targets must have issues 20/21/22/26 deployed; add `--require-security-headers` for the public origin after 27).
+
 ## Operations and project policies
 
 - [Operator runbook](docs/RUNBOOK.md)
