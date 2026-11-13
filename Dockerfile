@@ -29,7 +29,9 @@ RUN apk upgrade --no-cache \
     && pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r /app/requirements-runtime.lock \
     && pip install --no-cache-dir --no-deps /opt/src/gnani_client /opt/src/backend \
-    && pip uninstall --yes setuptools wheel \
+    && pip check \
+    && pip uninstall --yes pip setuptools wheel \
+    && python -c 'import ensurepip, shutil; from pathlib import Path; shutil.rmtree(Path(ensurepip.__file__).parent)' \
     && rm -rf /opt/src /root/.cache/pip
 COPY --from=frontend /src/frontend/dist /app/frontend/dist
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
