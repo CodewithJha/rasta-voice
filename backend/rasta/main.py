@@ -22,6 +22,7 @@ from rasta.pipeline import (
     speak_sample,
 )
 from rasta.request_id import RequestIdApp, configure_rasta_logging
+from rasta.routes_admin import admin_router
 from rasta.routes_events import events_router
 from rasta.routes_health import health_router
 from rasta.routes_reply import reply_router
@@ -54,6 +55,9 @@ async def lifespan(app: FastAPI):
         registry = getattr(app.state, "stream_registry", None)
         if registry is not None:
             await registry.aclose()
+        store = getattr(app.state, "event_store", None)
+        if store is not None:
+            store.close()
         # Issue 29 will own shutdown of the shared client; close it here until then
         # so a one-off LLM client cannot outlive the process.
         from rasta.llm import close_shared_client
@@ -86,6 +90,7 @@ app.add_middleware(
 app.add_middleware(SpeechBudgetMiddleware)
 _configure_production(app)
 app.include_router(events_router)
+app.include_router(admin_router)
 app.include_router(health_router)
 app.include_router(reply_router)
 app.include_router(stream_router)

@@ -100,7 +100,7 @@ def test_capacity_ceiling_is_documented():
 
 
 def test_append_order_is_oldest_first():
-    store = EventStore(capacity=10)
+    store = EventStore(path=":memory:", capacity=10)
     first = store.append(_payload(1))
     second = store.append(_payload(2))
     events = store.list_since(None)
@@ -110,7 +110,7 @@ def test_append_order_is_oldest_first():
 
 
 def test_201st_append_drops_the_oldest():
-    store = EventStore(capacity=200)
+    store = EventStore(path=":memory:", capacity=200)
     first = store.append(_payload(0))
     for n in range(1, 200):
         store.append(_payload(n))
@@ -125,7 +125,7 @@ def test_201st_append_drops_the_oldest():
 
 
 def test_smaller_injected_capacity_also_drops_oldest():
-    store = EventStore(capacity=3)
+    store = EventStore(path=":memory:", capacity=3)
     store.append(_payload(1))
     store.append(_payload(2))
     store.append(_payload(3))
@@ -138,7 +138,7 @@ def test_smaller_injected_capacity_also_drops_oldest():
 
 
 def test_list_since_omitted_or_empty_returns_all():
-    store = EventStore(capacity=10)
+    store = EventStore(path=":memory:", capacity=10)
     store.append(_payload(1))
     store.append(_payload(2))
     assert len(store.list_since(None)) == 2
@@ -147,7 +147,7 @@ def test_list_since_omitted_or_empty_returns_all():
 
 
 def test_list_since_is_strictly_after_the_boundary():
-    store = EventStore(capacity=10)
+    store = EventStore(path=":memory:", capacity=10)
     first = store.append(_payload(1))
     second = store.append(_payload(2))
     at_first = store.list_since(first["created_at"])
@@ -156,7 +156,7 @@ def test_list_since_is_strictly_after_the_boundary():
 
 
 def test_list_since_rejects_malformed_and_naive():
-    store = EventStore(capacity=10)
+    store = EventStore(path=":memory:", capacity=10)
     store.append(_payload(1))
     with pytest.raises(InvalidSince):
         store.list_since("not-a-timestamp")
@@ -165,7 +165,7 @@ def test_list_since_rejects_malformed_and_naive():
 
 
 def test_list_since_accepts_z_suffix_as_utc():
-    store = EventStore(capacity=10)
+    store = EventStore(path=":memory:", capacity=10)
     event = store.append(_payload(1))
     stamp = event["created_at"]
     assert stamp.endswith("+00:00")
@@ -220,7 +220,7 @@ def test_parse_since_rejects_unusable_values(value):
 def test_append_keeps_the_full_payload():
     # PR #37 adds envelope fields such as extractor_source. The store must
     # copy the ingest dict as-is, not a hand-picked key list.
-    store = EventStore(capacity=10)
+    store = EventStore(path=":memory:", capacity=10)
     payload = _payload(
         1, extractor_source="rules", fallback_reason="missing_api_key"
     )
@@ -233,7 +233,7 @@ def test_append_keeps_the_full_payload():
 
 
 def test_copy_isolation():
-    store = EventStore(capacity=10)
+    store = EventStore(path=":memory:", capacity=10)
     payload = _payload(1)
     out = store.append(payload)
     payload["transcript"] = "mutated input"
@@ -256,7 +256,7 @@ def test_created_at_is_strictly_monotonic_when_the_clock_stalls():
     def clock() -> datetime:
         return frozen
 
-    store = EventStore(capacity=10, clock=clock)
+    store = EventStore(path=":memory:", capacity=10, clock=clock)
     first = store.append(_payload(1))
     second = store.append(_payload(2))
     assert first["created_at"] == "2026-11-13T10:00:00+00:00"
@@ -265,7 +265,7 @@ def test_created_at_is_strictly_monotonic_when_the_clock_stalls():
 
 
 def test_concurrent_appends_keep_every_record():
-    store = EventStore(capacity=200)
+    store = EventStore(path=":memory:", capacity=200)
     n_threads = 8
     per_thread = 20
     barrier = threading.Barrier(n_threads)
@@ -487,3 +487,112 @@ def test_missing_key_is_not_stored(monkeypatch: pytest.MonkeyPatch, make_wav):
         )
         assert response.status_code == 503
         assert client.get("/api/events").json() == {"events": []}
+
+
+
+# --- sqlite persistence, migration, export ---
+
+
+def test_restart_on_the_same_path_keeps_ids(tmp_path):
+    path = str(tmp_path / "desk.sqlite")
+    first = EventStore(capacity=10, path=path)
+    a = first.append(_payload(1, extractor_source="rules"))
+    b = first.append(_payload(2, extractor_source="llm"))
+    first.close()
+    second = EventStore(capacity=10, path=path)
+    try:
+        events = second.list_since(None)
+        assert [event["id"] for event in events] == [a["id"], b["id"]]
+        assert events[0]["extractor_source"] == "rules"
+        assert events[1]["extractor_source"] == "llm"
+        assert events[0]["event"]["order_id"] == "1"
+    finally:
+        second.close()
+
+
+def test_unknown_keys_survive_a_sqlite_round_trip(tmp_path):
+    path = str(tmp_path / "desk.sqlite")
+    store = EventStore(capacity=10, path=path)
+    try:
+        store.append(_payload(1, extractor_source="rules", state="new", version=3))
+        store.close()
+        again = EventStore(capacity=10, path=path)
+        try:
+            event = again.list_since(None)[0]
+            assert event["extractor_source"] == "rules"
+            assert event["state"] == "new"
+            assert event["version"] == 3
+        finally:
+            again.close()
+    except Exception:
+        store.close()
+        raise
+
+
+def test_migrates_a_v1_file(tmp_path):
+    path = str(tmp_path / "legacy.sqlite")
+    connection = __import__("sqlite3").connect(path)
+    connection.execute(
+        "CREATE TABLE events (id TEXT PRIMARY KEY, created_at TEXT NOT NULL, payload TEXT NOT NULL)"
+    )
+    payload = {
+        "id": "legacy-id",
+        "created_at": "2026-11-13T10:00:00+00:00",
+        "transcript": "line 1",
+        "event": {"intent": "other"},
+    }
+    connection.execute(
+        "INSERT INTO events (id, created_at, payload) VALUES (?, ?, ?)",
+        (payload["id"], payload["created_at"], __import__("json").dumps(payload)),
+    )
+    connection.commit()
+    connection.close()
+
+    store = EventStore(capacity=10, path=path)
+    try:
+        assert store.schema_version() == 2
+        events = store.list_since(None)
+        assert [event["id"] for event in events] == ["legacy-id"]
+        assert events[0]["transcript"] == "line 1"
+    finally:
+        store.close()
+
+
+def test_eviction_is_logged_without_the_transcript(tmp_path, caplog):
+    import logging
+
+    path = str(tmp_path / "desk.sqlite")
+    store = EventStore(capacity=1, path=path)
+    try:
+        first = store.append(_payload(1))
+        with caplog.at_level(logging.INFO, logger="rasta"):
+            store.append(_payload(2))
+        assert first["id"] not in [event["id"] for event in store.list_since(None)]
+        text = "\n".join(record.getMessage() for record in caplog.records)
+        assert first["id"] in text
+        assert first["created_at"] in text
+        assert "line 1" not in text
+    finally:
+        store.close()
+
+
+def test_admin_export_requires_the_desk_passcode(client: TestClient):
+    denied = TestClient(app).get("/api/admin/export")
+    assert denied.status_code in {401, 503}
+
+
+def test_admin_export_downloads_a_sqlite_copy(client: TestClient, tmp_path):
+    store = attach_event_store(app)
+    row = store.append(_payload(9, extractor_source="rules"))
+    response = client.get("/api/admin/export")
+    assert response.status_code == 200
+    assert "rasta-events.sqlite" in response.headers.get("content-disposition", "")
+    copy = tmp_path / "export.sqlite"
+    copy.write_bytes(response.content)
+    imported = EventStore(capacity=10, path=str(copy))
+    try:
+        events = imported.list_since(None)
+        assert [event["id"] for event in events] == [row["id"]]
+        assert events[0]["extractor_source"] == "rules"
+    finally:
+        imported.close()
