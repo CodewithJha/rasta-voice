@@ -44,6 +44,7 @@ def test_two_bars_title_run_date_counts_and_caveat():
     assert [b.attrib["fill"] for b in bars] == ["#24180f", "#ffb703"]
     assert all(float(b.attrib["height"]) > 0 for b in bars)
     assert "13 Nov 2026, 15:04 IST" in svg
+    assert summary()["run_at"] in svg
     assert "2 distinct clips" in svg and "4 model evaluations" in svg
     assert "not a model ranking" in svg and "0.25" in svg and "0.15" in svg
 
