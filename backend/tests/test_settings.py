@@ -189,3 +189,24 @@ def test_short_idle_is_clamped_for_the_prisma_header(monkeypatch: pytest.MonkeyP
     settings = get_settings()
     assert settings.stream_idle_seconds == 0.2
     assert settings.prisma_idle_timeout_sec() == 5
+
+
+def test_unknown_rasta_env_is_rejected(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("RASTA_ENV", "staging")
+    clear_settings_cache()
+    with pytest.raises(SettingsError, match="RASTA_ENV"):
+        get_settings()
+    clear_settings_cache()
+
+
+def test_development_budget_default_is_generous(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("RASTA_DEMO_SPEECH_BUDGET", raising=False)
+    monkeypatch.delenv("RASTA_PER_IP_REQUESTS_PER_MINUTE", raising=False)
+    monkeypatch.delenv("RASTA_MAX_CONCURRENT_SPEECH", raising=False)
+    monkeypatch.setenv("RASTA_ENV", "development")
+    clear_settings_cache()
+    settings = get_settings()
+    assert settings.demo_speech_budget == 10_000
+    assert settings.per_ip_requests_per_minute == 10_000
+    assert settings.max_concurrent_speech == 32
+    clear_settings_cache()

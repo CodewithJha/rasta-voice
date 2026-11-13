@@ -49,6 +49,13 @@ async def stream_endpoint(websocket: WebSocket) -> None:
         await fail(websocket, "GNANI_API_KEY is not set", CLOSE_NO_KEY)
         return
 
+    from rasta.limits import admit_websocket
+
+    budget = admit_websocket(app, websocket.scope)
+    if budget is not None:
+        await fail(websocket, budget.message, CLOSE_BUSY)
+        return
+
     slots = app.state.stream_slots
     if not await slots.try_acquire():
         await fail(websocket, "Too many live streams. Try again in a moment.", CLOSE_BUSY)
