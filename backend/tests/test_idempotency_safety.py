@@ -384,3 +384,110 @@ with TestClient(app, base_url="https://allowed.test") as client:
         timeout=15,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_paused_admission_does_not_fill_replay_storage_with_denied_keys(monkeypatch):
+    from rasta.limits import attach_speech_guard
+
+    try:
+        with monkeypatch.context() as patch:
+            patch.setenv("GNANI_API_KEY", "synthetic-paused-key")
+            patch.setenv("RASTA_DEMO_SPEECH_BUDGET", "0")
+            clear_settings_cache()
+
+            def no_work(*args):
+                pytest.fail("Paused admission must not start speech work")
+
+            patch.setattr("rasta.main.speak_sample", no_work)
+            with TestClient(app) as client:
+                store = attach_event_store(app)
+                for index in range(20):
+                    response = client.post(
+                        "/api/ingest/sample",
+                        headers={"Idempotency-Key": f"synthetic-paused-{index:02d}"},
+                    )
+                    assert response.status_code == 503
+                    assert response.json()["error"]["code"] == "budget_exhausted"
+                assert store._conn.execute("SELECT COUNT(*) FROM idempotency").fetchone()[0] == 0
+                assert store._idempotency_response_bytes == 0
+                assert app.state.http_counts.snapshot()["5xx"] == 20
+    finally:
+        # The process-wide test app survives this fixture; restore its guard
+        # only after the temporary zero-budget environment has been removed.
+        clear_settings_cache()
+        attach_speech_guard(app, replace=True)
+
+
+def test_buffer_admission_is_bounded_before_read_and_released_after_errors():
+    from starlette.responses import JSONResponse
+
+    from rasta.idempotency import MAX_BUFFERED_REQUESTS
+
+    probe = ContractApp()
+    handled = []
+
+    async def handler(scope, receive, send):
+        handled.append(1)
+        await JSONResponse({"ok": True})(scope, receive, send)
+
+    middleware = IdempotencyMiddleware(handler)
+
+    def scope(index):
+        return {
+            "type": "http",
+            "method": "POST",
+            "path": "/api/ingest/sample",
+            "app": probe,
+            "headers": [(b"idempotency-key", f"synthetic-buffer-{index}".encode())],
+        }
+
+    async def run():
+        messages = []
+
+        async def send(message):
+            messages.append(message)
+
+        async def too_large():
+            return {"type": "http.request", "body": b"x" * (MAX_IDEMPOTENCY_REQUEST_BYTES + 1)}
+
+        await middleware(scope("oversized"), too_large, send)
+        assert messages[0]["status"] == 413
+        messages.clear()
+        release, waiting = asyncio.Event(), asyncio.Event()
+        entered = []
+
+        async def slow_body():
+            entered.append(1)
+            if len(entered) == MAX_BUFFERED_REQUESTS:
+                waiting.set()
+            await release.wait()
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        tasks = [
+            asyncio.create_task(middleware(scope(index), slow_body, send))
+            for index in range(MAX_BUFFERED_REQUESTS)
+        ]
+        try:
+            await asyncio.wait_for(waiting.wait(), timeout=3)
+
+            async def must_not_read():
+                pytest.fail("Over-capacity request body was read")
+
+            await middleware(scope("excess"), must_not_read, send)
+            assert messages[0]["status"] == 429
+            assert handled == []
+        finally:
+            release.set()
+            await asyncio.gather(*tasks)
+        assert len(handled) == MAX_BUFFERED_REQUESTS
+
+        async def empty_body():
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        await middleware(scope("after"), empty_body, send)
+        assert len(handled) == MAX_BUFFERED_REQUESTS + 1
+
+    try:
+        asyncio.run(run())
+    finally:
+        attach_event_store(probe).close()
