@@ -43,7 +43,9 @@ validation denials retain the response security policy. Error bodies receive
 the current HTTP `X-Request-ID`; the cached Gnani/event identifiers in a
 successful response remain those of the original work. A response referencing
 a deleted or expired event is unavailable even if its memory TTL has not
-elapsed. SQLite replay rows contain no transcript or base64 audio.
+elapsed. SQLite replay rows contain no transcript or base64 audio. Successful
+cached speech responses are not served while the server Gnani key is absent.
+Usage counters include replays and early idempotency denials exactly once.
 
 
 ## Pagination
