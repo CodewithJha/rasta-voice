@@ -1,5 +1,6 @@
 """FastAPI app. Every speech call goes to the real Gnani APIs."""
 
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -58,7 +59,7 @@ async def lifespan(app: FastAPI):
     finally:
         # Stop new speech first, close live streams, drain inflight Gnani
         # work, then close the HTTP client and the SQLite store.
-        shutdown_upstream_runtime(app)
+        await asyncio.to_thread(shutdown_upstream_runtime, app)
         registry = getattr(app.state, "stream_registry", None)
         if registry is not None:
             await registry.aclose()

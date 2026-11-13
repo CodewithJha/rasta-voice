@@ -7,6 +7,7 @@ import random
 import threading
 import time
 from collections.abc import Callable
+from contextvars import ContextVar, Token
 from email.utils import parsedate_to_datetime
 from typing import Any, TypeVar
 
@@ -25,6 +26,12 @@ UPSTREAM_TTS = "gnani_tts"
 UPSTREAM_LLM = "llm"
 UPSTREAMS = (UPSTREAM_STT, UPSTREAM_TTS, UPSTREAM_LLM)
 RETRYABLE_STATUS = frozenset({429, 502, 503})
+_last_retry_after: ContextVar[str | None] = ContextVar(
+    "rasta_retry_after", default=None
+)
+_timeout_override: ContextVar[httpx.Timeout | None] = ContextVar(
+    "rasta_timeout_override", default=None
+)
 
 _attach_lock = threading.Lock()
 _process_runtime: UpstreamRuntime | None = None
@@ -102,6 +109,11 @@ class CircuitBreaker:
             self._probe_outstanding = True
             return True
 
+    def release_unstarted_probe(self) -> None:
+        """Drop a claimed half-open slot that never sent an outbound call."""
+        with self._lock:
+            self._probe_outstanding = False
+
     def record_success(self) -> None:
         with self._lock:
             self._failures.clear()
@@ -157,9 +169,19 @@ class UpstreamClient(httpx.Client):
         super().__init__(**kwargs)
 
     def request(self, method: str, url: httpx.URL | str, **kwargs: Any) -> httpx.Response:
-        if kwargs.get("timeout") is None:
-            kwargs["timeout"] = self.timeout_for(str(url))
-        return super().request(method, url, **kwargs)
+        timeout = kwargs.get("timeout")
+        override = _timeout_override.get()
+        if timeout is None or timeout is httpx.USE_CLIENT_DEFAULT:
+            kwargs["timeout"] = override if override is not None else self.timeout_for(str(url))
+        _last_retry_after.set(None)
+        try:
+            response = super().request(method, url, **kwargs)
+        except Exception:
+            raise
+        header = response.headers.get("Retry-After") or response.headers.get("retry-after")
+        if header:
+            _last_retry_after.set(header)
+        return response
 
     def timeout_for(self, url: str) -> httpx.Timeout:
         settings = self._rasta_settings
@@ -177,6 +199,15 @@ class UpstreamClient(httpx.Client):
             write=settings.connect_timeout_seconds,
             pool=settings.connect_timeout_seconds,
         )
+
+
+def override_timeout(timeout: httpx.Timeout) -> Token:
+    """Apply a tighter read timeout to defaulted UpstreamClient requests."""
+    return _timeout_override.set(timeout)
+
+
+def reset_timeout_override(token: Token) -> None:
+    _timeout_override.reset(token)
 
 
 def retry_delay_seconds(
@@ -232,12 +263,14 @@ def classify_failure(exc: BaseException) -> tuple[int | str, bool]:
 
 def retry_after_from_error(exc: BaseException) -> str | None:
     headers = getattr(exc, "headers", None)
-    if headers is None:
-        return None
-    try:
-        return headers.get("Retry-After") or headers.get("retry-after")
-    except Exception:
-        return None
+    if headers is not None:
+        try:
+            value = headers.get("Retry-After") or headers.get("retry-after")
+            if value:
+                return value
+        except Exception:
+            pass
+    return _last_retry_after.get()
 
 
 class UpstreamRuntime:
@@ -302,101 +335,132 @@ class UpstreamRuntime:
         if not self.client.is_closed:
             self.client.close()
 
-    def _acquire_inflight(self) -> bool:
-        if not self.sema.acquire(timeout=self.settings.inflight_wait_seconds):
-            return False
+    def _begin_operation(self) -> None:
         with self._inflight_lock:
             self._inflight += 1
             self._idle.clear()
-        return True
 
-    def _release_inflight(self) -> None:
+    def _end_operation(self) -> None:
         with self._inflight_lock:
             if self._inflight > 0:
                 self._inflight -= 1
             if self._inflight == 0:
                 self._idle.set()
+
+    def _acquire_slot(self) -> bool:
+        return self.sema.acquire(timeout=self.settings.inflight_wait_seconds)
+
+    def _release_slot(self) -> None:
         self.sema.release()
 
-    def call_gnani(self, upstream: str, func: Callable[[], T]) -> T:
+    def call_gnani(
+        self,
+        upstream: str,
+        func: Callable[[], T],
+        *,
+        max_retries: int | None = None,
+    ) -> T:
         if not self.accepting:
             raise ResilienceError(
                 503, "shutting_down", "The process is shutting down."
             )
         breaker = self.breakers[upstream]
         last_error: BaseException | None = None
-        attempts = self.settings.upstream_max_retries + 1
-        for attempt in range(1, attempts + 1):
-            if not breaker.allow():
-                self.publish()
-                raise ResilienceError(
-                    503, "circuit_open", f"{upstream} circuit is open"
-                )
-            if attempt > 1 and self.guard is not None:
-                decision = self.guard.reserve_budget(1)
-                if decision is not None:
+        retries = (
+            self.settings.upstream_max_retries if max_retries is None else max_retries
+        )
+        attempts = max(0, retries) + 1
+        self._begin_operation()
+        try:
+            for attempt in range(1, attempts + 1):
+                if not self.accepting:
+                    raise ResilienceError(
+                        503, "shutting_down", "The process is shutting down."
+                    )
+                if attempt > 1 and self.guard is not None:
+                    decision = self.guard.reserve_budget(1)
+                    if decision is not None:
+                        raise ResilienceError(
+                            429,
+                            "budget_exhausted",
+                            "A retry would exceed the public speech budget.",
+                        )
+                if not self._acquire_slot():
                     raise ResilienceError(
                         429,
-                        "budget_exhausted",
-                        "A retry would exceed the public speech budget.",
+                        "too_many_requests",
+                        "Gnani concurrency limit reached; try again shortly.",
                     )
-            if not self._acquire_inflight():
-                raise ResilienceError(
-                    429,
-                    "too_many_requests",
-                    "Gnani concurrency limit reached; try again shortly.",
-                )
-            started = time.perf_counter()
-            try:
-                result = func()
-            except Exception as exc:
-                status, retryable = classify_failure(exc)
-                latency_ms = max(0, int(round((time.perf_counter() - started) * 1000)))
-                log.info(
-                    "upstream attempt",
-                    extra={
-                        "request_id": current_request_id(),
-                        "attempt": attempt,
-                        "status": status,
-                        "latency_ms": latency_ms,
-                        "upstream": upstream,
-                    },
-                )
-                self._release_inflight()
-                if isinstance(exc, MissingApiKeyError):
+                claimed = False
+                started = time.perf_counter()
+                try:
+                    if not breaker.allow():
+                        self.publish()
+                        raise ResilienceError(
+                            503, "circuit_open", f"{upstream} circuit is open"
+                        )
+                    claimed = True
+                    result = func()
+                except ResilienceError:
+                    if claimed:
+                        breaker.release_unstarted_probe()
                     raise
-                breaker.record_failure()
-                self.publish()
-                if retryable and attempt < attempts:
-                    delay = retry_delay_seconds(
-                        attempt,
-                        self.settings,
-                        retry_after_from_error(exc),
-                        rng=self._rng,
+                except Exception as exc:
+                    status, retryable = classify_failure(exc)
+                    latency_ms = max(0, int(round((time.perf_counter() - started) * 1000)))
+                    log.info(
+                        "upstream attempt",
+                        extra={
+                            "request_id": current_request_id(),
+                            "attempt": attempt,
+                            "status": status,
+                            "latency_ms": latency_ms,
+                            "upstream": upstream,
+                        },
                     )
-                    if delay > 0:
-                        self._sleeper(delay)
-                    last_error = exc
-                    continue
-                raise
-            else:
-                latency_ms = max(0, int(round((time.perf_counter() - started) * 1000)))
-                log.info(
-                    "upstream attempt",
-                    extra={
-                        "request_id": current_request_id(),
-                        "attempt": attempt,
-                        "status": 200,
-                        "latency_ms": latency_ms,
-                        "upstream": upstream,
-                    },
-                )
-                breaker.record_success()
-                self.publish()
-                self._release_inflight()
-                return result
-        assert last_error is not None
-        raise last_error
+                    if isinstance(exc, MissingApiKeyError):
+                        raise
+                    breaker.record_failure()
+                    self.publish()
+                    if retryable and attempt < attempts:
+                        if not self.accepting:
+                            raise ResilienceError(
+                                503,
+                                "shutting_down",
+                                "The process is shutting down.",
+                            ) from exc
+                        delay = retry_delay_seconds(
+                            attempt,
+                            self.settings,
+                            retry_after_from_error(exc),
+                            rng=self._rng,
+                        )
+                        if delay > 0:
+                            self._sleeper(delay)
+                        last_error = exc
+                        continue
+                    raise
+                else:
+                    latency_ms = max(0, int(round((time.perf_counter() - started) * 1000)))
+                    log.info(
+                        "upstream attempt",
+                        extra={
+                            "request_id": current_request_id(),
+                            "attempt": attempt,
+                            "status": 200,
+                            "latency_ms": latency_ms,
+                            "upstream": upstream,
+                        },
+                    )
+                    breaker.record_success()
+                    self.publish()
+                    return result
+                finally:
+                    self._release_slot()
+            assert last_error is not None
+            raise last_error
+        finally:
+            self._end_operation()
 
     def record_llm_success(self) -> None:
         self.breakers[UPSTREAM_LLM].record_success()

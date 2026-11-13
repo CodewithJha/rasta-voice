@@ -105,6 +105,15 @@ def request_with_retry(
     Does not log the URL query (keys must not be placed there), the
     request body, or the response body.
     """
+    from rasta.resilience import UPSTREAM_LLM, get_upstream_runtime
+
+    runtime = get_upstream_runtime()
+    if runtime is not None:
+        breaker = runtime.breakers[UPSTREAM_LLM]
+        if not breaker.allow():
+            runtime.publish()
+            raise LlmError("LLM circuit is open", reason="circuit_open")
+
     attempts = settings.llm_max_retries + 1
     last_error: LlmError | None = None
     for index in range(attempts):

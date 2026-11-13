@@ -293,3 +293,205 @@ def test_health_stays_snappy_while_a_gnani_call_is_in_flight(
     release.set()
     worker.join(timeout=2)
     assert result["status"] == 200
+
+
+
+def _read_timeout(request: httpx.Request) -> float | None:
+    timeout = request.extensions.get("timeout")
+    if timeout is None:
+        return None
+    if isinstance(timeout, dict):
+        value = timeout.get("read")
+        return float(value) if value is not None else None
+    read = getattr(timeout, "read", None)
+    return float(read) if read is not None else None
+
+
+def test_stt_and_tts_posts_use_configured_read_timeouts(make_wav):
+    from gnani_client.stt import PrismaSTT
+    from gnani_client.tts import TimbreTTS
+
+    settings = get_settings()
+    seen: list[tuple[str, float | None]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((request.url.path, _read_timeout(request)))
+        if request.url.path == "/stt/v3":
+            return _stt_ok()
+        if request.url.path == "/api/v1/tts/inference":
+            return httpx.Response(200, content=make_wav(seconds=1, rate=16000))
+        raise AssertionError(request.url.path)
+
+    runtime = UpstreamRuntime(settings, transport=httpx.MockTransport(handler))
+    try:
+        PrismaSTT(key="test-key", client=runtime.client).transcribe(make_wav(seconds=1))
+        TimbreTTS(key="test-key", client=runtime.client).synthesize("Namaste")
+        explicit = runtime.client.post(
+            "https://example.invalid/stt/v3",
+            timeout=httpx.Timeout(7.0),
+        )
+        assert explicit.status_code == 200
+    finally:
+        runtime.close()
+    assert seen[0] == ("/stt/v3", settings.stt_read_timeout_seconds)
+    assert seen[1] == ("/api/v1/tts/inference", settings.tts_read_timeout_seconds)
+    assert seen[2] == ("/stt/v3", 7.0)
+
+
+def test_retry_after_from_gnani_response_is_honored(make_wav):
+    from gnani_client.stt import PrismaSTT
+
+    slept: list[float] = []
+    settings = replace(get_settings(), retry_after_cap_seconds=2.0)
+    seen: list[int] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(1)
+        if len(seen) == 1:
+            return httpx.Response(
+                429,
+                headers={"Retry-After": "2"},
+                json={"detail": {"message": "slow down"}},
+            )
+        return _stt_ok()
+
+    runtime = UpstreamRuntime(
+        settings,
+        transport=httpx.MockTransport(handler),
+        sleeper=slept.append,
+        rng=lambda: 1.0,
+    )
+    try:
+        result = runtime.call_gnani(
+            UPSTREAM_STT,
+            lambda: PrismaSTT(key="test-key", client=runtime.client).transcribe(
+                make_wav(seconds=1)
+            ),
+        )
+        assert result.transcript == LINE
+    finally:
+        runtime.close()
+    assert seen == [1, 1]
+    assert slept == [2.0]
+
+
+def test_rejected_half_open_probe_is_released_for_a_later_recovery():
+    clock = FakeClock()
+    settings = replace(
+        get_settings(),
+        upstream_max_retries=0,
+        max_inflight=1,
+        inflight_wait_seconds=0.05,
+        breaker_failure_threshold=1,
+        breaker_open_seconds=30.0,
+    )
+    runtime = UpstreamRuntime(
+        settings,
+        sleeper=lambda _delay: None,
+        rng=lambda: 0.0,
+        clock=clock,
+    )
+    with pytest.raises(GnaniError):
+        runtime.call_gnani(
+            UPSTREAM_STT,
+            lambda: (_ for _ in ()).throw(GnaniError("down", status=503)),
+        )
+    assert runtime.breakers[UPSTREAM_STT].state() == "open"
+    clock.advance(31)
+    assert runtime.breakers[UPSTREAM_STT].state() == "half_open"
+    assert runtime.sema.acquire(timeout=1)
+
+    with pytest.raises(ResilienceError) as err:
+        runtime.call_gnani(UPSTREAM_STT, lambda: "probe")
+    assert err.value.code == "too_many_requests"
+    runtime.sema.release()
+    clock.advance(100)
+    calls = {"n": 0}
+
+    def ok() -> str:
+        calls["n"] += 1
+        return "recovered"
+
+    assert runtime.call_gnani(UPSTREAM_STT, ok) == "recovered"
+    assert calls["n"] == 1
+    assert runtime.breakers[UPSTREAM_STT].state() == "closed"
+    runtime.close()
+
+
+def test_shutdown_waits_out_backoff_and_skips_the_next_attempt():
+    from rasta.resilience import set_upstream_runtime
+
+    in_backoff = threading.Event()
+    resume = threading.Event()
+    calls = {"n": 0}
+
+    def sleeper(_delay: float) -> None:
+        in_backoff.set()
+        resume.wait(timeout=2)
+
+    def flaky() -> str:
+        calls["n"] += 1
+        raise GnaniError("busy", status=429)
+
+    settings = replace(get_settings(), upstream_max_retries=2)
+    runtime = UpstreamRuntime(settings, sleeper=sleeper, rng=lambda: 1.0)
+    set_upstream_runtime(runtime)
+    app.state.upstream_runtime = runtime
+    runtime.bind_app(app)
+
+    result: dict[str, str] = {}
+
+    def invoke() -> None:
+        try:
+            runtime.call_gnani(UPSTREAM_STT, flaky)
+        except Exception as exc:
+            result["code"] = getattr(exc, "code", type(exc).__name__)
+
+    worker = threading.Thread(target=invoke)
+    worker.start()
+    assert in_backoff.wait(timeout=2)
+    # Drain must not return while the accepted call is backing off.
+    started = time.perf_counter()
+    runtime.begin_shutdown()
+    idle = runtime.wait_for_idle(timeout=0.15)
+    assert idle is False
+    assert time.perf_counter() - started < 0.5
+    resume.set()
+    worker.join(timeout=2)
+    runtime.close()
+    assert result["code"] == "shutting_down"
+    assert calls["n"] == 1
+
+
+def test_reply_speech_uses_the_shared_runtime(monkeypatch: pytest.MonkeyPatch, make_wav):
+    from rasta.resilience import get_upstream_runtime
+
+    seen: list[float | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(_read_timeout(request))
+        return httpx.Response(200, content=make_wav(seconds=1, rate=16000))
+
+    _speech_env(monkeypatch)
+    client = _install_transport(httpx.MockTransport(handler))
+    store = attach_event_store(app)
+    row = store.append(
+        {
+            "event": {
+                "intent": "delay",
+                "order_id": "18",
+                "eta_minutes": 10,
+                "urgency": "medium",
+                "dispatch_action": "inform rider",
+                "transcript": LINE,
+                "confidence": 0.9,
+            }
+        }
+    )
+    runtime = get_upstream_runtime()
+    assert runtime is not None
+    response = client.post(f"/api/reply/{row['id']}")
+    assert response.status_code == 200
+    assert seen
+    assert seen[0] == 15.0
+    assert "audio_base64" in response.json()
