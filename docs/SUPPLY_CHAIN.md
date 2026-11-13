@@ -82,17 +82,65 @@ A Dependabot input bump does not establish that this generated lock was refreshe
 If a future advisory cannot be fixed, review an exception with its advisory ID,
 reason, owner and expiry; do not use a blanket `continue-on-error` or ignore list.
 
-## Outstanding issue 33 work
+## Production image and release handoff
 
-Issue 13 has not supplied a Dockerfile or deployed service. Docker build/Trivy,
-CD tag/manual workflows, release tagging and host rollback verification must
-follow that implementation. Nothing here deploys, creates a release or certifies
-a production host. Issue 32's [quality gates](QUALITY.md) add mypy, an 80% production coverage
-floor, Vitest and a real key-less Playwright job. The live browser path remains
-opt-in and is not a CI requirement. The deployed API smoke (24), Docker/Trivy
-and release/CD still remain; issue 33 stays open.
+The issue 13 Dockerfile now has a separate production-only
+`requirements-runtime.lock`, generated from the two runtime package inputs.
+The image installs these pinned dependencies, then installs the local client
+and backend with `--no-deps`. It retains the lock inside `/app`. The benchmark,
+test tools and scanners are not runtime dependencies. As with the CI lock,
+these are version pins, not hash locks; base images, pip and build tooling
+remain outside this application dependency lock.
 
-The four new job names must be added to required branch checks by the repository
+The first real image scan rejected the previous Bookworm runtime for OS
+HIGH/CRITICAL advisories and its unused setuptools 70.3.0 for
+CVE-2025-47273 (fixed in 78.1.1). The runtime now uses the official
+`python:3.12-alpine3.24` image with current APK updates, retains UID 1000,
+and removes pip, ensurepip and setuptools/wheel after installing the local
+packages and running `pip check`. Pip's unused vendored setuptools also
+carried the advisory, so uninstalling standalone setuptools alone was not
+sufficient. Runtime dependencies are still discoverable through their
+standard package metadata; the image smoke checks every locked version,
+audio imports and a file-backed SQLite write/reopen as UID 1000. The Node
+build stage remains separate. This base change must pass the same real
+image smoke and unfiltered HIGH/CRITICAL scan; it is not an exception.
+
+Regenerate the runtime lock deliberately after a runtime input changes:
+
+```bash
+pip-compile --index-url https://pypi.org/simple --no-emit-index-url \
+  --no-emit-trusted-host --no-annotate --output-file requirements-runtime.lock \
+  gnani_client/pyproject.toml backend/pyproject.toml
+```
+
+`.github/workflows/cd.yml` runs a `container` check on pull requests, main
+pushes, version tags (`v*`) and manual dispatches from main. It builds the
+actual multi-stage image, verifies its non-root user, starts it with a
+synthetic test passcode and an explicitly empty speech key, and checks
+health, built JS/CSS assets, desk protection and the missing-key HTTP 503.
+It sends one keyless sample POST, never a configured speech request. The
+test container is removed even after failure.
+
+The same job downloads Trivy CLI 0.76.2 from its
+[official release](https://github.com/aquasecurity/trivy/releases/tag/v0.76.2)
+and verifies the archive SHA-256 before running it. It scans OS and library
+packages in the built image and fails on HIGH or CRITICAL findings, including
+unfixed ones. No blanket ignore or `continue-on-error` is configured. Any
+future exception needs the advisory, affected package, reason, owner and
+expiry reviewed in the PR. Scan/download failures also fail the job.
+
+Tag and main/manual runs print the [deployment and rollback handoff](DEPLOY.md).
+There is no image-registry push, host token, provider key, automatic host
+update or release creation. A successful job proves this revision built,
+passed the keyless image checks and passed the configured vulnerability
+scan; it does not prove a working public host or live provider path.
+
+Issue 32's [quality gates](QUALITY.md) still run independently. The live browser
+path remains opt-in. Public smoke (24), a real release/host rollback exercise
+and owner configuration of required branch checks remain outstanding; issue
+33 stays open until those remaining acceptance checks are verified.
+
+The added job names, including `container`, must be added to required branch checks by the repository
 owner after this workflow passes on a PR. A workflow file alone cannot change
 branch settings. Existing required check names are preserved. Both owners must
 agree to this `.github/` contract before merge; do not self-merge it.

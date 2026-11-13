@@ -9,7 +9,9 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-FROM python:3.12-slim-bookworm AS runtime
+# Keep Python 3.12 while using the maintained, smaller Alpine runtime.
+# The former Bookworm image has unpatched HIGH/CRITICAL OS findings.
+FROM python:3.12-alpine3.24 AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     RASTA_ENV=production \
@@ -19,16 +21,25 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     RASTA_STATIC_DIR=/app/frontend/dist \
     PORT=7860
 WORKDIR /app
+COPY requirements-runtime.lock /app/requirements-runtime.lock
 COPY gnani_client /opt/src/gnani_client
 COPY backend/pyproject.toml /opt/src/backend/pyproject.toml
 COPY backend/rasta /opt/src/backend/rasta
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir /opt/src/gnani_client /opt/src/backend \
+# CPython retains bundled installer wheels, including vendored build tools.
+RUN apk upgrade --no-cache \
+    && pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r /app/requirements-runtime.lock \
+    && pip install --no-cache-dir --no-deps /opt/src/gnani_client /opt/src/backend \
+    && pip check \
+    && pip uninstall --yes pip setuptools wheel \
+    && python -c 'import ensurepip, shutil; from pathlib import Path; shutil.rmtree(Path(ensurepip.__file__).parent)' \
+    && python -c 'import importlib.util as u; from pathlib import Path; assert all(u.find_spec(name) is None for name in ("pip", "ensurepip", "setuptools", "wheel")); assert not any(Path("/usr/local/lib").rglob("setuptools*"))' \
     && rm -rf /opt/src /root/.cache/pip
 COPY --from=frontend /src/frontend/dist /app/frontend/dist
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod 755 /app/docker-entrypoint.sh \
-    && useradd --create-home --uid 1000 --shell /usr/sbin/nologin rasta \
+    && addgroup -g 1000 rasta \
+    && adduser -D -u 1000 -G rasta -s /sbin/nologin rasta \
     && mkdir -p /app/data \
     && chown -R rasta:rasta /app
 USER rasta
