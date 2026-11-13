@@ -41,7 +41,10 @@ jobs:
             --env LLM_PROVIDER=rules \
             rasta-voice:ci
           docker exec rasta-ci python -c 'import os; assert os.geteuid() == 1000'
-          docker exec rasta-ci pip check
+          # Dependency consistency is checked at build time, before removing
+          # package installers and their unused vendored build dependencies.
+          docker exec rasta-ci python -c 'import importlib.metadata as m, importlib.util as u; from pathlib import Path; pins = [line.split("==") for line in Path("/app/requirements-runtime.lock").read_text().splitlines() if line and not line.startswith("#")]; assert all(m.version(name) == version for name, version in pins); assert u.find_spec("pip") is None and u.find_spec("ensurepip") is None'
+          docker exec rasta-ci python -c 'import audioop, sqlite3, wave; from pathlib import Path; path = Path("/app/data/.ci-sqlite-probe"); db = sqlite3.connect(path); db.execute("CREATE TABLE probe (value INTEGER)"); db.execute("INSERT INTO probe VALUES (1)"); db.commit(); db.close(); db = sqlite3.connect(path); assert db.execute("SELECT value FROM probe").fetchone() == (1,); db.close(); path.unlink()'
           python3 - <<'PY'
           import json
           import re
