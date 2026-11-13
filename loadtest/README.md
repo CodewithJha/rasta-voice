@@ -85,16 +85,34 @@ and non-zero exits after a missing ID or a 429. Its successful case runs the
 same 30-second ops scenario. It never calls Gnani or uses an application mock
 mode. Its response times are safety-test results, not app latency evidence.
 
-## CI handoff for issue 33
+## CI gate (issue 33)
+
+`.github/workflows/load.yml` runs the `load` job on pull requests and main.
+It checks the offline guards, installs checksum-verified k6 2.4.0 and invokes
+`loadtest/ci.py`. The helper boots the real API, waits for SQLite readiness,
+runs the 20/10-VU test and verifies a closed-port run fails with exit 99.
+It forces an empty speech key, `CI=true` and `SPEECH=0`, confirms zero sample
+calls and unchanged credits, and terminates its API process in `finally`.
+Selected metrics appear in the job summary, including on failure. A passing
+job does not prove public-host or live-speech performance. Adding `load` as
+a required branch check remains an owner configuration step.
+
+For local reproduction with k6 on PATH and the API dependencies installed:
+
+```bash
+python loadtest/ci.py --k6 /path/to/k6 --output-dir /tmp/rasta-load-results
+```
+
+The helper keeps the API and k6 in the same process tree, so it also works
+in environments that isolate networking between separate shell sessions.
 
 Start the API from `requirements-ci.lock` with a temporary `RASTA_DB_PATH`,
 `LLM_PROVIDER=rules`, an empty speech key and a synthetic desk passcode. Wait
 for real `/api/ready` to return 200 before starting k6. Run the normal command
 above with `CI=true` and `SPEECH=0`, retain the exit code and selected JSON
 summary, and terminate the API on failure as well as success. Install k6 from
-its official release and verify the release archive checksum. The existing
-container check does not run a load test. Wiring this separate gate is an
-issue 33 contract follow-up; this PR does not change `.github/`.
+its official release and verify the release archive checksum. The container
+check remains separate from this load gate.
 
 Do not use HTTP debug output, print request bodies/cookies, copy a real desk
 passcode into a script, or upload a general environment dump with the results.
