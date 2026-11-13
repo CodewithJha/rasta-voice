@@ -40,8 +40,14 @@ To verify speech deliberately, use a synthetic sample once
 through the rider UI: Timbre generates it and Prisma transcribes it, spending
 two logical operations. Under issue 29's retry policy, each operation can have
 an initial attempt plus two retries, for up to six provider attempts per sample.
-The smoke CLI sends one sample POST with no client retry and reports that
-conservative six-attempt upper bound after dispatch, including on timeout.
+The smoke CLI sends one sample POST with no client retry and reports
+`SAMPLE_LOGICAL_OPERATIONS * (1 + server_retry_cap)` after dispatch, including
+on timeout. The conservative default retry cap is two, giving six attempts.
+Only when the remote deployment's configuration has been verified, supply its
+cap with `--server-max-retries 0|1|2` or `RASTA_UPSTREAM_MAX_RETRIES`; the flag
+overrides the environment. These are operator inputs, not remote discovery:
+a local setting does not prove the remote host's cap. Leave the default when
+unsure. Invalid or unsupported caps fail before HTTP requests with a zero bound.
 Preflight failures and keyless skips report zero. This is not an exact bill;
 the server's credit budget remains authoritative. Its separate confirmation
 costs another uncached Timbre operation, outside the smoke CLI's single sample.

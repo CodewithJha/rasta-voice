@@ -137,9 +137,12 @@ python scripts/smoke.py --base-url <verified-public-origin> --require-security-h
 
 Paste only safe request IDs, event ID, intent and call upper bound here. The
 CLI checks readiness and authentication before one noisy sample, makes no
-client speech retry, and reports a conservative six-attempt upper bound after
-dispatch, including a potentially charged timeout. That allows for two logical
-operations with up to two server retries each under issue 29. The earlier
+client speech retry, and reports `SAMPLE_LOGICAL_OPERATIONS * (1 + server_retry_cap)`
+after dispatch, including a potentially charged timeout. The default cap is two
+server retries per operation under issue 29, giving a conservative six-attempt
+bound. Only use `--server-max-retries` or `RASTA_UPSTREAM_MAX_RETRIES` after verifying
+the remote host's cap; a local setting does not discover remote configuration.
+The earlier
 two-call bound at the original audit checkpoint did not include server retries.
 The bound is not proof of the provider's actual charge. A keyless
 skip is not a completed public smoke.
