@@ -167,8 +167,8 @@ links the per-evaluation audio/config hashes to [raw transcripts](benchmark/resu
 Batch responses did not return request IDs; the recorded job IDs are not REST request IDs.
 
 Normalization applies Unicode NFKC, case folding, punctuation/symbol removal,
-whitespace folding, decimal-digit normalization and English/Hindi number-word
-folding. It performs **no translation or script transliteration**. Between 58
+whitespace folding, decimal-digit normalization, English 0-199 and Roman Hindi
+0-30 number-word folding. It performs **no translation or script transliteration**. Between 58
 and 60 of 80 hypotheses per system are cross-script relative to the references;
 v3.0 used `format=codemix`. These descriptive WER results are **not a clean
 model ranking**, and rules intent accuracy also reflects extractor script
