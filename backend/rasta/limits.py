@@ -8,8 +8,11 @@ refunded if the upstream call later fails.
 
 from __future__ import annotations
 
+import asyncio
+import contextvars
 import threading
 import time
+from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any
 
@@ -69,7 +72,65 @@ def client_ip(scope: Scope, settings: Settings) -> str:
     return "unknown"
 
 
+_slot_lease: ContextVar[SlotLease | None] = ContextVar("rasta_speech_slot", default=None)
+
+
+class SlotLease:
+    """One-shot concurrency lease. Can outlive the HTTP response."""
+
+    def __init__(self, guard: SpeechGuard) -> None:
+        self._guard = guard
+        self._lock = threading.Lock()
+        self._released = False
+        self.deferred = False
+
+    def defer(self) -> None:
+        self.deferred = True
+
+    def release(self) -> None:
+        with self._lock:
+            if self._released:
+                return
+            self._released = True
+        self._guard.release_slot()
+
+
+def current_slot_lease() -> SlotLease | None:
+    return _slot_lease.get()
+
+
+async def await_held_work(work, timeout: float):
+    """Run ``work`` in a thread; keep the speech slot until it actually ends.
+
+    The executor call copies contextvars so request IDs still bind in the
+    worker. Cancelling the waiter (including a 504) does not cancel the
+    thread; the slot is released only when that work finishes.
+    """
+    loop = asyncio.get_running_loop()
+    ctx = contextvars.copy_context()
+    future = loop.run_in_executor(None, lambda: ctx.run(work))
+    lease = current_slot_lease()
+    finished = asyncio.Event()
+    if lease is not None:
+        lease.defer()
+
+    def on_done(_future) -> None:
+        if lease is not None:
+            lease.release()
+        loop.call_soon_threadsafe(finished.set)
+
+    future.add_done_callback(on_done)
+    try:
+        # Time out the waiter only. Do not cancel the executor future, or the
+        # slot would be released while the worker thread is still running.
+        await asyncio.wait_for(finished.wait(), timeout=timeout)
+    except TimeoutError:
+        raise
+    return future.result()
+
+
 class SpeechGuard:
+
     """In-process budget, per-IP window, and concurrency gate."""
 
     def __init__(self, settings: Settings, *, clock=time.monotonic) -> None:
@@ -114,6 +175,20 @@ class SpeechGuard:
         with self._lock:
             if self._inflight > 0:
                 self._inflight -= 1
+
+    def reserve_budget(self, calls: int) -> Decision | None:
+        """Spend extra Gnani-call budget without a new per-IP or slot charge."""
+        settings = self._settings
+        if settings.demo_speech_budget <= 0:
+            return Decision(503, PAUSED)
+        with self._lock:
+            now = self._clock()
+            self._prune(now)
+            used = sum(item for _at, item in self._spent)
+            if used + calls > settings.demo_speech_budget:
+                return Decision(503, BUDGET)
+            self._spent.append((now, calls))
+            return None
 
     def _prune(self, now: float) -> None:
         horizon = self._settings.demo_speech_window_seconds
@@ -171,17 +246,22 @@ class SpeechBudgetMiddleware:
             await self.app(scope, receive, send)
             return
         settings = get_settings()
-        decision = attach_speech_guard(app).admit(client_ip(scope, settings), cost)
+        guard = attach_speech_guard(app)
+        decision = guard.admit(client_ip(scope, settings), cost)
         if decision is not None:
             from starlette.responses import JSONResponse
 
             response = JSONResponse({"detail": decision.message}, status_code=decision.status)
             await response(scope, receive, send)
             return
+        lease = SlotLease(guard)
+        token = _slot_lease.set(lease)
         try:
             await self.app(scope, receive, send)
         finally:
-            attach_speech_guard(app).release_slot()
+            _slot_lease.reset(token)
+            if not lease.deferred:
+                lease.release()
 
 
 def request_client_ip(request: Request) -> str:

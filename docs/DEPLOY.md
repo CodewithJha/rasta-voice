@@ -35,8 +35,9 @@ Also set, for a public Space:
 - `RASTA_ENV=production` (the image already sets this)
 - `RASTA_ALLOWED_HOSTS` — comma-separated hosts for
   `TrustedHostMiddleware`. The image default is
-  `localhost,127.0.0.1,.hf.space`. Add a custom domain if you use one.
-  `*` is rejected.
+  `localhost,127.0.0.1,*.hf.space`. Starlette only treats `*.hf.space` as a
+  subdomain suffix; a leading `.hf.space` is normalized to that form. Add a
+  custom domain if you use one. A bare `*` is rejected.
 - `CORS_ALLOW_ORIGINS` — empty in the image so the UI and API are
   same-origin. Do not set this to `*`.
 - `RASTA_TRUST_PROXY_HEADERS=true` on Spaces or Render so per-IP limits

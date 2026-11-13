@@ -285,16 +285,32 @@ def _rasta_env(name: str, default: str) -> str:
 def _host_list(name: str) -> tuple[str, ...]:
     """Comma-separated hostnames. Empty means the middleware is left off.
 
-    A leading dot is allowed (Starlette matches that as a subdomain suffix).
-    ``*`` is rejected so a typo cannot disable host checks in production.
+    Starlette only treats ``*.example.com`` as a suffix wildcard. A leading
+    ``.example.com`` is normalized to that form. A bare ``*`` is rejected so
+    a typo cannot disable host checks in production.
     """
     raw = _raw(name)
     if not raw:
         return ()
-    hosts = tuple(part.strip() for part in raw.split(",") if part.strip())
-    if any(host == "*" for host in hosts):
-        raise SettingsError(f"{name} must not contain *")
-    return hosts
+    hosts: list[str] = []
+    for part in raw.split(","):
+        host = part.strip().lower()
+        if not host:
+            continue
+        if host == "*":
+            raise SettingsError(f"{name} must not contain *")
+        if host.startswith(".") and "*" not in host:
+            host = f"*{host}"
+        if "*" in host:
+            if not host.startswith("*.") or "*" in host[1:]:
+                raise SettingsError(
+                    f"{name} may use a *.example.com suffix, not {part.strip()!r}"
+                )
+            suffix = host[2:]
+            if not suffix or "/" in suffix or ":" in suffix or " " in suffix:
+                raise SettingsError(f"{name} has an invalid host pattern {part.strip()!r}")
+        hosts.append(host)
+    return tuple(hosts)
 
 
 def _non_negative_int(name: str, default: int, maximum: int) -> int:

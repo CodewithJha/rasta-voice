@@ -1,5 +1,6 @@
 """Public speech budget and per-IP caps do not spend when they reject."""
 
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -131,7 +132,7 @@ def test_production_defaults_and_required_secrets(monkeypatch):
     clear_settings_cache()
     get_settings().require_production_secrets()
     hosts = get_settings().allowed_hosts
-    assert hosts == ("localhost", ".hf.space")
+    assert hosts == ("localhost", "*.hf.space")
     clear_settings_cache()
 
 
@@ -176,7 +177,10 @@ def test_trusted_hosts_reject_unknown_host():
     from starlette.middleware.trustedhost import TrustedHostMiddleware
 
     app = FastAPI()
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"])
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=["localhost", "127.0.0.1", "*.hf.space"],
+    )
 
     @app.get("/api/health")
     def health() -> dict:
@@ -187,3 +191,60 @@ def test_trusted_hosts_reject_unknown_host():
         allowed = client.get("/api/health", headers={"host": "localhost"})
         assert allowed.status_code == 200
         assert allowed.json() == {"ok": True}
+        space = client.get("/api/health", headers={"host": "rasta-demo.hf.space"})
+        assert space.status_code == 200
+        assert space.json() == {"ok": True}
+        other = client.get("/api/health", headers={"host": "evil.example"})
+        assert other.status_code == 400
+
+
+def test_timeout_keeps_concurrency_slot_until_worker_finishes(monkeypatch):
+    from fastapi import HTTPException
+
+    from rasta.limits import await_held_work
+
+    monkeypatch.setenv("RASTA_MAX_CONCURRENT_SPEECH", "1")
+    monkeypatch.setenv("RASTA_DEMO_SPEECH_BUDGET", "40")
+    monkeypatch.setenv("RASTA_PER_IP_REQUESTS_PER_MINUTE", "100")
+    clear_settings_cache()
+    release = threading.Event()
+    started = threading.Event()
+    finished = threading.Event()
+    hold_workers = True
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        attach_speech_guard(app, replace=True)
+        yield
+
+    app = FastAPI(lifespan=lifespan)
+    app.add_middleware(SpeechBudgetMiddleware)
+
+    @app.post("/api/ingest/sample")
+    async def sample() -> dict:
+        def work() -> dict:
+            started.set()
+            if hold_workers:
+                release.wait(timeout=2)
+            finished.set()
+            return {"ok": True, "calls": 2}
+
+        try:
+            return await await_held_work(work, 0.05)
+        except TimeoutError as exc:
+            raise HTTPException(status_code=504, detail="timed out") from exc
+
+    with TestClient(app) as client:
+        first = client.post("/api/ingest/sample")
+        assert first.status_code == 504
+        assert started.is_set()
+        second = client.post("/api/ingest/sample")
+        assert second.status_code == 503
+        assert second.json()["detail"] == BUSY
+        release.set()
+        assert finished.wait(timeout=2)
+        hold_workers = False
+        third = client.post("/api/ingest/sample")
+        assert third.status_code == 200
+        assert third.json() == {"ok": True, "calls": 2}
+    clear_settings_cache()

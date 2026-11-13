@@ -1,6 +1,5 @@
 """FastAPI app. Every speech call goes to the real Gnani APIs."""
 
-import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -13,7 +12,7 @@ from gnani_client.env import api_key
 from gnani_client.errors import GnaniError, MissingApiKeyError
 from rasta.dispatch_auth import attach_dispatch_auth
 from rasta.extract import extract_event
-from rasta.limits import SpeechBudgetMiddleware, attach_speech_guard
+from rasta.limits import SpeechBudgetMiddleware, attach_speech_guard, await_held_work
 from rasta.pipeline import (
     SAMPLE_LINE,
     ClipTooLarge,
@@ -133,10 +132,7 @@ async def ingest_sample(condition: str = "clean") -> dict:
 
 async def _run_speech(work):
     try:
-        return await asyncio.wait_for(
-            asyncio.to_thread(_guard, work),
-            timeout=get_settings().max_speech_seconds,
-        )
+        return await await_held_work(lambda: _guard(work), get_settings().max_speech_seconds)
     except TimeoutError as exc:
         raise HTTPException(status_code=504, detail="The speech request timed out.") from exc
 

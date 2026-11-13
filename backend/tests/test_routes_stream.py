@@ -606,3 +606,44 @@ def test_session_outcome_table(mode: str, condition: str, monkeypatch: pytest.Mo
     finally:
         if hold is not None:
             hold.set()
+
+
+
+def test_stream_sample_budget_one_does_not_run_synthesis(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("RASTA_DEMO_SPEECH_BUDGET", "1")
+    called = {"timbre": 0}
+
+    def pcm() -> bytes:
+        called["timbre"] += 1
+        return FRAME * 3
+
+    connect = FakeConnect()
+    with _client() as client:
+        app.state.stt_connect = connect
+        app.state.sample_pcm = pcm
+        with client.websocket_connect("/api/stream", headers=ORIGIN) as ws:
+            ws.send_json({"type": "sample"})
+            frame = _recv_until(ws, {"error"})
+            assert "exhausted" in frame["message"].lower()
+    assert called["timbre"] == 0
+    assert connect.calls == []
+    assert _stored() == []
+
+
+def test_same_origin_stream_works_when_cors_allow_list_is_empty(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("CORS_ALLOW_ORIGINS", "")
+    monkeypatch.setenv("RASTA_TRUST_PROXY_HEADERS", "false")
+    connect = FakeConnect()
+    with _client() as client:
+        app.state.stt_connect = connect
+        with client.websocket_connect(
+            "/api/stream",
+            headers={"Origin": "http://testserver", "Host": "testserver"},
+        ) as ws:
+            ws.send_bytes(FRAME)
+            ws.send_bytes(FRAME)
+            socket = _wait_audio(connect)
+            ws.send_json({"type": "commit", "sample_rate": 16000})
+            event = _recv_until(ws, {"event", "error"})
+            assert event["type"] == "event"
+            assert socket is not None

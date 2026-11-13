@@ -13,7 +13,7 @@ FROM python:3.12-slim-bookworm AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     RASTA_ENV=production \
-    RASTA_ALLOWED_HOSTS=localhost,127.0.0.1,.hf.space \
+    RASTA_ALLOWED_HOSTS=localhost,127.0.0.1,*.hf.space \
     CORS_ALLOW_ORIGINS= \
     RASTA_TRUST_PROXY_HEADERS=true \
     RASTA_STATIC_DIR=/app/frontend/dist \
