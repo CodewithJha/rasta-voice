@@ -92,6 +92,14 @@ test tools and scanners are not runtime dependencies. As with the CI lock,
 these are version pins, not hash locks; base images, pip and build tooling
 remain outside this application dependency lock.
 
+The first real image scan rejected the previous Bookworm runtime for OS
+HIGH/CRITICAL advisories and its unused setuptools 70.3.0 for
+CVE-2025-47273 (fixed in 78.1.1). The runtime now uses the official
+`python:3.12-alpine3.24` image with current APK updates, retains UID 1000,
+and removes setuptools/wheel after installing the local packages. The Node
+build stage remains separate. This base change must pass the same real
+image smoke and unfiltered HIGH/CRITICAL scan; it is not an exception.
+
 Regenerate the runtime lock deliberately after a runtime input changes:
 
 ```bash
