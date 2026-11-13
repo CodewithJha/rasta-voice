@@ -17,8 +17,8 @@ merged-state verification. Issue ownership and labels are unchanged.
 
 | Check | Measured result |
 | --- | --- |
-| Full Python suite | 1,854 passed, 1 skipped, 1 expected failure |
-| Line coverage | 90.93%; enforced floor remains 80% |
+| Full Python suite | 1,859 passed, 1 skipped, 1 expected failure |
+| Line coverage | 91.00%; enforced floor remains 80% |
 | Ruff | Clean across production packages and scripts |
 | Mypy | Clean on 57 production source files |
 | Frontend | Source/test types, 4 Node tests, 23 unit tests and build pass |
@@ -114,5 +114,28 @@ Browser job `132227022691` passed 8 cases, including real Ack/Resolve in
 849 ms. Container job `132226970348` passed the non-root image smoke and
 HIGH/CRITICAL scan; load job `132227073798` confirms the real keyless load
 and exit-99 closed-port negative. The separate secret scan failed on the
-verified source digest above. The final evidence/exception-only head must
-still pass all ten checks before its verification is complete.
+verified source digest above. The final integrated head must still pass all ten checks before its
+verification is complete.
+
+## Clean-install check and copied-environment repairs
+
+A new Python 3.12.14 virtual environment installed the pinned CI lock and
+editable projects, then the documented optional `httpx[socks]==0.28.1` extra
+needed by this machine. The existing proxy configuration was preserved.
+`pip check` passes. Fresh `npm ci`, source/test types, 4 Node tests and
+23 frontend unit tests pass.
+
+Copying `.env.example` initially caused 20 collection errors because its
+blank `RASTA_ENV` was rejected on app import. After making the example
+explicitly `development`, 1,853 tests passed and three smoke CLI tests failed:
+the optional blank retry setting was interpreted as an invalid cap.
+[PR 93](https://github.com/CodewithJha/rasta-voice/pull/93) fixes both copied-
+environment paths, with subprocess startup/production-override tests and
+blank/whitespace/zero retry regressions. Explicit production still refuses
+a missing passcode; blank retry configuration uses the conservative bound
+and does not add sample POSTs.
+
+The final clean environment, with the copied example and empty speech keys,
+passes 1,859 Python tests, 1 skipped, 1 expected failure, at 91.00% coverage.
+No live provider call was made. The preceding failures are retained here
+rather than reported as successful clean-install runs.

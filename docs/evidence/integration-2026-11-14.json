@@ -1,6 +1,6 @@
 {
   "date": "2026-11-14 Asia/Kolkata",
-  "local_code_commit": "e9fea31b98fda1aba2fa222c4633abdb748456fe",
+  "local_code_commit": "906bcbacd75b172518c0a2cf33420e890eefa292",
   "code_sha256": [
     {
       "path": "backend/rasta/main.py",
@@ -33,14 +33,22 @@
     {
       "path": "backend/rasta/limits.py",
       "sha256": "fe05d77135cc211612d2bad14501e37464e0efec0dc9aa3cfb06d367b450575c"
+    },
+    {
+      "path": ".env.example",
+      "sha256": "da14a39f070f57d1a23ef5bdccd77d4ed2f8560904a484539454a2b0ae6c6949"
+    },
+    {
+      "path": "scripts/smoke.py",
+      "sha256": "7bed997f60563c60dcc5d55f9b48317794ebdf10e1e4e53b3093a9276e229715"
     }
   ],
   "benchmark_section_sha256": "0186efce7fe9c226f95a3af28038a2470ab18a1ac1b9177812343095cd2c9730",
   "python": {
-    "passed": 1854,
+    "passed": 1859,
     "skipped": 1,
     "expected_failure": 1,
-    "coverage_percent": 90.93,
+    "coverage_percent": 91.0,
     "coverage_floor_percent": 80
   },
   "types": {
@@ -213,5 +221,23 @@
     "all_application_jobs_passed": true,
     "secret_scan_job": 132227022574,
     "secret_scan_result": "failed on the verified source-digest false positive; exact historical exception added separately, final CI still required"
+  },
+  "clean_setup_verification": {
+    "python": "3.12.14",
+    "locked_install": true,
+    "editable_install": true,
+    "pip_check_passed": true,
+    "optional_socks_extra": "httpx[socks]==0.28.1, required by this environment; proxy configuration preserved",
+    "copied_env_example": true,
+    "speech_keys_empty": true,
+    "initial_failure": "20 collection errors: blank RASTA_ENV rejected on app import",
+    "after_env_fix": "1853 passed and 3 smoke CLI tests failed: optional retry environment value was blank",
+    "fix_pr": 93,
+    "final_python_passed": 1859,
+    "final_coverage_percent": 91.0,
+    "fresh_npm_ci": true,
+    "node_tests_passed": 4,
+    "frontend_unit_tests_passed": 23,
+    "frontend_source_and_test_types_clean": true
   }
 }
