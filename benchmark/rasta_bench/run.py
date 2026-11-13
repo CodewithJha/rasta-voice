@@ -251,7 +251,7 @@ def _failure(exc: Exception) -> str:
 
 def _retry_429(fn, *, sleep, attempts: int = 5):
     """Retry non-spending GETs on 429. Spending POSTs are never retried here."""
-    last = None
+    last: GnaniError | None = None
     for attempt in range(attempts):
         try:
             return fn()
@@ -260,6 +260,7 @@ def _retry_429(fn, *, sleep, attempts: int = 5):
             if exc.status != 429 or attempt == attempts - 1:
                 raise
             sleep(min(60, 2 ** (attempt + 2)))
+    assert last is not None
     raise last
 
 
@@ -270,7 +271,7 @@ def _get_job(client: PrismaBatch, job_id: str, *, sleep, attempts: int = 5):
 
 def _start_created(client: PrismaBatch, job_id: str, *, sleep, attempts: int = 5) -> dict:
     """Start a CREATED job, retrying only a 429. GET confirms the outcome."""
-    last = None
+    last: GnaniError | None = None
     for attempt in range(attempts):
         try:
             client.start_job(job_id)
@@ -283,6 +284,7 @@ def _start_created(client: PrismaBatch, job_id: str, *, sleep, attempts: int = 5
             job = _get_job(client, job_id, sleep=sleep)
             if job.get("status") != "CREATED":
                 return job
+    assert last is not None
     raise last
 
 
