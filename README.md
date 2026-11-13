@@ -195,11 +195,13 @@ Opt-in live API smoke: `python scripts/smoke.py --base-url http://127.0.0.1:8000
 ## Operations and project policies
 
 - [Operator runbook](docs/RUNBOOK.md)
+- [Deployment instructions and public-origin status](docs/DEPLOY.md)
+- [Latency budgets and measured local baseline](docs/SLO.md)
 - [Governance and branch protection](docs/GOVERNANCE.md)
 - [Decision 1: real speech APIs](docs/adr/0001-real-speech-apis.md)
 - [Decision 2: frozen event envelope](docs/adr/0002-frozen-event-envelope.md)
-- [Decision 3: proposed SQLite topology](docs/adr/0003-sqlite-single-worker.md)
-- [Decision 4: proposed desk passcode](docs/adr/0004-shared-desk-passcode.md)
+- [Decision 3: SQLite single-worker topology](docs/adr/0003-sqlite-single-worker.md)
+- [Decision 4: shared desk passcode](docs/adr/0004-shared-desk-passcode.md)
 - [MIT license](LICENSE), [changelog](CHANGELOG.md), [code of conduct](CODE_OF_CONDUCT.md)
 
 Supply-chain checks and dependency-lock updates: [docs/SUPPLY_CHAIN.md](docs/SUPPLY_CHAIN.md).
