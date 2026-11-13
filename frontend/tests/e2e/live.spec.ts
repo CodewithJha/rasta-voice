@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { unlockDesk } from "./unlock.ts";
+
 test.skip(process.env.RASTA_E2E_LIVE !== "1", "Opt-in real speech test: requires a key and spends two calls");
 
 test("noisy synthetic sample produces a real request ID and reaches another desk window", async ({ page, context, request }) => {
@@ -7,7 +9,9 @@ test("noisy synthetic sample produces a real request ID and reaches another desk
   expect((await health.json()).gnani_key_set).toBe(true);
   const desk = await context.newPage();
   await desk.goto("/");
+  await unlockDesk(desk);
   await page.goto("/");
+  await unlockDesk(page);
   await page.getByRole("radio", { name: "Noisy line", exact: true }).click();
   const ingested = page.waitForResponse((response) =>
     response.url().includes("/api/ingest/sample") && response.request().method() === "POST");
