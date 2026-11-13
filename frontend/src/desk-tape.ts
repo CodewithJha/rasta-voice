@@ -7,10 +7,20 @@ export interface DeskRecord {
   created_at: string;
   event: RiderEvent;
   state?: string;
+  version?: number;
+  rider_id?: string;
+  ack_at?: string | null;
+  updated_at?: string;
 }
 
 export function eventsUrl(since?: string): string {
-  return since ? `/api/events?since=${encodeURIComponent(since)}` : "/api/events";
+  return since
+    ? `/api/events?updated_since=${encodeURIComponent(since)}`
+    : "/api/events";
+}
+
+export function changeStamp(record: DeskRecord): string {
+  return record.updated_at || record.created_at;
 }
 
 export function isLater(left: string, right: string): boolean {
@@ -56,8 +66,9 @@ export class DeskTape {
       }
     }
     for (const record of records) {
-      if (!this.watermark || isLater(record.created_at, this.watermark)) {
-        this.watermark = record.created_at;
+      const stamp = changeStamp(record);
+      if (!this.watermark || isLater(stamp, this.watermark)) {
+        this.watermark = stamp;
       }
     }
     return added;
@@ -117,6 +128,18 @@ export function asRecord(value: unknown): DeskRecord | null {
   const record: DeskRecord = { id: row.id, created_at: row.created_at, event };
   if (typeof row.state === "string" && row.state.length > 0) {
     record.state = row.state;
+  }
+  if (typeof row.version === "number" && Number.isFinite(row.version)) {
+    record.version = row.version;
+  }
+  if (typeof row.rider_id === "string" && row.rider_id.length > 0) {
+    record.rider_id = row.rider_id;
+  }
+  if (row.ack_at === null || typeof row.ack_at === "string") {
+    record.ack_at = row.ack_at;
+  }
+  if (typeof row.updated_at === "string" && row.updated_at.length > 0) {
+    record.updated_at = row.updated_at;
   }
   return record;
 }

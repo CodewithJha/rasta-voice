@@ -52,3 +52,12 @@ async def first_completed(
         return tasks.index(winner), winner.result()
     finally:
         await cancel_all(tasks)
+
+
+def start_task(
+    awaitable: Awaitable[Any],
+    *,
+    name: str,
+) -> asyncio.Task[Any]:
+    """Spawn one owned background task. Callers must cancel and await it."""
+    return asyncio.create_task(awaitable, name=name)  # type: ignore[arg-type]
