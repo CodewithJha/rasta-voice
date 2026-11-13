@@ -19,6 +19,38 @@ It requires a public working-app video, a live nominated post with the Gnani
 tag and both hashtags, and submission through its linked form. Our internal
 post target is 14 Nov, 18:00 IST. Neither target is a submission confirmation.
 
+## Candidate update, 14 November 2026 IST
+
+The draft integration in [PR 92](https://github.com/CodewithJha/rasta-voice/pull/92)
+combines the pending security, privacy and API repairs with their prerequisites.
+It is not merged or deployed. Its [dated integration evidence](evidence/integration-2026-11-14.md)
+records 1,854 passing Python tests, 90.93% coverage, 57 typed source files,
+23 frontend unit tests, real keyless Ack/Resolve browser coverage, a scanned
+non-root image and bounded keyless load. It preserves the first failed load
+measurement and the exact source-digest secret-scan false-positive record.
+The README now records the conditional SOCKS prerequisite; this is not a claim
+that a new clean install or public live smoke has been completed here.
+
+Before the final checklist can become all yes:
+
+- Priyanshu reviews the small pending PRs. Upload/CSRF 86/87 land before their
+  dependent browser test 90. Repairs 88/89 target his privacy/API branches
+  83/85; Himanshu re-reviews those updated peer PRs before merging. Rule fix
+  91 leaves the 8/36 versus 0.8 acceptance failure open. The draft aggregate
+  92 must be updated after prerequisites merge, then reviewed as the smaller
+  remaining integration change. Neither owner merges their own PR.
+- Priyanshu provides the verified free-host origin and deployed revision, and
+  resolves the owner-side branch-enforcement limitation. Public speech stays
+  paused until release prerequisites are verified.
+- Himanshu runs the bounded public smoke and records actual IDs/channel
+  evidence. Consented field recordings remain separate from this public host.
+- Priyanshu times the actual script, records and publishes the working-app
+  video, and confirms official submission. Himanshu verifies the playable
+  video and nominated posts with their real public URLs.
+
+The historical table below remains dated to its original audit. No live
+provider success, consent, post, video, host or form receipt is invented.
+
 ## Checklist
 
 Every `no` remains open with an owner. A draft, historical README claim or
