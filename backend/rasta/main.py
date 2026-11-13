@@ -14,6 +14,7 @@ from gnani_client.errors import GnaniError, MissingApiKeyError
 from rasta.extract import extract_event
 from rasta.pipeline import SAMPLE_LINE, ClipTooLarge, EmptyClip, ingest, speak_sample
 from rasta.routes_events import events_router
+from rasta.routes_reply import reply_router
 from rasta.routes_stream import stream_router
 from rasta.settings import get_settings
 from rasta.store import attach_event_store
@@ -53,6 +54,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(events_router)
+app.include_router(reply_router)
 app.include_router(stream_router)
 
 
