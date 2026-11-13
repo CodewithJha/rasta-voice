@@ -20,7 +20,7 @@ from rasta.errors import (
     missing_key_http_exception,
 )
 from rasta.extract import extract_event
-from rasta.http_counts import HttpCountMiddleware, attach_http_counts
+from rasta.http_counts import attach_http_counts
 from rasta.limits import SpeechBudgetMiddleware, attach_speech_guard, await_held_work
 from rasta.pipeline import (
     SAMPLE_LINE,
@@ -121,7 +121,6 @@ def _configure_production(application: FastAPI) -> None:
         )
 
 
-app.add_middleware(HttpCountMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(get_settings().cors_allow_origins),

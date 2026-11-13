@@ -3,6 +3,7 @@
 from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from rasta.http_counts import HttpCountMiddleware
 from rasta.origins import request_http_scheme
 from rasta.request_id import RequestIdApp
 from rasta.settings import get_settings
@@ -64,7 +65,7 @@ class SecuredApp(RequestIdApp):
     """Request IDs enclose headers, which enclose FastAPI's full error stack."""
 
     def build_middleware_stack(self) -> ASGIApp:
-        return SecurityHeaders(self.build_application_stack())
+        return SecurityHeaders(HttpCountMiddleware(self.build_application_stack()))
 
     def build_application_stack(self) -> ASGIApp:
         """Contract wrappers override this hook while keeping policy outermost."""

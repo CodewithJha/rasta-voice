@@ -9,6 +9,7 @@ import threading
 from starlette.requests import ClientDisconnect
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from gnani_client.env import api_key
 from rasta.errors import error_json_response
 from rasta.store import attach_event_store
 
@@ -146,6 +147,10 @@ class IdempotencyMiddleware:
             return
         if isinstance(cached, tuple):
             status, payload = cached
+            if status < 400 and not api_key():
+                response = error_json_response(503, "missing_api_key", "GNANI_API_KEY is not set")
+                await response(scope, receive, send)
+                return
             from starlette.responses import Response
 
             response = Response(
