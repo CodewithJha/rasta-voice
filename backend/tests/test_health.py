@@ -70,7 +70,11 @@ def test_ready_reads_issue_13_budget_and_issue_19_store(client: TestClient):
     assert body["demo_credits_exhausted"] is False
     assert body["schema_version"] == CURRENT_SCHEMA_VERSION
     assert body["schema_version"] == attach_event_store(app).schema_version()
-    assert body["circuit_breaker"] == "not_deployed"
+    assert body["circuit_breaker"] == {
+        "gnani_stt": "closed",
+        "gnani_tts": "closed",
+        "llm": "closed",
+    }
     assert body["events_in_store"] == 0
 
 
@@ -102,7 +106,7 @@ def test_ready_503_when_schema_version_cannot_be_read(client: TestClient):
         body = response.json()
         assert body["ok"] is False
         assert body["schema_version"] is None
-        assert body["circuit_breaker"] == "not_deployed"
+        assert "circuit_breaker" in body
         assert "events_in_store" in body
         assert "db_writable" in body
         assert client.get("/api/health").status_code == 200

@@ -1,13 +1,13 @@
 """Shared HTTP client and a single bounded retry for LLM calls.
 
-Issue 29 will own this client, the breaker, and shutdown. Until then this
-module holds one ``httpx.Client`` configured with ``LLM_TIMEOUT_SECONDS``
-so callers do not open a throwaway client they cannot close. The timeout
-is passed to httpx as ``timeout=``, not a ignored background thread.
+This module uses the process-wide issue 29 client when one is attached,
+or a fallback ``httpx.Client`` configured with ``LLM_TIMEOUT_SECONDS``.
+The timeout is passed to httpx as ``timeout=``.
 
-Retries: at most once, and only on 429 or 5xx. 401 and 403 are never
-retried. Timeouts and connection errors fall through to the caller
-without a retry, so a hung free tier fails fast into the rules fallback.
+Retries stay bounded. 401 and 403 are never retried. Timeouts and
+connection errors fall through to the caller without a retry, so a hung
+free tier fails fast into the rules fallback. Issue 29 records LLM
+success and failure on the ``llm`` breaker.
 """
 
 from __future__ import annotations
@@ -49,10 +49,15 @@ def build_client(
 def get_shared_client(settings: Settings | None = None) -> httpx.Client:
     """Return the process-wide client, creating it if needed.
 
-    The client is recreated if the configured timeout has changed, so a
-    test (or a later settings reload) cannot leave a stale 4-second
-    budget in place after ``LLM_TIMEOUT_SECONDS`` is updated.
+    Prefer the issue 29 runtime client when it is attached. Otherwise the
+    client is recreated if the configured timeout has changed, so a test
+    cannot leave a stale 4-second budget after ``LLM_TIMEOUT_SECONDS``.
     """
+    from rasta.resilience import get_upstream_runtime
+
+    runtime = get_upstream_runtime()
+    if runtime is not None and not runtime.client.is_closed:
+        return runtime.client
     global _client, _client_timeout
     cfg = settings or get_settings()
     with _lock:
@@ -106,16 +111,20 @@ def request_with_retry(
         try:
             response = client.request(method, url, **kwargs)
         except httpx.TimeoutException as exc:
+            _record_llm(success=False)
             raise LlmError("LLM call timed out", reason="timeout") from exc
         except httpx.RequestError as exc:
+            _record_llm(success=False)
             raise LlmError("LLM connection failed", reason="connection_error") from exc
 
         status = response.status_code
         if status == 200:
+            _record_llm(success=True)
             return response
         reason = f"http_{status}"
         error = LlmError(f"LLM HTTP {status}", reason=reason)
         if status in NO_RETRY_STATUS:
+            _record_llm(success=False)
             raise error
         if status in RETRYABLE_STATUS and index < attempts - 1:
             delay = settings.llm_retry_backoff_seconds * (2**index)
@@ -124,6 +133,20 @@ def request_with_retry(
                 sleeper(delay)
             last_error = error
             continue
+        _record_llm(success=False)
         raise error
     assert last_error is not None
+    _record_llm(success=False)
     raise last_error
+
+
+def _record_llm(*, success: bool) -> None:
+    from rasta.resilience import get_upstream_runtime
+
+    runtime = get_upstream_runtime()
+    if runtime is None:
+        return
+    if success:
+        runtime.record_llm_success()
+    else:
+        runtime.record_llm_failure()
