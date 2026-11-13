@@ -13,6 +13,7 @@ from gnani_client.errors import GnaniError, MissingApiKeyError
 from gnani_client.stt_stream import SttStream
 from gnani_client.tts import TimbreTTS
 from rasta.pipeline import SAMPLE_LINE
+from rasta.request_id import watch_gnani_call
 from rasta.settings import Settings, get_settings
 from rasta.stream_runtime import AllowAllAdmission, attach_stream_runtime
 from rasta.stream_session import (
@@ -146,8 +147,11 @@ async def _sample_pcm(app: Any, settings: Settings) -> bytes:
             return await result
         return result
     return await asyncio.to_thread(
-        TimbreTTS().synthesize,
-        SAMPLE_LINE,
-        sample_rate=settings.stream_sample_rate,
-        container="raw",
+        watch_gnani_call,
+        "tts_inference",
+        lambda: TimbreTTS().synthesize(
+            SAMPLE_LINE,
+            sample_rate=settings.stream_sample_rate,
+            container="raw",
+        ),
     )

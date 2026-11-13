@@ -20,6 +20,7 @@ from gnani_client.errors import GnaniError
 from gnani_client.tts import TimbreTTS
 from gnani_client.wav import wav_duration_seconds
 from rasta.reply import reply_text
+from rasta.request_id import watch_gnani_call
 from rasta.schema import RiderEvent
 from rasta.store import attach_event_store
 
@@ -84,7 +85,10 @@ class ReplySpeech:
                     return cached
             try:
                 with httpx.Client(timeout=15.0) as http:
-                    audio = TimbreTTS(key=key, client=http).synthesize(text)
+                    audio = watch_gnani_call(
+                        "tts_inference",
+                        lambda: TimbreTTS(key=key, client=http).synthesize(text),
+                    )
             except httpx.HTTPError as exc:
                 raise GnaniError("Timbre TTS request failed") from exc
             seconds = wav_duration_seconds(audio)

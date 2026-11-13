@@ -20,6 +20,7 @@ from rasta.pipeline import (
     read_upload_clip,
     speak_sample,
 )
+from rasta.request_id import RequestIdMiddleware, configure_rasta_logging
 from rasta.routes_events import events_router
 from rasta.routes_reply import reply_router
 from rasta.routes_sim import sim_router
@@ -31,6 +32,7 @@ from rasta.stream_runtime import attach_stream_runtime
 
 # Real env vars win over .env, so a deploy secret is never shadowed.
 load_dotenv()
+configure_rasta_logging()
 log = logging.getLogger("rasta")
 
 
@@ -62,6 +64,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Added last, so it is the outermost wrapper and can stamp 4xx/5xx too.
+app.add_middleware(RequestIdMiddleware)
 app.include_router(events_router)
 app.include_router(reply_router)
 app.include_router(stream_router)
