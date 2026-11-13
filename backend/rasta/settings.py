@@ -59,6 +59,20 @@ ENV_PER_IP_REQUESTS_PER_MINUTE = "RASTA_PER_IP_REQUESTS_PER_MINUTE"
 ENV_TRUST_PROXY_HEADERS = "RASTA_TRUST_PROXY_HEADERS"
 ENV_MAX_SPEECH_SECONDS = "RASTA_MAX_SPEECH_SECONDS"
 ENV_MAX_CONCURRENT_SPEECH = "RASTA_MAX_CONCURRENT_SPEECH"
+ENV_CONNECT_TIMEOUT_SECONDS = "RASTA_CONNECT_TIMEOUT_SECONDS"
+ENV_STT_READ_TIMEOUT_SECONDS = "RASTA_STT_READ_TIMEOUT_SECONDS"
+ENV_TTS_READ_TIMEOUT_SECONDS = "RASTA_TTS_READ_TIMEOUT_SECONDS"
+ENV_BATCH_READ_TIMEOUT_SECONDS = "RASTA_BATCH_READ_TIMEOUT_SECONDS"
+ENV_INGEST_DEADLINE_SECONDS = "RASTA_INGEST_DEADLINE_SECONDS"
+ENV_MAX_INFLIGHT = "RASTA_MAX_INFLIGHT"
+ENV_INFLIGHT_WAIT_SECONDS = "RASTA_INFLIGHT_WAIT_SECONDS"
+ENV_UPSTREAM_MAX_RETRIES = "RASTA_UPSTREAM_MAX_RETRIES"
+ENV_UPSTREAM_RETRY_BACKOFF_SECONDS = "RASTA_UPSTREAM_RETRY_BACKOFF_SECONDS"
+ENV_RETRY_AFTER_CAP_SECONDS = "RASTA_RETRY_AFTER_CAP_SECONDS"
+ENV_BREAKER_FAILURE_THRESHOLD = "RASTA_BREAKER_FAILURE_THRESHOLD"
+ENV_BREAKER_WINDOW_SECONDS = "RASTA_BREAKER_WINDOW_SECONDS"
+ENV_BREAKER_OPEN_SECONDS = "RASTA_BREAKER_OPEN_SECONDS"
+ENV_SHUTDOWN_DRAIN_SECONDS = "RASTA_SHUTDOWN_DRAIN_SECONDS"
 
 # Checked 12 Nov 2026 against Groq deprecations: llama-3.1-8b-instant was
 # withdrawn for free and developer tiers on 16 Aug 2026. openai/gpt-oss-20b
@@ -128,6 +142,34 @@ DEFAULT_PER_IP_REQUESTS_PRODUCTION = 10
 DEFAULT_PER_IP_REQUESTS_DEVELOPMENT = 10_000
 MAX_PER_IP_REQUESTS_PER_MINUTE = 10_000
 DEFAULT_MAX_SPEECH_SECONDS = 30.0
+DEFAULT_CONNECT_TIMEOUT_SECONDS = 5.0
+DEFAULT_STT_READ_TIMEOUT_SECONDS = 15.0
+DEFAULT_TTS_READ_TIMEOUT_SECONDS = 20.0
+DEFAULT_BATCH_READ_TIMEOUT_SECONDS = 30.0
+DEFAULT_INGEST_DEADLINE_SECONDS = 25.0
+DEFAULT_MAX_INFLIGHT = 4
+DEFAULT_INFLIGHT_WAIT_SECONDS = 3.0
+DEFAULT_UPSTREAM_MAX_RETRIES = 2
+DEFAULT_UPSTREAM_RETRY_BACKOFF_SECONDS = 0.2
+DEFAULT_RETRY_AFTER_CAP_SECONDS = 2.0
+DEFAULT_BREAKER_FAILURE_THRESHOLD = 5
+DEFAULT_BREAKER_WINDOW_SECONDS = 60.0
+DEFAULT_BREAKER_OPEN_SECONDS = 30.0
+DEFAULT_SHUTDOWN_DRAIN_SECONDS = 10.0
+MAX_CONNECT_TIMEOUT_SECONDS = 30.0
+MAX_STT_READ_TIMEOUT_SECONDS = 60.0
+MAX_TTS_READ_TIMEOUT_SECONDS = 60.0
+MAX_BATCH_READ_TIMEOUT_SECONDS = 120.0
+MAX_INGEST_DEADLINE_SECONDS = 120.0
+MAX_MAX_INFLIGHT = 32
+MAX_INFLIGHT_WAIT_SECONDS = 30.0
+MAX_UPSTREAM_MAX_RETRIES = 2
+MAX_UPSTREAM_RETRY_BACKOFF_SECONDS = 5.0
+MAX_RETRY_AFTER_CAP_SECONDS = 10.0
+MAX_BREAKER_FAILURE_THRESHOLD = 20
+MAX_BREAKER_WINDOW_SECONDS = 300.0
+MAX_BREAKER_OPEN_SECONDS = 300.0
+MAX_SHUTDOWN_DRAIN_SECONDS = 60.0
 MAX_MAX_SPEECH_SECONDS = 120.0
 DEFAULT_MAX_CONCURRENT_SPEECH_PRODUCTION = 2
 DEFAULT_MAX_CONCURRENT_SPEECH_DEVELOPMENT = 32
@@ -382,6 +424,20 @@ class Settings:
     trust_proxy_headers: bool
     max_speech_seconds: float
     max_concurrent_speech: int
+    connect_timeout_seconds: float = 5.0
+    stt_read_timeout_seconds: float = 15.0
+    tts_read_timeout_seconds: float = 20.0
+    batch_read_timeout_seconds: float = 30.0
+    ingest_deadline_seconds: float = 25.0
+    max_inflight: int = 4
+    inflight_wait_seconds: float = 3.0
+    upstream_max_retries: int = 2
+    upstream_retry_backoff_seconds: float = 0.2
+    retry_after_cap_seconds: float = 2.0
+    breaker_failure_threshold: int = 5
+    breaker_window_seconds: float = 60.0
+    breaker_open_seconds: float = 30.0
+    shutdown_drain_seconds: float = 10.0
 
     @property
     def is_production(self) -> bool:
@@ -543,6 +599,73 @@ class Settings:
                 ENV_MAX_CONCURRENT_SPEECH,
                 concurrent_default,
                 MAX_MAX_CONCURRENT_SPEECH,
+            ),
+            connect_timeout_seconds=_bounded_float(
+                ENV_CONNECT_TIMEOUT_SECONDS,
+                DEFAULT_CONNECT_TIMEOUT_SECONDS,
+                MAX_CONNECT_TIMEOUT_SECONDS,
+            ),
+            stt_read_timeout_seconds=_bounded_float(
+                ENV_STT_READ_TIMEOUT_SECONDS,
+                DEFAULT_STT_READ_TIMEOUT_SECONDS,
+                MAX_STT_READ_TIMEOUT_SECONDS,
+            ),
+            tts_read_timeout_seconds=_bounded_float(
+                ENV_TTS_READ_TIMEOUT_SECONDS,
+                DEFAULT_TTS_READ_TIMEOUT_SECONDS,
+                MAX_TTS_READ_TIMEOUT_SECONDS,
+            ),
+            batch_read_timeout_seconds=_bounded_float(
+                ENV_BATCH_READ_TIMEOUT_SECONDS,
+                DEFAULT_BATCH_READ_TIMEOUT_SECONDS,
+                MAX_BATCH_READ_TIMEOUT_SECONDS,
+            ),
+            ingest_deadline_seconds=_bounded_float(
+                ENV_INGEST_DEADLINE_SECONDS,
+                DEFAULT_INGEST_DEADLINE_SECONDS,
+                MAX_INGEST_DEADLINE_SECONDS,
+            ),
+            max_inflight=_positive_int(
+                ENV_MAX_INFLIGHT, DEFAULT_MAX_INFLIGHT, MAX_MAX_INFLIGHT
+            ),
+            inflight_wait_seconds=_bounded_float(
+                ENV_INFLIGHT_WAIT_SECONDS,
+                DEFAULT_INFLIGHT_WAIT_SECONDS,
+                MAX_INFLIGHT_WAIT_SECONDS,
+            ),
+            upstream_max_retries=_non_negative_int(
+                ENV_UPSTREAM_MAX_RETRIES,
+                DEFAULT_UPSTREAM_MAX_RETRIES,
+                MAX_UPSTREAM_MAX_RETRIES,
+            ),
+            upstream_retry_backoff_seconds=_non_negative_float(
+                ENV_UPSTREAM_RETRY_BACKOFF_SECONDS,
+                DEFAULT_UPSTREAM_RETRY_BACKOFF_SECONDS,
+            ),
+            retry_after_cap_seconds=_bounded_float(
+                ENV_RETRY_AFTER_CAP_SECONDS,
+                DEFAULT_RETRY_AFTER_CAP_SECONDS,
+                MAX_RETRY_AFTER_CAP_SECONDS,
+            ),
+            breaker_failure_threshold=_positive_int(
+                ENV_BREAKER_FAILURE_THRESHOLD,
+                DEFAULT_BREAKER_FAILURE_THRESHOLD,
+                MAX_BREAKER_FAILURE_THRESHOLD,
+            ),
+            breaker_window_seconds=_bounded_float(
+                ENV_BREAKER_WINDOW_SECONDS,
+                DEFAULT_BREAKER_WINDOW_SECONDS,
+                MAX_BREAKER_WINDOW_SECONDS,
+            ),
+            breaker_open_seconds=_bounded_float(
+                ENV_BREAKER_OPEN_SECONDS,
+                DEFAULT_BREAKER_OPEN_SECONDS,
+                MAX_BREAKER_OPEN_SECONDS,
+            ),
+            shutdown_drain_seconds=_bounded_float(
+                ENV_SHUTDOWN_DRAIN_SECONDS,
+                DEFAULT_SHUTDOWN_DRAIN_SECONDS,
+                MAX_SHUTDOWN_DRAIN_SECONDS,
             ),
         )
 

@@ -1,13 +1,13 @@
 """Shared HTTP client and a single bounded retry for LLM calls.
 
-Issue 29 will own this client, the breaker, and shutdown. Until then this
-module holds one ``httpx.Client`` configured with ``LLM_TIMEOUT_SECONDS``
-so callers do not open a throwaway client they cannot close. The timeout
-is passed to httpx as ``timeout=``, not a ignored background thread.
+This module uses the process-wide issue 29 client when one is attached,
+or a fallback ``httpx.Client`` configured with ``LLM_TIMEOUT_SECONDS``.
+The timeout is passed to httpx as ``timeout=``.
 
-Retries: at most once, and only on 429 or 5xx. 401 and 403 are never
-retried. Timeouts and connection errors fall through to the caller
-without a retry, so a hung free tier fails fast into the rules fallback.
+Retries stay bounded. 401 and 403 are never retried. Timeouts and
+connection errors fall through to the caller without a retry, so a hung
+free tier fails fast into the rules fallback. Issue 29 records LLM
+success and failure on the ``llm`` breaker.
 """
 
 from __future__ import annotations
@@ -49,10 +49,15 @@ def build_client(
 def get_shared_client(settings: Settings | None = None) -> httpx.Client:
     """Return the process-wide client, creating it if needed.
 
-    The client is recreated if the configured timeout has changed, so a
-    test (or a later settings reload) cannot leave a stale 4-second
-    budget in place after ``LLM_TIMEOUT_SECONDS`` is updated.
+    Prefer the issue 29 runtime client when it is attached. Otherwise the
+    client is recreated if the configured timeout has changed, so a test
+    cannot leave a stale 4-second budget after ``LLM_TIMEOUT_SECONDS``.
     """
+    from rasta.resilience import get_upstream_runtime
+
+    runtime = get_upstream_runtime()
+    if runtime is not None and not runtime.client.is_closed:
+        return runtime.client
     global _client, _client_timeout
     cfg = settings or get_settings()
     with _lock:
@@ -100,30 +105,94 @@ def request_with_retry(
     Does not log the URL query (keys must not be placed there), the
     request body, or the response body.
     """
-    attempts = settings.llm_max_retries + 1
-    last_error: LlmError | None = None
-    for index in range(attempts):
-        try:
-            response = client.request(method, url, **kwargs)
-        except httpx.TimeoutException as exc:
-            raise LlmError("LLM call timed out", reason="timeout") from exc
-        except httpx.RequestError as exc:
-            raise LlmError("LLM connection failed", reason="connection_error") from exc
+    from rasta.resilience import UPSTREAM_LLM, ResilienceError, get_upstream_runtime
 
-        status = response.status_code
-        if status == 200:
-            return response
-        reason = f"http_{status}"
-        error = LlmError(f"LLM HTTP {status}", reason=reason)
-        if status in NO_RETRY_STATUS:
-            raise error
-        if status in RETRYABLE_STATUS and index < attempts - 1:
-            delay = settings.llm_retry_backoff_seconds * (2**index)
-            log.warning("LLM HTTP %s, retrying once", status)
-            if delay > 0:
-                sleeper(delay)
-            last_error = error
-            continue
-        raise error
-    assert last_error is not None
-    raise last_error
+    runtime = get_upstream_runtime()
+
+    def send() -> httpx.Response:
+        if runtime is not None and not runtime.accepting:
+            raise LlmError("The process is shutting down.", reason="shutting_down")
+        claimed = False
+        recorded = False
+
+        def record(*, success: bool) -> None:
+            nonlocal recorded
+            _record_llm(success=success)
+            recorded = True
+
+        if runtime is not None:
+            breaker = runtime.breakers[UPSTREAM_LLM]
+            if not breaker.allow():
+                runtime.publish()
+                raise LlmError("LLM circuit is open", reason="circuit_open")
+            claimed = True
+        started = False
+        try:
+            attempts = settings.llm_max_retries + 1
+            last_error: LlmError | None = None
+            for index in range(attempts):
+                if runtime is not None and not runtime.accepting:
+                    raise LlmError(
+                        "The process is shutting down.", reason="shutting_down"
+                    )
+                try:
+                    started = True
+                    response = client.request(method, url, **kwargs)
+                except httpx.TimeoutException as exc:
+                    record(success=False)
+                    raise LlmError("LLM call timed out", reason="timeout") from exc
+                except httpx.RequestError as exc:
+                    record(success=False)
+                    raise LlmError("LLM connection failed", reason="connection_error") from exc
+
+                status = response.status_code
+                if status == 200:
+                    record(success=True)
+                    return response
+                reason = f"http_{status}"
+                error = LlmError(f"LLM HTTP {status}", reason=reason)
+                if status in NO_RETRY_STATUS:
+                    record(success=False)
+                    raise error
+                if status in RETRYABLE_STATUS and index < attempts - 1:
+                    delay = settings.llm_retry_backoff_seconds * (2**index)
+                    log.warning("LLM HTTP %s, retrying once", status)
+                    if delay > 0:
+                        sleeper(delay)
+                    last_error = error
+                    continue
+                record(success=False)
+                raise error
+            assert last_error is not None
+            record(success=False)
+            raise last_error
+        except Exception:
+            if claimed and not recorded:
+                assert runtime is not None
+                if not started:
+                    runtime.breakers[UPSTREAM_LLM].release_unstarted_probe()
+                else:
+                    record(success=False)
+            raise
+
+    if runtime is None:
+        return send()
+    try:
+        with runtime.operation():
+            return send()
+    except ResilienceError as exc:
+        if exc.code == "shutting_down":
+            raise LlmError(exc.message, reason="shutting_down") from exc
+        raise
+
+
+def _record_llm(*, success: bool) -> None:
+    from rasta.resilience import get_upstream_runtime
+
+    runtime = get_upstream_runtime()
+    if runtime is None:
+        return
+    if success:
+        runtime.record_llm_success()
+    else:
+        runtime.record_llm_failure()

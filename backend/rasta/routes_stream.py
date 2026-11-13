@@ -15,6 +15,7 @@ from gnani_client.tts import TimbreTTS
 from rasta.origins import origin_allowed
 from rasta.pipeline import SAMPLE_LINE
 from rasta.request_id import watch_gnani_call
+from rasta.resilience import UPSTREAM_TTS, get_upstream_runtime
 from rasta.settings import Settings, get_settings
 from rasta.stream_runtime import AllowAllAdmission, attach_stream_runtime
 from rasta.stream_session import (
@@ -161,12 +162,22 @@ async def _sample_pcm(app: Any, settings: Settings) -> bytes:
         if asyncio.iscoroutine(result):
             return await result
         return result
-    return await asyncio.to_thread(
-        watch_gnani_call,
-        "tts_inference",
-        lambda: TimbreTTS().synthesize(
-            SAMPLE_LINE,
-            sample_rate=settings.stream_sample_rate,
-            container="raw",
-        ),
-    )
+    def speak() -> bytes:
+        runtime = get_upstream_runtime()
+        client = None if runtime is None else runtime.client
+
+        def work() -> bytes:
+            return TimbreTTS(client=client).synthesize(
+                SAMPLE_LINE,
+                sample_rate=settings.stream_sample_rate,
+                container="raw",
+            )
+
+        def watched():
+            return watch_gnani_call("tts_inference", work)
+
+        if runtime is None:
+            return watched()
+        return runtime.call_gnani(UPSTREAM_TTS, watched)
+
+    return await asyncio.to_thread(speak)

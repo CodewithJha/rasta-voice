@@ -18,6 +18,7 @@ from rasta.extractors.breaker import set_breaker
 from rasta.extractors.http import build_client, close_shared_client
 from rasta.extractors.prompt import SYSTEM_PROMPT, TRANSCRIPT_END, TRANSCRIPT_START
 from rasta.llm import GEMINI_MODEL, GROQ_MODEL, groq_request_body
+from rasta.resilience import set_upstream_runtime
 from rasta.settings import (
     DEFAULT_LLM_TIMEOUT_SECONDS,
     ENV_GEMINI_API_KEY,
@@ -76,6 +77,7 @@ def _isolate(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest):
     close_shared_client()
     clear_settings_cache()
     set_breaker(None)
+    set_upstream_runtime(None)
     if request.node.get_closest_marker("live") is None:
         monkeypatch.delenv(ENV_GROQ_API_KEY, raising=False)
         monkeypatch.delenv(ENV_GEMINI_API_KEY, raising=False)
@@ -83,6 +85,7 @@ def _isolate(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest):
         clear_settings_cache()
     yield
     set_breaker(None)
+    set_upstream_runtime(None)
     close_shared_client()
     clear_settings_cache()
 

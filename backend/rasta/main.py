@@ -1,5 +1,6 @@
 """FastAPI app. Every speech call goes to the real Gnani APIs."""
 
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -22,6 +23,11 @@ from rasta.pipeline import (
     speak_sample,
 )
 from rasta.request_id import RequestIdApp, configure_rasta_logging
+from rasta.resilience import (
+    ResilienceError,
+    attach_upstream_runtime,
+    shutdown_upstream_runtime,
+)
 from rasta.routes_admin import admin_router
 from rasta.routes_events import events_router
 from rasta.routes_health import health_router
@@ -47,22 +53,22 @@ async def lifespan(app: FastAPI):
     attach_stream_runtime(app, replace=True)
     attach_dispatch_auth(app, replace=True)
     attach_speech_guard(app, replace=True)
+    attach_upstream_runtime(app, replace=True)
     try:
         yield
     finally:
-        # Cancel live /api/stream sessions first. Issue 29 will own a broader
-        # inflight cap; this registry is the hook it can reuse.
+        # Stop new speech first, close live streams, drain inflight Gnani
+        # work, then close the HTTP client and the SQLite store.
+        await asyncio.to_thread(shutdown_upstream_runtime, app)
         registry = getattr(app.state, "stream_registry", None)
         if registry is not None:
             await registry.aclose()
-        store = getattr(app.state, "event_store", None)
-        if store is not None:
-            store.close()
-        # Issue 29 will own shutdown of the shared client; close it here until then
-        # so a one-off LLM client cannot outlive the process.
         from rasta.llm import close_shared_client
 
         close_shared_client()
+        store = getattr(app.state, "event_store", None)
+        if store is not None:
+            store.close()
 
 
 app = RequestIdApp(title="Rasta Voice", version="0.1.0", lifespan=lifespan)
@@ -112,7 +118,10 @@ async def ingest_upload(audio_file: UploadFile = File(...)) -> dict:
     filename = audio_file.filename or "clip.wav"
     # The pipeline is still sync (Prisma and Timbre clients are sync). Run it
     # in a worker thread so an LLM or STT wait cannot block the event loop.
-    return await _run_speech(lambda: attach_event_store(app).append(ingest(data, filename)))
+    return await _run_speech(
+        lambda: attach_event_store(app).append(ingest(data, filename)),
+        deadline=get_settings().ingest_deadline_seconds,
+    )
 
 
 @app.post("/api/ingest/sample")
@@ -134,14 +143,31 @@ async def ingest_sample(condition: str = "clean") -> dict:
         stamped["sample_text"] = SAMPLE_LINE
         return envelope(condition, wav, stamped)
 
-    return await _run_speech(run)
+    return await _run_speech(run, deadline=get_settings().ingest_deadline_seconds)
 
 
-async def _run_speech(work):
+async def _run_speech(work, *, deadline: float | None = None):
+    runtime = getattr(app.state, "upstream_runtime", None)
+    if runtime is not None and not runtime.accepting:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "shutting_down", "message": "The process is shutting down."},
+        )
+    limit = get_settings().max_speech_seconds if deadline is None else deadline
+
+    def leased():
+        if runtime is None:
+            return _guard(work)
+        with runtime.operation():
+            return _guard(work)
+
     try:
-        return await await_held_work(lambda: _guard(work), get_settings().max_speech_seconds)
+        return await await_held_work(leased, limit)
     except TimeoutError as exc:
-        raise HTTPException(status_code=504, detail="The speech request timed out.") from exc
+        raise HTTPException(
+            status_code=504,
+            detail={"code": "timeout", "message": "The speech request timed out."},
+        ) from exc
 
 
 def _guard(work):
@@ -155,6 +181,9 @@ def _guard(work):
         raise HTTPException(status_code=413, detail=str(exc)) from exc
     except NotImplementedError as exc:
         raise HTTPException(status_code=501, detail=str(exc)) from exc
+    except ResilienceError as exc:
+        log.warning("upstream resilience: %s", exc)
+        raise HTTPException(status_code=exc.status, detail=exc.as_detail()) from exc
     except MissingApiKeyError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except GnaniError as exc:
