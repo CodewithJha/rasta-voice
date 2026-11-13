@@ -1,0 +1,138 @@
+name: container
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  container:
+    name: container
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Manual handoff is only available from main
+        if: github.event_name == 'workflow_dispatch'
+        run: test "$GITHUB_REF" = refs/heads/main
+      - name: Build the real production image
+        run: docker build --pull --tag rasta-voice:ci .
+      - name: Run the non-root image without a speech key
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(docker image inspect --format '{{.Config.User}}' rasta-voice:ci)" = rasta
+          docker run --detach --name rasta-ci \
+            --publish 127.0.0.1:7860:7860 \
+            --health-interval=1s --health-start-period=1s \
+            --env GNANI_API_KEY= \
+            --env DISPATCH_PASSCODE=ci-image-check \
+            --env LLM_PROVIDER=rules \
+            rasta-voice:ci
+          docker exec rasta-ci python -c 'import os; assert os.geteuid() == 1000'
+          docker exec rasta-ci pip check
+          python3 - <<'PY'
+          import json
+          import re
+          import time
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, urlopen
+          from uuid import UUID
+
+          origin = "http://127.0.0.1:7860"
+
+          def request(path, method="GET", headers=None):
+              try:
+                  response = urlopen(Request(origin + path, method=method, headers=headers or {}), timeout=3)
+              except HTTPError as response:
+                  return response.code, response.headers, response.read()
+              with response:
+                  return response.status, response.headers, response.read()
+
+          for attempt in range(60):
+              try:
+                  status, headers, body = request("/api/health")
+                  if status == 200:
+                      break
+              except (URLError, TimeoutError, ConnectionError):
+                  pass
+              time.sleep(0.5)
+          else:
+              raise AssertionError("container health never became ready")
+          health = json.loads(body)
+          assert health.get("ok") is True and health.get("gnani_key_set") is False
+          UUID(headers["X-Request-ID"])
+          status, _, body = request("/")
+          assert status == 200 and b"<html" in body.lower()
+          assets = re.findall(r'(?:src|href)="(/assets/[^\"]+)"', body.decode())
+          assert any(path.endswith(".js") for path in assets)
+          assert any(path.endswith(".css") for path in assets)
+          for path in assets:
+              status, _, asset = request(path)
+              assert status == 200 and asset, "built frontend asset is missing"
+          assert request("/api/events")[0] == 401
+          assert request("/api/events", headers={"X-Dispatch-Passcode": "ci-image-check"})[0] == 200
+          # Exactly one missing-key POST; never invoke a configured speech path.
+          status, headers, _ = request("/api/ingest/sample", method="POST")
+          assert status == 503
+          UUID(headers["X-Request-ID"])
+          print("Container passed: non-root, health, built assets, protected desk, missing-key 503; no provider key supplied")
+          PY
+          for attempt in $(seq 1 15); do
+            state=$(docker inspect --format '{{.State.Health.Status}}' rasta-ci)
+            if [ "$state" = healthy ]; then
+              break
+            fi
+            sleep 1
+          done
+          test "$state" = healthy
+      - name: Install checksum-verified Trivy CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --retry 2 \
+            https://github.com/aquasecurity/trivy/releases/download/v0.76.2/trivy_0.76.2_Linux-64bit.tar.gz \
+            --output "$RUNNER_TEMP/trivy.tar.gz"
+          echo "bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf  $RUNNER_TEMP/trivy.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/trivy.tar.gz" -C "$RUNNER_TEMP" trivy
+      - name: Scan the built OS and Python packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/trivy" image --scanners vuln \
+            --severity HIGH,CRITICAL --exit-code 1 --timeout 10m \
+            --ignore-unfixed=false --format table rasta-voice:ci
+      - name: Manual release and rollback handoff
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## Image built, checked and scanned
+
+          This job does not publish an image, create a release or update a host.
+          Follow docs/DEPLOY.md to deploy this exact checked revision manually.
+          Keep all provider keys and passcodes in the host secret store.
+          For rollback, rebuild the previously verified tag/commit with the same
+          host configuration, then repeat health, desk authentication and smoke checks.
+          Public live-smoke evidence and the host URL remain separate acceptance checks.
+          EOF
+          printf '\nChecked commit: `%s`.\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - name: Show keyless runtime logs and remove the test container
+        if: always()
+        shell: bash
+        run: |
+          if docker inspect rasta-ci >/dev/null 2>&1; then
+            docker logs rasta-ci
+            docker rm --force rasta-ci
+          fi
