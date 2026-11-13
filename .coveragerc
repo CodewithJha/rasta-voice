@@ -1,0 +1,11 @@
+[run]
+source =
+    backend/rasta
+    gnani_client/gnani_client
+    benchmark/rasta_bench
+omit =
+    */tests/*
+
+[report]
+show_missing = True
+fail_under = 80

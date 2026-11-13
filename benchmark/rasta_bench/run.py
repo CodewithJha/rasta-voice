@@ -389,8 +389,8 @@ def summarize(rows: list[dict], systems: dict, output: Path, base: str, plan: di
             jobs[system].add(evidence["job_id"])
     complete = not missing
     systems_out = []
-    by_noise = []
-    by_snr = []
+    by_noise: list[dict] = []
+    by_snr: list[dict] = []
     for system, config in systems.items():
         matched = [r for r in records if r["system"] == system]
         systems_out.append({"id": system, "config": config,
