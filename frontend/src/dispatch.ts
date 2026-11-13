@@ -140,7 +140,7 @@ export function initDispatch(root: HTMLElement): void {
     const controller = new AbortController();
     inflight = controller;
     try {
-      const response = await fetchWithTimeout(tape.url(), {
+      const { response, text } = await fetchWithTimeout(tape.url(), {
         signal: controller.signal,
         credentials: "same-origin",
       });
@@ -152,7 +152,7 @@ export function initDispatch(root: HTMLElement): void {
         return shouldBackoff(response.status) ? "backoff" : "ok";
       }
       unlockOpen = false;
-      ingestFetched(readRecords(await response.json()));
+      ingestFetched(readRecords(JSON.parse(text)));
       return "ok";
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -193,7 +193,7 @@ export function initDispatch(root: HTMLElement): void {
     const controller = new AbortController();
     inflight = controller;
     try {
-      const response = await fetchWithTimeout("/api/dispatch/unlock", {
+      const { response } = await fetchWithTimeout("/api/dispatch/unlock", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },

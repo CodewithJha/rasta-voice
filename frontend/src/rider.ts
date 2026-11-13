@@ -669,8 +669,7 @@ async function post(
   out.dataset.mode = "pending";
   out.textContent = t("rider.onTheLine");
   try {
-    const response = await fetchWithTimeout(url, init);
-    const text = await response.text();
+    const { response, text } = await fetchWithTimeout(url, init);
     if (!response.ok) {
       showError(out, response.status, text);
       return;
@@ -701,8 +700,7 @@ async function postReply(
   textEl: HTMLElement,
 ): Promise<void> {
   try {
-    const response = await fetchWithTimeout(url, { method: "POST" });
-    const text = await response.text();
+    const { response, text } = await fetchWithTimeout(url, { method: "POST" });
     if (!response.ok) {
       showError(out, response.status, text);
       return;
