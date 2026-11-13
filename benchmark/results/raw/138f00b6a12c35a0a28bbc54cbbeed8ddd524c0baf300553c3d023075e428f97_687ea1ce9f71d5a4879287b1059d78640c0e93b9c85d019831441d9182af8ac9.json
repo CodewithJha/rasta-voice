@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "687ea1ce9f71d5a4879287b1059d78640c0e93b9c85d019831441d9182af8ac9",
+  "config_hash": "138f00b6a12c35a0a28bbc54cbbeed8ddd524c0baf300553c3d023075e428f97",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": true,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43e-45a3-73d9-9436-8d974c21366b",
+  "file_id": "0b2485c1-38b8-430a-9a02-e9998edd63da",
+  "evaluated_at": "2026-11-13T09:31:26.380514+00:00",
+  "full_transcript": "order चार के customer को दो बार call किया, phone नहीं उठा रहे।",
+  "transcript_sha256": "fe20e637589420cc767d14a6c1dcee11310cebcc0a7dd0d2e9cc4c45c8241d80"
+}

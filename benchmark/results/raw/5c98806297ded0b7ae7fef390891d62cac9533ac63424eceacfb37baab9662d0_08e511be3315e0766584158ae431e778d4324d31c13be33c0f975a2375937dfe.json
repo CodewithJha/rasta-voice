@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "08e511be3315e0766584158ae431e778d4324d31c13be33c0f975a2375937dfe",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-3eba-7d77-afdd-d79a6588b2a6",
+  "file_id": "ea4c6790-ed47-41ad-8157-229b1413ea17",
+  "evaluated_at": "2026-11-13T09:25:19.990053+00:00",
+  "full_transcript": "Wait, customer phone नहीं उठा रहा। Order one eight",
+  "transcript_sha256": "64813ddd9ecd83f6689e04c0c95c077e2324ef59d64d5c88570b5179c9062e67"
+}

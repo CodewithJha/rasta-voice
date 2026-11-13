@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "89b152bb8c751e0e7e854e18b72ea32c53654af964a44936e9465935775c69f4",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-9760-71c5-8f4d-359158e05d73",
+  "file_id": "ffaf297e-50f6-4f0c-8eea-49945ab88190",
+  "evaluated_at": "2026-11-13T09:22:07.416473+00:00",
+  "full_transcript": "ऑर्डर फोर का एड्रेस सही है, लेकिन कस्टमर फ़ोन नहीं उठा।",
+  "transcript_sha256": "ed4fbbd94427807af66965e668ba0c1d2d3cac3bb46cedefe6670946faee09c1"
+}

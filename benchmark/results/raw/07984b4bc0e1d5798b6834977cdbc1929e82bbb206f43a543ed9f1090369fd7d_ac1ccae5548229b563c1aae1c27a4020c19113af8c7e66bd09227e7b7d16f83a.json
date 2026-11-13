@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "ac1ccae5548229b563c1aae1c27a4020c19113af8c7e66bd09227e7b7d16f83a",
+  "config_hash": "07984b4bc0e1d5798b6834977cdbc1929e82bbb206f43a543ed9f1090369fd7d",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "bias_list": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "bias_score": 1.0
+  },
+  "job_id": "01a1d436-e9ba-7eb2-8294-f58469682e67",
+  "file_id": "3fdb2035-23fa-4d12-835c-ba9ae7d42b0f",
+  "evaluated_at": "2026-11-13T09:23:32.562680+00:00",
+  "full_transcript": "कस्टमर नॉट चेकिंग बेल भी बजाई पर कोई जवाब नहीं",
+  "transcript_sha256": "9d4b93a58c94d1453b4ad1e8414ad16593a06baf8a435aed9b578daf6af90e9c"
+}

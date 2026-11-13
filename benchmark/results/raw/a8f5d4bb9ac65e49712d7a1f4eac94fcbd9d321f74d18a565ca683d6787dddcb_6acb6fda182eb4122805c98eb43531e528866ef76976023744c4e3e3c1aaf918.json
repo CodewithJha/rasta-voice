@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "6acb6fda182eb4122805c98eb43531e528866ef76976023744c4e3e3c1aaf918",
+  "config_hash": "a8f5d4bb9ac65e49712d7a1f4eac94fcbd9d321f74d18a565ca683d6787dddcb",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43b-f38a-7c34-84d7-7fa1a8730295",
+  "file_id": "edad5b4b-0a2f-4581-9556-a20ab5d1b091",
+  "evaluated_at": "2026-11-13T09:30:06.420392+00:00",
+  "full_transcript": "ग्राहक सेवा के लिए। कस्टमर फोन नहीं उठा करवा दो।",
+  "transcript_sha256": "1b5c30ae21420c4a259eb12382f6423727559f362f793ba885b86ec25572312f"
+}

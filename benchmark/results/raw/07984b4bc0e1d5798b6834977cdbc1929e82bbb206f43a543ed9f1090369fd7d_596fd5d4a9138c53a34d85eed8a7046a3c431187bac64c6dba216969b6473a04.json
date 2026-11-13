@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "596fd5d4a9138c53a34d85eed8a7046a3c431187bac64c6dba216969b6473a04",
+  "config_hash": "07984b4bc0e1d5798b6834977cdbc1929e82bbb206f43a543ed9f1090369fd7d",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "bias_list": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "bias_score": 1.0
+  },
+  "job_id": "01a1d436-fe18-74eb-b76f-f76e7c5fbf35",
+  "file_id": "0a049f7c-81e4-43e0-bbe0-062a44749a93",
+  "evaluated_at": "2026-11-13T09:24:38.592614+00:00",
+  "full_transcript": "डिस्पैच एक बार संपर्क करवा 2",
+  "transcript_sha256": "b36237d66944552b07718e687d7768d397440ffa961f99159f3be2438a906274"
+}

@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "b0f15eedd951b072d23b3fb92bd7218a3ba034f52a645d53f667d5d7e591b135",
+  "config_hash": "138f00b6a12c35a0a28bbc54cbbeed8ddd524c0baf300553c3d023075e428f97",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": true,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43e-5a2a-764d-9b52-ebce0b50efdc",
+  "file_id": "df132ad0-5a83-4875-9d50-6181ebf8a89f",
+  "evaluated_at": "2026-11-13T09:32:42.281983+00:00",
+  "full_transcript": "Gate band मिला और address मिला। लेकिन customer phone नहीं उठा।",
+  "transcript_sha256": "a3e8acc7268784e9d6d50d04778fb5f0ac15e0902c72d8b596637c0580634ba4"
+}

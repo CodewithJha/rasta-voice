@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "b737356b05d1d4d5fc931ab26f96a57726918f522f1384cc1d3cb991861b2633",
+  "config_hash": "138f00b6a12c35a0a28bbc54cbbeed8ddd524c0baf300553c3d023075e428f97",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": true,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43e-504b-721e-8720-67920511f41a",
+  "file_id": "8aeef9bb-863d-4d0e-9150-7737f5408889",
+  "evaluated_at": "2026-11-13T09:32:15.086992+00:00",
+  "full_transcript": "customer और phone नहीं bell भी बजाई पर",
+  "transcript_sha256": "a3095d3e76cb401b9f5c4bf12ce51c5ba0bebb54d911f7bba230658132b29fa5"
+}

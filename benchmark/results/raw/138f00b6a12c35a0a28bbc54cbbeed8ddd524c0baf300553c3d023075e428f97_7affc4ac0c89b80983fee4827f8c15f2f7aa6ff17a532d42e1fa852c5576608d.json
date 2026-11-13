@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "7affc4ac0c89b80983fee4827f8c15f2f7aa6ff17a532d42e1fa852c5576608d",
+  "config_hash": "138f00b6a12c35a0a28bbc54cbbeed8ddd524c0baf300553c3d023075e428f97",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": true,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43e-6a0a-75b8-93ca-b2136b21e16b",
+  "file_id": "7a886e1f-7951-432c-b2e1-32ca52807cb4",
+  "evaluated_at": "2026-11-13T09:34:03.477079+00:00",
+  "full_transcript": "ग्राहक से बात नहीं हो पा रही। dispatch एक बार संपर्क करवा दो।",
+  "transcript_sha256": "f697028e384328c77ee817bffae9bec00c8282a0d82ba6949130ec4c86def3ad"
+}

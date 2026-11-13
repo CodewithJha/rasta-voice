@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "cca65451903ce27d1e32739c7a2dd9b69dfbe7c6d709555277fc344c782e46a3",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-8690-7a4e-8a33-57db286be5cb",
+  "file_id": "344e85f3-c935-427b-85ea-20c91fcfa52d",
+  "evaluated_at": "2026-11-13T09:21:15.415807+00:00",
+  "full_transcript": "भैया 4 के कस्टमर को 2 बार फ़ोन नहीं उठा रहा फ़ोन नहीं उठा 18",
+  "transcript_sha256": "4adaef51d65520a195b4df2adc7912cea1c44fef25c05c898f04699657e729cf"
+}

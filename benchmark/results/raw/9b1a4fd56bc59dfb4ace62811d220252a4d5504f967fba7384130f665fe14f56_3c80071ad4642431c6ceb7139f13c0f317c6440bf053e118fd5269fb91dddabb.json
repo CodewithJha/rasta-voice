@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "3c80071ad4642431c6ceb7139f13c0f317c6440bf053e118fd5269fb91dddabb",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-9760-71c5-8f4d-359158e05d73",
+  "file_id": "7844a3ed-b718-4c0b-9512-1fc3982b897c",
+  "evaluated_at": "2026-11-13T09:21:58.642999+00:00",
+  "full_transcript": "गेट बैंड मिला और फ़ोन नहीं लग रहा, ऑर्डर 18 डिस्पैच से कॉल करवा 2",
+  "transcript_sha256": "4872f869177dd1ded5da30cd0436e38d9c0fbd54df6c92893c800e7dddfb833c"
+}

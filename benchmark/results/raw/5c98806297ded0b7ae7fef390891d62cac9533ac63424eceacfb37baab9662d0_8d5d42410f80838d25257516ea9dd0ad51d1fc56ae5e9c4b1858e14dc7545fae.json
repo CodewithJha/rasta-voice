@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "8d5d42410f80838d25257516ea9dd0ad51d1fc56ae5e9c4b1858e14dc7545fae",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-52c5-766f-a40d-88fc7e81da4f",
+  "file_id": "38db3676-6671-442b-a8c2-95cc59aabc7c",
+  "evaluated_at": "2026-11-13T09:26:31.385952+00:00",
+  "full_transcript": "गेट बैंक मिला और फोन नहीं लग रहा। Order eighteen dispatch से call करवा दूँ?",
+  "transcript_sha256": "c7aab1cec1f59aac11e9f5288ce82e491ee245aa3d7e299ea7c4e88770f01c6b"
+}

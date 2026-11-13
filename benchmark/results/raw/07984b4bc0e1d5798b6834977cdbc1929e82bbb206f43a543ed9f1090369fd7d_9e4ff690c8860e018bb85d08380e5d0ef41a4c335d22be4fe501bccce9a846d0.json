@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "9e4ff690c8860e018bb85d08380e5d0ef41a4c335d22be4fe501bccce9a846d0",
+  "config_hash": "07984b4bc0e1d5798b6834977cdbc1929e82bbb206f43a543ed9f1090369fd7d",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "bias_list": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "bias_score": 1.0
+  },
+  "job_id": "01a1d436-f3f2-71de-b35c-c86dfac0e893",
+  "file_id": "ce84376c-a86f-4a1c-bb3b-044cfc32b845",
+  "evaluated_at": "2026-11-13T09:23:56.386943+00:00",
+  "full_transcript": "ऑर्डर फोर का एड्रेस लेकिन कस्टमर फ़ोन नहीं",
+  "transcript_sha256": "d18ca738ea6435420eb8a3a5ef1a587fc5714ea9621809485209f8336eda22ec"
+}

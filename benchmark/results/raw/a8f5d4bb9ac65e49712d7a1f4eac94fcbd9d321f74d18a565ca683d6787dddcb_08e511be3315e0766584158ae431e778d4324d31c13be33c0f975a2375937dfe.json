@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "08e511be3315e0766584158ae431e778d4324d31c13be33c0f975a2375937dfe",
+  "config_hash": "a8f5d4bb9ac65e49712d7a1f4eac94fcbd9d321f74d18a565ca683d6787dddcb",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43b-d54d-78c0-8153-a15e7766ffdc",
+  "file_id": "129d0a0d-8286-4e19-bc9d-9d1c36909cfa",
+  "evaluated_at": "2026-11-13T09:27:58.850185+00:00",
+  "full_transcript": "Wait, customer phone नहीं उठा रहा। Order one eight",
+  "transcript_sha256": "64813ddd9ecd83f6689e04c0c95c077e2324ef59d64d5c88570b5179c9062e67"
+}

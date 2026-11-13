@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "89b152bb8c751e0e7e854e18b72ea32c53654af964a44936e9465935775c69f4",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-52c5-766f-a40d-88fc7e81da4f",
+  "file_id": "05361a7b-aa8d-4a02-8bb6-57f06a787287",
+  "evaluated_at": "2026-11-13T09:26:38.686167+00:00",
+  "full_transcript": "order four का address सही है, लेकिन customer phone नहीं उठा रहा।",
+  "transcript_sha256": "e923095a3a88a3fe183ae2bd663fdb2a6a5c89d61dc87a097246bc92e839de0d"
+}

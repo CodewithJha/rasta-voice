@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "8daf7046a28fef903a1c34d23615273513cd423d7445d0162080845c318f2b72",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-5cca-79e4-be94-1e47be57246a",
+  "file_id": "53e67f2e-a5e4-4af8-bb7e-4c920654eb57",
+  "evaluated_at": "2026-11-13T09:27:32.572928+00:00",
+  "full_transcript": "बात नहीं हो पा रही। dispatch एक बार संपर्क करवाऊंगा।",
+  "transcript_sha256": "e8eeadd3e4006c5aa991acefe7885ec1ed2f6fa7a7e12170b1e58dd4ab76ba3e"
+}

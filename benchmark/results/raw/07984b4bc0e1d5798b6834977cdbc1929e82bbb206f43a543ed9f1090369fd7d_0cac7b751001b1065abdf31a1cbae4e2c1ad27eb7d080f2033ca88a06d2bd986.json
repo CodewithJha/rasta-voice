@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "0cac7b751001b1065abdf31a1cbae4e2c1ad27eb7d080f2033ca88a06d2bd986",
+  "config_hash": "07984b4bc0e1d5798b6834977cdbc1929e82bbb206f43a543ed9f1090369fd7d",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "bias_list": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "bias_score": 1.0
+  },
+  "job_id": "01a1d436-fe18-74eb-b76f-f76e7c5fbf35",
+  "file_id": "c344d602-e362-4589-8700-3ab8eb36f484",
+  "evaluated_at": "2026-11-13T09:24:36.406009+00:00",
+  "full_transcript": "भैया ऑर्डर 1 0 2 का कस्टमर फ़ोन नहीं उठा रहा, मैं गेट पर हूँ।",
+  "transcript_sha256": "8ab72a92960b0b1cca25726f21146831b8ff062ec3b8c8ffce1648650b4bf56d"
+}

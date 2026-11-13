@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "d833e48bac077f624546de9f1163a93393fa6bc2d05becb9d40ef64d7b54782e",
+  "config_hash": "a8f5d4bb9ac65e49712d7a1f4eac94fcbd9d321f74d18a565ca683d6787dddcb",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43b-e9b7-7ac7-8001-bf59faab6962",
+  "file_id": "0fc71036-a2cb-48f7-964f-7b3e56add278",
+  "evaluated_at": "2026-11-13T09:29:24.845611+00:00",
+  "full_transcript": "Order भैया order एक शून्य दो का customer phone नहीं उठा रहा।",
+  "transcript_sha256": "7413fea4643a7fcea6c0c4e65a48c715083528f82258973c2c83bd73c8c10759"
+}

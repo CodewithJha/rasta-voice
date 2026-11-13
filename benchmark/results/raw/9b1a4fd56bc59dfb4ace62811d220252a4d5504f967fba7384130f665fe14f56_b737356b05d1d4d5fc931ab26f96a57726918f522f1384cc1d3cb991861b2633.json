@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "b737356b05d1d4d5fc931ab26f96a57726918f522f1384cc1d3cb991861b2633",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-90b3-7457-883c-f074a47f1b50",
+  "file_id": "dcc666d8-14b3-4384-9a6d-b12bfb16aaf2",
+  "evaluated_at": "2026-11-13T09:18:30.613530+00:00",
+  "full_transcript": "कस्टमर मिला और फ़ोन नहीं बेल भी बजाई पर",
+  "transcript_sha256": "fe6535bb590f118204a30b8544be14a7129cb06e773371ee8fcb5014fb816c03"
+}

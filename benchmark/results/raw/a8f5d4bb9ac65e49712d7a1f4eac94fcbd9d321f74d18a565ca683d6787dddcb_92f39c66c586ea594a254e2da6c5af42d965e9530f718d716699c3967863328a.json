@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "92f39c66c586ea594a254e2da6c5af42d965e9530f718d716699c3967863328a",
+  "config_hash": "a8f5d4bb9ac65e49712d7a1f4eac94fcbd9d321f74d18a565ca683d6787dddcb",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43b-dfa2-745a-9947-e4d43f93e973",
+  "file_id": "bd6fb713-204c-4093-800c-8dac3fa02d44",
+  "evaluated_at": "2026-11-13T09:28:49.081343+00:00",
+  "full_transcript": "order one one और two लेके बाहर खड़ा, bell भी बजाए। customer reason बुला रहा है।",
+  "transcript_sha256": "9424b3766dfbc19d6bd5491229a301ab0009bc29310f7c938e1c0fc6c55aad8b"
+}
