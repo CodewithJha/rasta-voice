@@ -58,6 +58,13 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch):
     assert settings.llm_provider == "rules"
     assert settings.llm_timeout_seconds == DEFAULT_LLM_TIMEOUT_SECONDS
     assert settings.llm_max_retries == 1
+    assert settings.connect_timeout_seconds == 5.0
+    assert settings.stt_read_timeout_seconds == 15.0
+    assert settings.tts_read_timeout_seconds == 20.0
+    assert settings.ingest_deadline_seconds == 25.0
+    assert settings.max_inflight == 4
+    assert settings.upstream_max_retries == 2
+    assert settings.breaker_failure_threshold == 5
     assert settings.groq_model == DEFAULT_GROQ_MODEL
     assert settings.gemini_model == DEFAULT_GEMINI_MODEL
     assert settings.groq_api_key == ""

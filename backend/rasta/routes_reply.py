@@ -22,6 +22,13 @@ from gnani_client.tts import TimbreTTS
 from gnani_client.wav import wav_duration_seconds
 from rasta.reply import reply_text
 from rasta.request_id import watch_gnani_call
+from rasta.resilience import (
+    UPSTREAM_TTS,
+    ResilienceError,
+    get_upstream_runtime,
+    override_timeout,
+    reset_timeout_override,
+)
 from rasta.schema import RiderEvent
 from rasta.store import attach_event_store
 
@@ -100,11 +107,9 @@ class ReplySpeech:
                 if cached is not None:
                     return cached
             try:
-                with httpx.Client(timeout=15.0) as http:
-                    audio = watch_gnani_call(
-                        "tts_inference",
-                        lambda: TimbreTTS(key=key, client=http).synthesize(text),
-                    )
+                audio = _synthesize_reply(key, text)
+            except ResilienceError as exc:
+                raise HTTPException(exc.status, detail=exc.as_detail()) from exc
             except httpx.HTTPError as exc:
                 raise GnaniError("Timbre TTS request failed") from exc
             seconds = wav_duration_seconds(audio)
@@ -127,6 +132,33 @@ class ReplySpeech:
             return dict(payload)
         finally:
             self._upstream.release()
+
+
+
+def _synthesize_reply(key: str, text: str) -> bytes:
+    """Speak a reply through the shared runtime when one is attached."""
+    runtime = get_upstream_runtime()
+    timeout = httpx.Timeout(15.0)
+
+    def synthesize(client: httpx.Client) -> bytes:
+        return TimbreTTS(key=key, client=client).synthesize(text)
+
+    if runtime is None or runtime.client.is_closed:
+        with httpx.Client(timeout=timeout) as http:
+            return watch_gnani_call("tts_inference", lambda: synthesize(http))
+
+    token = override_timeout(timeout)
+    try:
+        return watch_gnani_call(
+            "tts_inference",
+            lambda: runtime.call_gnani(
+                UPSTREAM_TTS,
+                lambda: synthesize(runtime.client),
+                max_retries=0,
+            ),
+        )
+    finally:
+        reset_timeout_override(token)
 
 
 @reply_router.post("/api/reply/{event_id}")

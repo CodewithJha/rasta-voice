@@ -177,9 +177,10 @@ the image `HEALTHCHECK`. It reports `gnani_key_set`, `db_writable`,
 `rate_limit` and the credit fields come from issue 13's process
 speech guard. `db_writable` is a cheap write probe of `RASTA_DB_PATH`,
 `schema_version` is `EventStore.schema_version()` (currently `2`), and
-`events_in_store` is the number of rows in that store. Issue 29's
-breaker is not on this branch, so `circuit_breaker` is the string
-`not_deployed`. This process does not invent a second budget or a
+`events_in_store` is the number of rows in that store.
+`circuit_breaker` is a snapshot of the issue 29 breakers
+(`gnani_stt`, `gnani_tts`, `llm`), each `closed`, `open`, or
+`half_open`. This process does not invent a second budget or a
 shadow database.
 
 HTTP 200 means the process should stay in rotation. A missing Gnani

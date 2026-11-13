@@ -1,8 +1,8 @@
 """Readiness snapshots for /api/ready (issue 22).
 
-Issue 13's speech guard and issue 19's SQLite store are read from the
-objects already attached on the app. Missing issue 29 breaker state is
-reported as ``not_deployed`` rather than inventing a fake breaker.
+Issue 13's speech guard, issue 19's SQLite store, and issue 29's
+circuit-breaker snapshot are read from the objects already attached
+on the app. A missing breaker is reported as ``not_deployed``.
 """
 
 from __future__ import annotations
