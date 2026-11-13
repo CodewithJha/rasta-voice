@@ -19,11 +19,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     RASTA_STATIC_DIR=/app/frontend/dist \
     PORT=7860
 WORKDIR /app
+COPY requirements-runtime.lock /app/requirements-runtime.lock
 COPY gnani_client /opt/src/gnani_client
 COPY backend/pyproject.toml /opt/src/backend/pyproject.toml
 COPY backend/rasta /opt/src/backend/rasta
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir /opt/src/gnani_client /opt/src/backend \
+    && pip install --no-cache-dir -r /app/requirements-runtime.lock \
+    && pip install --no-cache-dir --no-deps /opt/src/gnani_client /opt/src/backend \
     && rm -rf /opt/src /root/.cache/pip
 COPY --from=frontend /src/frontend/dist /app/frontend/dist
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
