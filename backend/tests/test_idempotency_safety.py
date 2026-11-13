@@ -109,6 +109,7 @@ def test_replayed_errors_and_all_denials_keep_current_id_and_policy(monkeypatch)
                 assert response.headers[name] == value
             assert response.headers["Strict-Transport-Security"]
             assert response.json()["error"]["request_id"] == response.headers["X-Request-ID"]
+        assert app.state.http_counts.snapshot() == {"4xx": 2, "5xx": 2}
 
 
 @pytest.mark.parametrize("length", [None, "1"])
@@ -310,3 +311,28 @@ def test_missing_event_error_replays_without_requiring_a_live_event():
         store.close()
     assert store._idempotency_responses == {}
     assert store._idempotency_response_bytes == 0
+
+
+def test_missing_server_key_cannot_bypass_the_reply_guard_with_a_successful_replay(monkeypatch):
+    monkeypatch.setenv("GNANI_API_KEY", "synthetic-server-key")
+    clear_settings_cache()
+    probe = ContractApp()
+    calls = []
+
+    @probe.post("/api/ingest/sample")
+    def sample():
+        calls.append(1)
+        return {"ok": True}
+
+    try:
+        with TestClient(probe) as client:
+            headers = {"Idempotency-Key": "synthetic-key-removal-fixture"}
+            assert client.post("/api/ingest/sample", headers=headers).status_code == 200
+            monkeypatch.delenv("GNANI_API_KEY", raising=False)
+            clear_settings_cache()
+            response = client.post("/api/ingest/sample", headers=headers)
+            assert response.status_code == 503
+            assert response.json()["error"]["code"] == "missing_api_key"
+            assert calls == [1]
+    finally:
+        attach_event_store(probe).close()
