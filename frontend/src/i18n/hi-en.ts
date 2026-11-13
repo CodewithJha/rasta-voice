@@ -74,6 +74,7 @@ export const hiEn: Record<MessageKey, string> = {
   "desk.passcodeUnset": "Server pe desk passcode set nahi hai.",
   "desk.upstream": "Upstream fail ho gaya",
   "desk.rateLimit": "Desk rate-limit pe hai, polling retry karegi",
+  "desk.network": "Network error, try again",
   "desk.failed": "Desk fail ho gaya ({status}).",
   "error.missingKey": "Server pe key set nahi hai.",
   "error.budget": "Public speech budget khatam ho gaya hai.",

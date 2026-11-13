@@ -337,6 +337,7 @@ class EventStore:
         _stamp_new_envelope(record)
         with self._lock:
             record["created_at"] = self._next_created_at()
+            record.setdefault("updated_at", record["created_at"])
             self._conn.execute(
                 "INSERT INTO events (id, created_at, payload) VALUES (?, ?, ?)",
                 (record["id"], record["created_at"], json.dumps(record)),
@@ -372,6 +373,21 @@ class EventStore:
             ]
         return copy.deepcopy(events)
 
+    def list_updated_since(self, since: str | None) -> list[dict]:
+        """Return rows created or updated after ``since``, in creation order."""
+        events = self.list_since(None)
+        if since is None or (isinstance(since, str) and not since.strip()):
+            return events
+        cutoff = parse_since(since)
+        changed = []
+        for event in events:
+            stamp = event.get("updated_at") or event.get("created_at")
+            when = datetime.fromisoformat(str(stamp))
+            if when.tzinfo is None:
+                continue
+            if when.astimezone(UTC) > cutoff:
+                changed.append(event)
+        return changed
 
     def get(self, event_id: str) -> dict | None:
         with self._lock:
@@ -452,6 +468,7 @@ class EventStore:
             if if_match != version:
                 raise VersionConflict(version)
             _apply_transition(record, action=action, actor=actor, at=stamp, also_ack=also_ack)
+            record["updated_at"] = self._later_stamp(record, stamp)
             self._conn.execute(
                 "UPDATE events SET payload = ? WHERE id = ?",
                 (json.dumps(record), event_id),
@@ -494,6 +511,7 @@ class EventStore:
                 _apply_transition(
                     record, action="escalate", actor="d_system", at=stamp, also_ack=False
                 )
+                record["updated_at"] = self._later_stamp(record, stamp)
                 self._conn.execute(
                     "UPDATE events SET payload = ? WHERE id = ?",
                     (json.dumps(record), row[0]),
@@ -569,6 +587,23 @@ class EventStore:
                 item[0],
                 item[1],
             )
+
+    def _later_stamp(self, record: dict, stamp: str) -> str:
+        when = datetime.fromisoformat(stamp)
+        if when.tzinfo is None:
+            return stamp
+        when = when.astimezone(UTC)
+        for key in ("updated_at", "created_at"):
+            previous = record.get(key)
+            if not previous:
+                continue
+            last = datetime.fromisoformat(str(previous))
+            if last.tzinfo is None:
+                continue
+            last = last.astimezone(UTC)
+            if when <= last:
+                when = last + timedelta(microseconds=1)
+        return when.isoformat()
 
     def _next_created_at(self) -> str:
         # Caller holds self._lock.

@@ -194,14 +194,8 @@ export function initDispatch(root: HTMLElement): void {
     if (csrf) {
       headers["X-Dispatch-CSRF"] = csrf;
     }
-    const { response, text } = await fetchWithTimeout(`/api/events/${encodeURIComponent(record.id)}/${action}`, {
-      method: "POST",
-      credentials: "same-origin",
-      headers,
-      body: "{}",
-    });
-    const row = list.querySelector(`[data-id="${cssEscape(record.id)}"]`);
-    const show = (message: string): void => {
+    const showOn = (item: DeskRecord, message: string): void => {
+      const row = list.querySelector(`[data-id="${cssEscape(item.id)}"]`);
       if (!row) {
         return;
       }
@@ -213,18 +207,49 @@ export function initDispatch(root: HTMLElement): void {
       }
       note.textContent = message;
     };
-    if (response.status === 409) {
-      void pull();
-      show(t("desk.changed"));
-      return;
-    }
-    if (!response.ok) {
-      show(describeDeskError(response.status));
-      return;
-    }
-    const updated = asRecord(JSON.parse(text));
-    if (updated) {
-      refreshRow(updated);
+    const refreshCurrent = async (): Promise<DeskRecord | undefined> => {
+      try {
+        const { response, text } = await fetchWithTimeout(
+          `/api/events/${encodeURIComponent(record.id)}`,
+          { credentials: "same-origin" },
+        );
+        if (!response.ok) {
+          void pull();
+          return undefined;
+        }
+        const current = asRecord(JSON.parse(text));
+        if (current) {
+          refreshRow(current);
+          return current;
+        }
+      } catch {
+        void pull();
+      }
+      return undefined;
+    };
+    try {
+      const { response, text } = await fetchWithTimeout(`/api/events/${encodeURIComponent(record.id)}/${action}`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers,
+        body: "{}",
+      });
+      if (response.status === 409) {
+        const current = await refreshCurrent();
+        showOn(current ?? record, t("desk.changed"));
+        return;
+      }
+      if (!response.ok) {
+        showOn(record, describeDeskError(response.status));
+        return;
+      }
+      const updated = asRecord(JSON.parse(text));
+      if (updated) {
+        refreshRow(updated);
+      }
+    } catch {
+      await refreshCurrent();
+      showOn(record, describeDeskError(0));
     }
   };
 

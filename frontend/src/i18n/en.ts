@@ -72,6 +72,7 @@ export const en = {
   "desk.passcodeUnset": "Desk passcode isn't set on the server.",
   "desk.upstream": "Upstream failed",
   "desk.rateLimit": "Desk is rate-limited, polling will retry",
+  "desk.network": "Network error, try again",
   "desk.failed": "Desk failed ({status}).",
   "error.missingKey": "The key is not set on the server.",
   "error.budget": "The public speech budget is exhausted.",

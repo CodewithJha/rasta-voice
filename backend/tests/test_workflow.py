@@ -228,3 +228,103 @@ def test_direct_illegal_and_stale_match_raise():
             store.transition("missing-id", action="ack", actor="d_anju", if_match=1)
     finally:
         store.close()
+
+
+
+def test_two_desks_see_external_transitions_and_stale_if_match_refreshes(client: TestClient):
+    store = attach_event_store(app)
+    row = store.append(_accident(8))
+    created = row["created_at"]
+    first = client.get("/api/events", headers=HEADERS)
+    assert first.status_code == 200
+    assert any(item["id"] == row["id"] for item in first.json()["events"])
+
+    # A created_at cursor misses later state changes.
+    ack = client.post(
+        f"/api/events/{row['id']}/ack",
+        headers={**HEADERS, "If-Match": '"1"'},
+        json={"actor": "d_anju"},
+    )
+    assert ack.status_code == 200
+    stale = client.get("/api/events", headers=HEADERS, params={"since": created})
+    assert stale.status_code == 200
+    assert stale.json()["events"] == []
+
+    changed = client.get(
+        "/api/events", headers=HEADERS, params={"updated_since": created}
+    )
+    assert changed.status_code == 200
+    match = next(item for item in changed.json()["events"] if item["id"] == row["id"])
+    assert match["state"] == "acked"
+    assert match["version"] == 2
+    assert match["updated_at"] > created
+
+    # Stale If-Match from a second desk, then GET the current row and retry.
+    conflict = client.post(
+        f"/api/events/{row['id']}/resolve",
+        headers={**HEADERS, "If-Match": '"1"'},
+        json={"actor": "d_ravi"},
+    )
+    assert conflict.status_code == 409
+    current = client.get(f"/api/events/{row['id']}", headers=HEADERS)
+    assert current.status_code == 200
+    assert current.json()["version"] == 2
+    resolved = client.post(
+        f"/api/events/{row['id']}/resolve",
+        headers={**HEADERS, "If-Match": f'"{current.json()["version"]}"'},
+        json={"actor": "d_ravi"},
+    )
+    assert resolved.status_code == 200
+    assert resolved.json()["state"] == "resolved"
+
+
+def test_reply_stays_unacked_after_auto_escalate_then_changes_on_ack(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, make_wav
+):
+    from contextlib import nullcontext
+
+    import httpx
+
+    from gnani_client.tts import TimbreTTS
+
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json as _json
+        body = _json.loads(request.content)
+        seen.append(body["text"])
+        return httpx.Response(200, content=make_wav(seconds=1, rate=16000))
+
+    monkeypatch.setattr(
+        TimbreTTS,
+        "_http",
+        lambda self: nullcontext(httpx.Client(transport=httpx.MockTransport(handler))),
+    )
+    monkeypatch.setenv("SOS_ACK_SECONDS", "0")
+    clear_settings_cache()
+    from rasta.reply import ACCIDENT_ACKED_REPLY, ACCIDENT_REPLY
+    from rasta.store import attach_event_store
+
+    store = attach_event_store(app, replace=True)
+    row = store.append(_accident(9))
+    listed = client.get("/api/events", headers=HEADERS)
+    assert listed.status_code == 200
+    match = next(item for item in listed.json()["events"] if item["id"] == row["id"])
+    assert match["state"] == "escalated"
+    assert match.get("ack_at") is None
+    first = client.post(f"/api/reply/{row['id']}")
+    assert first.status_code == 200
+    assert first.json()["text"] == ACCIDENT_REPLY
+    assert seen[-1] == ACCIDENT_REPLY
+
+    acked = client.post(
+        f"/api/events/{row['id']}/ack",
+        headers={**HEADERS, "If-Match": f'"{match["version"]}"'},
+        json={"actor": "d_anju"},
+    )
+    assert acked.status_code == 200
+    second = client.post(f"/api/reply/{row['id']}")
+    assert second.status_code == 200
+    assert second.json()["text"] == ACCIDENT_ACKED_REPLY
+    assert seen[-1] == ACCIDENT_ACKED_REPLY
+    assert "aa raha" not in second.json()["text"]

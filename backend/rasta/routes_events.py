@@ -37,15 +37,32 @@ def get_event_store(request: Request) -> EventStore:
 @events_router.get("/api/events")
 def list_events(
     since: str | None = None,
+    updated_since: str | None = None,
     store: EventStore = Depends(get_event_store),
     _actor: str = Depends(require_desk_read),
 ) -> dict:
     store.escalate_overdue(get_settings().sos_ack_seconds)
     try:
-        events = store.list_since(since)
+        if updated_since:
+            events = store.list_updated_since(updated_since)
+        else:
+            events = store.list_since(since)
     except InvalidSince as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"events": events}
+
+
+@events_router.get("/api/events/{event_id}")
+def get_event(
+    event_id: str,
+    store: EventStore = Depends(get_event_store),
+    _actor: str = Depends(require_desk_read),
+) -> dict:
+    store.escalate_overdue(get_settings().sos_ack_seconds)
+    record = store.get(event_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Event not found.")
+    return record
 
 
 @events_router.post("/api/dispatch/unlock")

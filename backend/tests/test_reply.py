@@ -40,6 +40,11 @@ def test_intent_templates_exclude_untrusted_fields(intent):
 def test_emergency_and_uncertain_replies_do_not_promise_assistance():
     assert reply_text(event(Intent.accident_sos, confidence=0.1)) == ACCIDENT_REPLY
     assert reply_text(event(Intent.accident_sos), state="acked") == ACCIDENT_ACKED_REPLY
+    assert reply_text(event(Intent.accident_sos), state="escalated") == ACCIDENT_REPLY
+    assert (
+        reply_text(event(Intent.accident_sos), state="escalated", acked=True)
+        == ACCIDENT_ACKED_REPLY
+    )
     assert "aa raha" not in ACCIDENT_ACKED_REPLY
     assert "surakshit" in ACCIDENT_REPLY and "turant dispatch" in ACCIDENT_REPLY
     assert "<" not in ACCIDENT_REPLY and "aa raha" not in ACCIDENT_REPLY

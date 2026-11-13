@@ -43,15 +43,22 @@ def _english_under_100(value: int) -> str:
     )
 
 
-def reply_text(event: RiderEvent, state: str | None = None) -> str:
+def reply_text(
+    event: RiderEvent,
+    state: str | None = None,
+    *,
+    acked: bool = False,
+) -> str:
     """Use cautious wording until a human acknowledgement exists in the envelope.
 
     No transcript, order token or dispatch_action is spoken. Even an accident
     classified with low confidence gets the audible safety/human-review line.
-    After ack (or later), the line still does not claim help is on the way.
+    After a human ack (or resolve), the line still does not claim help is on
+    the way. Auto-escalation without ack_at/ack_by keeps the unacked wording.
     """
     if event.intent == Intent.accident_sos:
-        if state in {"acked", "resolved", "escalated"}:
+        acknowledged = acked or state in {"acked", "resolved"}
+        if acknowledged:
             return ACCIDENT_ACKED_REPLY
         return ACCIDENT_REPLY
     # Matched rules use 0.5; lower-confidence classifications request review.
