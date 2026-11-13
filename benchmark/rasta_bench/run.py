@@ -119,6 +119,26 @@ def digest(value) -> str:
     return hashlib.sha256(blob).hexdigest()
 
 
+def request_id_of(payload: dict) -> str | None:
+    """Keep a Gnani request_id when the batch body actually returns one."""
+    value = payload.get("request_id") or payload.get("requestId")
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
+
+
+def credit_record(budget: float | None, credits_per_minute: float | None,
+                  plan: dict) -> dict:
+    """Stamp the operator-supplied cap. This is not a Gnani-reported balance."""
+    return {
+        "source": "operator_supplied",
+        "budget": budget,
+        "credits_per_minute": credits_per_minute,
+        "estimated_new_credits_upper_bound": plan.get(
+            "estimated_new_credits_upper_bound"),
+    }
+
+
 def save(path: Path, value: dict) -> None:
     atomic_write(path, (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode())
 
@@ -229,8 +249,45 @@ def _failure(exc: Exception) -> str:
     return f"{type(exc).__name__}:{getattr(exc, 'status', None) or 'no_status'}"
 
 
-def _files(client: PrismaBatch, job_id: str) -> dict[str, dict]:
-    reply = client.list_files(job_id, status=None)
+def _retry_429(fn, *, sleep, attempts: int = 5):
+    """Retry non-spending GETs on 429. Spending POSTs are never retried here."""
+    last = None
+    for attempt in range(attempts):
+        try:
+            return fn()
+        except GnaniError as exc:
+            last = exc
+            if exc.status != 429 or attempt == attempts - 1:
+                raise
+            sleep(min(60, 2 ** (attempt + 2)))
+    raise last
+
+
+def _get_job(client: PrismaBatch, job_id: str, *, sleep, attempts: int = 5):
+    """Retry job status GETs on 429. This is not a spending POST."""
+    return _retry_429(lambda: client.get_job(job_id), sleep=sleep, attempts=attempts)
+
+
+def _start_created(client: PrismaBatch, job_id: str, *, sleep, attempts: int = 5) -> dict:
+    """Start a CREATED job, retrying only a 429. GET confirms the outcome."""
+    last = None
+    for attempt in range(attempts):
+        try:
+            client.start_job(job_id)
+            return _get_job(client, job_id, sleep=sleep)
+        except GnaniError as exc:
+            last = exc
+            if exc.status != 429 or attempt == attempts - 1:
+                raise
+            sleep(min(60, 2 ** (attempt + 2)))
+            job = _get_job(client, job_id, sleep=sleep)
+            if job.get("status") != "CREATED":
+                return job
+    raise last
+
+
+def _files(client: PrismaBatch, job_id: str, *, sleep=time.sleep) -> dict[str, dict]:
+    reply = _retry_429(lambda: client.list_files(job_id, status=None), sleep=sleep)
     if reply.get("pagination", {}).get("has_more"):
         raise ValueError("unexpected file pagination; checkpoint retained, do not re-upload")
     rows = reply.get("data")
@@ -254,21 +311,29 @@ def collect_job(client: PrismaBatch, state: dict, checkpoint: Path, output: Path
         raise ValueError("ambiguous create checkpoint: recover job_id from dashboard first")
     deadline = clock() + timeout
     # GET first on every resume, especially after an ambiguous start response.
-    job = client.get_job(job_id)
-    if job.get("status") == "CREATED" and not state.get("start_attempted"):
+    # If the job is still CREATED, start it even when a previous start attempt
+    # was rate-limited: GET is the source of truth, not the local flag.
+    job = _get_job(client, job_id, sleep=sleep)
+    if request_id := request_id_of(job) or state.get("request_id"):
+        state["request_id"] = request_id
+        save(checkpoint, state)
+    if job.get("status") == "CREATED":
         state["start_attempted"] = True
         save(checkpoint, state)
-        client.start_job(job_id)
-        job = client.get_job(job_id)
+        job = _start_created(client, job_id, sleep=sleep)
     while job.get("status") not in TERMINAL:
         if clock() >= deadline:
             state["error"] = "job_timeout_900_seconds"
             save(checkpoint, state)
             return
+        if job.get("status") == "CREATED":
+            # Previous start was rate-limited or otherwise missed; GET is truth.
+            job = _start_created(client, job_id, sleep=sleep)
+            continue
         sleep(min(10, max(0, deadline - clock())))
-        job = client.get_job(job_id)
+        job = _get_job(client, job_id, sleep=sleep)
     state["status"] = job["status"]
-    files = _files(client, job_id)
+    files = _files(client, job_id, sleep=sleep)
     errors = {}
     for name, audio_hash in state["files"].items():
         row = files.get(name, {})
@@ -279,22 +344,27 @@ def collect_job(client: PrismaBatch, state: dict, checkpoint: Path, output: Path
         if target.exists():
             continue
         try:
-            doc = client.fetch_transcript(row["transcript_url"])
+            doc = _retry_429(lambda: client.fetch_transcript(row["transcript_url"]), sleep=sleep)
         except (GnaniError, httpx.HTTPError):
             # One fresh signed URL, GET only. Never recreate/start a charged job.
-            row = _files(client, job_id).get(name, {})
+            row = _files(client, job_id, sleep=sleep).get(name, {})
             if not row.get("transcript_url"):
                 raise ValueError("refreshed file has no transcript URL") from None
-            doc = client.fetch_transcript(row["transcript_url"])
+            url = row["transcript_url"]
+            doc = _retry_429(lambda: client.fetch_transcript(url), sleep=sleep)
         if not isinstance(doc.get("full_transcript"), str):
             raise ValueError("transcript document has no full_transcript string")
-        save(target, {
+        evidence = {
             "audio_sha256": audio_hash, "config_hash": state["config_hash"],
             "config": state["config"], "job_id": job_id, "file_id": row["file_id"],
             "evaluated_at": datetime.now(UTC).isoformat(),
             "full_transcript": doc["full_transcript"],
             "transcript_sha256": digest(doc["full_transcript"]),
-        })
+        }
+        if request_id := state.get("request_id") or request_id_of(job):
+            evidence["request_id"] = request_id
+            state["request_id"] = request_id
+        save(target, evidence)
     state["errors"] = errors
     state["finished"] = True
     state.pop("error", None)
@@ -319,6 +389,9 @@ def evaluate(root: Path, rows: list[dict], systems: dict, output: Path, client: 
                    and read_cached(output, config_hash, r) is None]
         # Twenty files avoids the default first-page limit without editing frozen clients.
         for start in range(0, len(pending), 20):
+            if start:
+                # Avoid bursting adjacent create POSTs into a 429.
+                sleep(2)
             group = pending[start:start + 20]
             names = {Path(r["path"]).name: r["sha256"] for r in group}
             if len(names) != len(group):
@@ -334,13 +407,17 @@ def evaluate(root: Path, rows: list[dict], systems: dict, output: Path, client: 
                 if not reply.get("job_id"):
                     raise ValueError("create response has no job_id")
                 state["job_id"] = reply["job_id"]
+                if request_id := request_id_of(reply):
+                    state["request_id"] = request_id
                 save(path, state)
             except (GnaniError, httpx.HTTPError, ValueError) as exc:
                 state["error"] = _failure(exc)
                 save(path, state)
                 raise
             checkpoints.append((path, state))
-        for path, state in checkpoints:
+        for index, (path, state) in enumerate(checkpoints):
+            if index:
+                sleep(3)
             if not state.get("job_id"):
                 raise ValueError("ambiguous create checkpoint: recover job_id from dashboard first")
             print(f"{system}: collecting {state.get('job_id', 'ambiguous-create')}", flush=True)
@@ -366,6 +443,7 @@ def summarize(rows: list[dict], systems: dict, output: Path, base: str, plan: di
     records = []
     missing = []
     jobs = defaultdict(set)
+    request_ids = defaultdict(set)
     for system, config in systems.items():
         config_hash = digest({"config": config, "base": base})
         for row in rows:
@@ -381,12 +459,15 @@ def summarize(rows: list[dict], systems: dict, output: Path, base: str, plan: di
             records.append({"system": system, "id": row["id"], "noise": row["noise"],
                             "snr_db": row["snr_db"], "audio_sha256": row["sha256"],
                             "config_hash": config_hash, "job_id": evidence["job_id"],
+                            "request_id": evidence.get("request_id"),
                             "file_id": evidence["file_id"], "cross_script": cross_script,
                             "wer": wer(ref, hyp), "cer": cer(ref, hyp),
                             "normalized_wer": wer(normalize(ref), normalize(hyp)),
                             "normalized_cer": cer(normalize(ref), normalize(hyp)),
                             "intent_accuracy": float(predicted.intent.value == row["intent"])})
             jobs[system].add(evidence["job_id"])
+            if evidence.get("request_id"):
+                request_ids[system].add(evidence["request_id"])
     complete = not missing
     systems_out = []
     by_noise: list[dict] = []
@@ -401,16 +482,28 @@ def summarize(rows: list[dict], systems: dict, output: Path, base: str, plan: di
                 subset = [r for r in matched if r[key] == value]
                 destination.append({"system": system, key: value,
                                     **_metrics(subset, sum(r[key] == value for r in rows))})
-    report = {"run_at": datetime.now(UTC).isoformat(), "complete": complete,
+    report = {"run_at": datetime.now().astimezone().isoformat(), "complete": complete,
               "provenance": "live_prisma_batch_on_synthetic_simulated_telephony",
               "metric_policy": NORMALIZATION, "primary_wer": "raw",
               "grid": plan, "job_ids": {k: sorted(v) for k, v in jobs.items()},
+              "request_ids": {k: sorted(v) for k, v in request_ids.items()},
               "systems": systems_out, "by_noise": by_noise, "by_snr_db": by_snr,
               "evaluations": records, "missing": missing}
+    if plan.get("credit"):
+        report["credit"] = plan["credit"]
     save(output / "scores.json", report)
     lines = ["# Live Prisma on synthetic 8 kHz phone clips", "", f"Scored at: {report['run_at']}",
              "", NORMALIZATION, "", f"{len(rows)} distinct files; {plan['model_evaluations']} "
              f"expected model evaluations; {len(records)} completed.", ""]
+    credit = plan.get("credit") or {}
+    if credit.get("source") == "operator_supplied":
+        lines += [
+            "Credit cap is operator-supplied, not a Gnani-reported remaining balance: "
+            f"budget {credit.get('budget')}, {credit.get('credits_per_minute')} "
+            "credits/audio-minute, estimated new-credit upper bound "
+            f"{credit.get('estimated_new_credits_upper_bound')}.",
+            "",
+        ]
     if complete:
         lines += ["WER/CER below are raw; normalized metrics are separate columns.", "",
                   "| System | Raw WER | Raw CER | Normalized WER | Normalized CER | "
@@ -453,6 +546,8 @@ def main(argv: list[str] | None = None) -> int:
         plan["estimated_new_credits_upper_bound"] = (
             plan["new_model_audio_minutes_upper_bound"] * args.credits_per_minute
             if args.credits_per_minute is not None else None)
+        plan["credit"] = credit_record(
+            args.credit_budget, args.credits_per_minute, plan)
         print(json.dumps(plan, indent=2), flush=True)
         if args.preflight:
             return 0

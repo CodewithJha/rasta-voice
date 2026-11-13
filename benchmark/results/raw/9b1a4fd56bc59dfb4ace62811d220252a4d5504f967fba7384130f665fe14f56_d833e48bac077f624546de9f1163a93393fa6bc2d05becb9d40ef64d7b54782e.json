@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "d833e48bac077f624546de9f1163a93393fa6bc2d05becb9d40ef64d7b54782e",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-9760-71c5-8f4d-359158e05d73",
+  "file_id": "6ef264e5-5294-4c1b-a8c7-2038dc257cf3",
+  "evaluated_at": "2026-11-13T09:22:01.588926+00:00",
+  "full_transcript": "ऑर्डर ऑर्डर 1 0 2 का कस्टमर कस्टमर उठा रहा",
+  "transcript_sha256": "aedccf822df00ef1c27809d9836d97a969e19fc8d0a3565f8f4e49138afe561f"
+}

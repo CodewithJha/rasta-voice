@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "28940ccfc611ea5d0bfd2a23d72b83d22c4057ea8d3fa9852b7ed4cbfb5fae11",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-3eba-7d77-afdd-d79a6588b2a6",
+  "file_id": "7681fddf-0f78-4b9b-9d8a-929a4cb6255c",
+  "evaluated_at": "2026-11-13T09:25:25.850374+00:00",
+  "full_transcript": "Order charge customer को दो बार कहा है। Phone नहीं उठा",
+  "transcript_sha256": "3f0cd643664f58494dc80f99d618b711be2ea47ff4a63f86fa634ad5f84498cb"
+}

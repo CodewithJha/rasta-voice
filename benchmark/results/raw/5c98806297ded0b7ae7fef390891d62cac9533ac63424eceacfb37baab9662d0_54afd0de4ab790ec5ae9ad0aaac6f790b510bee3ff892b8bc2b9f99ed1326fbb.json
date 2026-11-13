@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "54afd0de4ab790ec5ae9ad0aaac6f790b510bee3ff892b8bc2b9f99ed1326fbb",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-48d8-706e-88e7-0714f8a04cf7",
+  "file_id": "8b4ae235-f346-4b73-99f3-0f77f3de227e",
+  "evaluated_at": "2026-11-13T09:26:05.721325+00:00",
+  "full_transcript": "Not picking. Bell भी बजाई पर कोई जवाब नहीं",
+  "transcript_sha256": "b89b6f6098d1fb87c50423d325a52ad9e06918eda5746de83530d0e54725a57f"
+}

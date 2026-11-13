@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "3c80071ad4642431c6ceb7139f13c0f317c6440bf053e118fd5269fb91dddabb",
+  "config_hash": "a8f5d4bb9ac65e49712d7a1f4eac94fcbd9d321f74d18a565ca683d6787dddcb",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43b-e9b7-7ac7-8001-bf59faab6962",
+  "file_id": "561bd33d-106c-437a-8bfe-9ed45f209d04",
+  "evaluated_at": "2026-11-13T09:29:21.908492+00:00",
+  "full_transcript": "gate bank मिला और phone नहीं लग रहा order eighteen dispatch से call करवा दो।",
+  "transcript_sha256": "e2124a574f3746414277578d56ff79f0dc99f463ac959c96687f28d9d52462b6"
+}

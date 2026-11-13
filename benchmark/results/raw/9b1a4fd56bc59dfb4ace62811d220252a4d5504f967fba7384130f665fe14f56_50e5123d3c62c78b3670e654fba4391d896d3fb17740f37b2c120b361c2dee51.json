@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "50e5123d3c62c78b3670e654fba4391d896d3fb17740f37b2c120b361c2dee51",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-8690-7a4e-8a33-57db286be5cb",
+  "file_id": "6167e1d6-d6fb-4eb4-b2ab-c835a208cc32",
+  "evaluated_at": "2026-11-13T09:21:16.147152+00:00",
+  "full_transcript": "भैया कस्टमर कस्टमर फ़ोन नहीं उठा रहा फ़ोन नहीं ऑर्डर 18",
+  "transcript_sha256": "848035bb495b6b10f683b407b2449472ed41cafa03644fdad926afc2691c1102"
+}

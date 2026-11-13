@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "08e511be3315e0766584158ae431e778d4324d31c13be33c0f975a2375937dfe",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-8690-7a4e-8a33-57db286be5cb",
+  "file_id": "f0fa1b92-5fa8-4b99-bef8-c25ff8c6b61e",
+  "evaluated_at": "2026-11-13T09:21:16.898925+00:00",
+  "full_transcript": "भैया गेट बंद है, कस्टमर फ़ोन नहीं उठा रहा, ऑर्डर 18",
+  "transcript_sha256": "45659c9c6433dbee68b7288d4ec59244073e1db56efcca3673954d220848e151"
+}

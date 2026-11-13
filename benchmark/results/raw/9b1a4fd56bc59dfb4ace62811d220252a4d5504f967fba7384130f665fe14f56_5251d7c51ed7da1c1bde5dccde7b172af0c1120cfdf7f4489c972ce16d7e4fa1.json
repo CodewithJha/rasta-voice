@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "5251d7c51ed7da1c1bde5dccde7b172af0c1120cfdf7f4489c972ce16d7e4fa1",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-90b3-7457-883c-f074a47f1b50",
+  "file_id": "1bf6ba10-214c-4938-9033-369a5238c487",
+  "evaluated_at": "2026-11-13T09:18:34.254236+00:00",
+  "full_transcript": "कस्टमर नॉट पिकिंग, बेल भी बजाई पर कोई जवाब नहीं।",
+  "transcript_sha256": "d789753b738fd7a84e383bdc313ea253894f6392605b815485bc3ae3c1a2b308"
+}

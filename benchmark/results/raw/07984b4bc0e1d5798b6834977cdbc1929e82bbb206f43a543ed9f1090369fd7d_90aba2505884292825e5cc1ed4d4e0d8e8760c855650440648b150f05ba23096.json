@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "90aba2505884292825e5cc1ed4d4e0d8e8760c855650440648b150f05ba23096",
+  "config_hash": "07984b4bc0e1d5798b6834977cdbc1929e82bbb206f43a543ed9f1090369fd7d",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "bias_list": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "bias_score": 1.0
+  },
+  "job_id": "01a1d436-df5e-7b06-a3d5-495c442f3088",
+  "file_id": "e3a3e4c5-f6f7-4079-be29-94f56a1835cb",
+  "evaluated_at": "2026-11-13T09:22:35.383658+00:00",
+  "full_transcript": "भैया गेट बैंड है, कस्टमर फ़ोन नहीं उठा रहा, ऑर्डर 18",
+  "transcript_sha256": "13a555c0f2acac216963f22c32d8afe9e26c190ce00fdca899579960f848498f"
+}

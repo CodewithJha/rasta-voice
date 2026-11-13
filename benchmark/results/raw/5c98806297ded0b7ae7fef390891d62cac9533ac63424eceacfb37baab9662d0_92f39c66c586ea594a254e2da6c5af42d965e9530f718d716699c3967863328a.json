@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "92f39c66c586ea594a254e2da6c5af42d965e9530f718d716699c3967863328a",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-48d8-706e-88e7-0714f8a04cf7",
+  "file_id": "30188d49-fc63-454d-8bcc-27f4db62e54e",
+  "evaluated_at": "2026-11-13T09:25:56.963164+00:00",
+  "full_transcript": "order one one और two लेके बाहर खड़ा, bell भी बजाए। customer reason बुला रहा है।",
+  "transcript_sha256": "9424b3766dfbc19d6bd5491229a301ab0009bc29310f7c938e1c0fc6c55aad8b"
+}

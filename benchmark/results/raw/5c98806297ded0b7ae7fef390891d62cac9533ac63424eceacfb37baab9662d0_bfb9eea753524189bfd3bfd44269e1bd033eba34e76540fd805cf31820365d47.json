@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "bfb9eea753524189bfd3bfd44269e1bd033eba34e76540fd805cf31820365d47",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-5cca-79e4-be94-1e47be57246a",
+  "file_id": "0e3c0250-1d0e-413e-8bdb-5e34147a10c3",
+  "evaluated_at": "2026-11-13T09:27:20.691373+00:00",
+  "full_transcript": "भैया order एक शून्य दो का customer phone नहीं उठा रहा मैं gate पर हूँ।",
+  "transcript_sha256": "191c1b80ddc4fb6930baf1599a6195065025b189aacd5b9014de24fba6415be9"
+}

@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "b0f15eedd951b072d23b3fb92bd7218a3ba034f52a645d53f667d5d7e591b135",
+  "config_hash": "a8f5d4bb9ac65e49712d7a1f4eac94fcbd9d321f74d18a565ca683d6787dddcb",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43b-e9b7-7ac7-8001-bf59faab6962",
+  "file_id": "3f6c0a02-19b0-4ab9-a713-4c48380c8252",
+  "evaluated_at": "2026-11-13T09:29:17.520040+00:00",
+  "full_transcript": "लेकिन customer phone नहीं उठा रहा। कॉल करवा दूँ",
+  "transcript_sha256": "868071ae6129af31fa5b9a6c9be4b9eb24d8856a7ff5966838900420a607e1e4"
+}

@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "cc4b67a5383aed31aa3f3badfc482fa6a1831304f429044e2373efe0ebedf1d9",
+  "config_hash": "138f00b6a12c35a0a28bbc54cbbeed8ddd524c0baf300553c3d023075e428f97",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": true,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43e-504b-721e-8720-67920511f41a",
+  "file_id": "1433e788-7c80-42d7-b46e-fb9db600fce1",
+  "evaluated_at": "2026-11-13T09:32:13.536137+00:00",
+  "full_transcript": "Order one zero two में लेके बाहर खड़ा हूँ customer unreasonable आ रहे हैं।",
+  "transcript_sha256": "44e7cfbe3314a58837ed86eb79365bf692361b09371815765b30879775893499"
+}

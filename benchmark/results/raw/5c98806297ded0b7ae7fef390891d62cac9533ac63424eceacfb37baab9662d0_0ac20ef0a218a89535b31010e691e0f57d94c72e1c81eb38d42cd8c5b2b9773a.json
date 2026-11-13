@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "0ac20ef0a218a89535b31010e691e0f57d94c72e1c81eb38d42cd8c5b2b9773a",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-3eba-7d77-afdd-d79a6588b2a6",
+  "file_id": "7df868ce-ea74-4034-ae10-01bdb6e16bce",
+  "evaluated_at": "2026-11-13T09:25:24.374828+00:00",
+  "full_transcript": "यह gate बंद है। customer phone नहीं उठा रहे। Order one eight",
+  "transcript_sha256": "ceb02a23a479bd611986dd6869396d0158238ec41dd4f826e8e65e32f8994629"
+}

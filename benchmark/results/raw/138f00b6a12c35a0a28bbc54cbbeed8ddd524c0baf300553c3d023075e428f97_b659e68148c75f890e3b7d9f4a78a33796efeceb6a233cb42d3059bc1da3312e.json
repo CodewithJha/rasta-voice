@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "b659e68148c75f890e3b7d9f4a78a33796efeceb6a233cb42d3059bc1da3312e",
+  "config_hash": "138f00b6a12c35a0a28bbc54cbbeed8ddd524c0baf300553c3d023075e428f97",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": true,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43e-504b-721e-8720-67920511f41a",
+  "file_id": "e0c57179-338b-44c5-af00-295d3cbcdd4e",
+  "evaluated_at": "2026-11-13T09:32:08.218178+00:00",
+  "full_transcript": "ऑर्डर one zero two लेकर बाहर खड़ा हूँ। बजाएगा? तुम्हारा unreachable आ रहा है",
+  "transcript_sha256": "68ea48bc69fb23480db1c24c788f10245439108d85191b6f9c806fcb0c05941b"
+}

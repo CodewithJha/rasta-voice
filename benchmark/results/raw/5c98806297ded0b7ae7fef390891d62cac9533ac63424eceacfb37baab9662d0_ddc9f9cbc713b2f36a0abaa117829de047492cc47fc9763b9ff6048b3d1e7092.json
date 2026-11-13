@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "ddc9f9cbc713b2f36a0abaa117829de047492cc47fc9763b9ff6048b3d1e7092",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-48d8-706e-88e7-0714f8a04cf7",
+  "file_id": "788371ec-ceca-49c6-b6cb-28ca8c270b57",
+  "evaluated_at": "2026-11-13T09:25:58.431109+00:00",
+  "full_transcript": "मुझे one zero two लेकर बाहर खड़ा हूँ customer unreachable आ रहा है।",
+  "transcript_sha256": "286fcd41c65e321191e775da0c67ff36b8fce9276b7f38d01183023db8c42b07"
+}

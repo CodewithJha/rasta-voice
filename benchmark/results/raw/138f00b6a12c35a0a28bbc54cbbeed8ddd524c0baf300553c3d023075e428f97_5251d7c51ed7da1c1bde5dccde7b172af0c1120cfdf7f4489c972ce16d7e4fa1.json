@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "5251d7c51ed7da1c1bde5dccde7b172af0c1120cfdf7f4489c972ce16d7e4fa1",
+  "config_hash": "138f00b6a12c35a0a28bbc54cbbeed8ddd524c0baf300553c3d023075e428f97",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": true,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43e-504b-721e-8720-67920511f41a",
+  "file_id": "f3bcc0ac-4511-463d-9ca2-9502eabc101a",
+  "evaluated_at": "2026-11-13T09:32:18.761604+00:00",
+  "full_transcript": "Customer not picking. Bell भी बजाए पर कोई जवाब नहीं",
+  "transcript_sha256": "134e057bd9a25d4590e2298d1da782e173fb6cb1650f3d79ba4d7ad436376fb5"
+}

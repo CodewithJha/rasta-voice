@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "ef8f5e077e144c14ebf3540be24aff709dc8b5a054d4406cafca7706eb0a4b76",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-48d8-706e-88e7-0714f8a04cf7",
+  "file_id": "ec52c850-6fa0-4a12-a5d0-f46f50d016c4",
+  "evaluated_at": "2026-11-13T09:26:02.086060+00:00",
+  "full_transcript": "ऑर्डर one zero two लेकर बाहर खड़ा हूँ customer unreachable आ रहा है।",
+  "transcript_sha256": "165e7f0c1c64947431316cb29aa3dfacc5aaa5f97167156c644be8d5fa787b52"
+}

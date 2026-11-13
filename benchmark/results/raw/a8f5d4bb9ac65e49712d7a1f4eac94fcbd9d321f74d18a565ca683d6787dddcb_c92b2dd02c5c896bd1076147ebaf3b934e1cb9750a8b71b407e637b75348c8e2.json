@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "c92b2dd02c5c896bd1076147ebaf3b934e1cb9750a8b71b407e637b75348c8e2",
+  "config_hash": "a8f5d4bb9ac65e49712d7a1f4eac94fcbd9d321f74d18a565ca683d6787dddcb",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43b-dfa2-745a-9947-e4d43f93e973",
+  "file_id": "a7ac01f4-fe64-4dfe-912d-2e74de96616c",
+  "evaluated_at": "2026-11-13T09:29:00.761011+00:00",
+  "full_transcript": "were not picking bell भी बजाई पर कोई जवाब नहीं",
+  "transcript_sha256": "dfd9ef1222dbec6114f38a76d5d55c6b902743a25aad9510c801873b36226adf"
+}

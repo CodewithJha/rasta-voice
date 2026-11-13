@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "d833e48bac077f624546de9f1163a93393fa6bc2d05becb9d40ef64d7b54782e",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-52c5-766f-a40d-88fc7e81da4f",
+  "file_id": "406a3c27-1301-4c6c-9a1f-5aedb5c57ea5",
+  "evaluated_at": "2026-11-13T09:26:32.841901+00:00",
+  "full_transcript": "Order भैया order एक शून्य दो का customer phone नहीं उठा रहा।",
+  "transcript_sha256": "7413fea4643a7fcea6c0c4e65a48c715083528f82258973c2c83bd73c8c10759"
+}

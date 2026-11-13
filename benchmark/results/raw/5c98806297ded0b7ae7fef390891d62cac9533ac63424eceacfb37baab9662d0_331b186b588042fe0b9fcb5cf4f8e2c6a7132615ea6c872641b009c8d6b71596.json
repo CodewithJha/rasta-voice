@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "331b186b588042fe0b9fcb5cf4f8e2c6a7132615ea6c872641b009c8d6b71596",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-52c5-766f-a40d-88fc7e81da4f",
+  "file_id": "b444ed89-1a81-4c8f-8c6e-d6f410344640",
+  "evaluated_at": "2026-11-13T09:26:29.154781+00:00",
+  "full_transcript": "gate band मिला और phone नहीं लग रहा order eighteen dispatch से call करवा दो।",
+  "transcript_sha256": "f84334ad5dd07f63ef12d331d37b82cc8fb4ee812f180f87632da01305830ae7"
+}

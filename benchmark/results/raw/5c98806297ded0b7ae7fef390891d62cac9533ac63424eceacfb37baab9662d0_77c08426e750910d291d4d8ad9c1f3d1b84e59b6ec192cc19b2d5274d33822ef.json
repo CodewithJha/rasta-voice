@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "77c08426e750910d291d4d8ad9c1f3d1b84e59b6ec192cc19b2d5274d33822ef",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-48d8-706e-88e7-0714f8a04cf7",
+  "file_id": "37b338c0-5cf6-4921-b5e7-89fac7e67f6e",
+  "evaluated_at": "2026-11-13T09:26:10.109821+00:00",
+  "full_transcript": "Customer not picking. Bell भी बजाई पर कोई जवाब नहीं",
+  "transcript_sha256": "1394f8577b8cbacb8b548ffd8404374d630fd3b122d5fba7c38dde1ba3cad819"
+}

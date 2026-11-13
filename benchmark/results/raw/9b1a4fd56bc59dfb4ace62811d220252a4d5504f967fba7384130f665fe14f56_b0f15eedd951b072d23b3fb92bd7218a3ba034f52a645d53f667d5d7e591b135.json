@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "b0f15eedd951b072d23b3fb92bd7218a3ba034f52a645d53f667d5d7e591b135",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-9760-71c5-8f4d-359158e05d73",
+  "file_id": "bfc71d10-a427-4be6-b231-8ace096cc1c5",
+  "evaluated_at": "2026-11-13T09:21:54.253221+00:00",
+  "full_transcript": "गेट बैड मिला है लेकिन से कॉल करवा 2",
+  "transcript_sha256": "8eb1b7807a2af3b433929a88c2c2023bb61c93871f679b0b22aefd2095ce4332"
+}
