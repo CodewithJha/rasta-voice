@@ -1,6 +1,5 @@
 """FastAPI app. Every speech call goes to the real Gnani APIs."""
 
-import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -13,6 +12,7 @@ from gnani_client.env import api_key
 from gnani_client.errors import GnaniError, MissingApiKeyError
 from rasta.dispatch_auth import attach_dispatch_auth
 from rasta.extract import extract_event
+from rasta.limits import SpeechBudgetMiddleware, attach_speech_guard, await_held_work
 from rasta.pipeline import (
     SAMPLE_LINE,
     ClipTooLarge,
@@ -44,6 +44,7 @@ async def lifespan(app: FastAPI):
     attach_event_store(app, replace=True)
     attach_stream_runtime(app, replace=True)
     attach_dispatch_auth(app, replace=True)
+    attach_speech_guard(app, replace=True)
     try:
         yield
     finally:
@@ -60,6 +61,20 @@ async def lifespan(app: FastAPI):
 
 
 app = RequestIdApp(title="Rasta Voice", version="0.1.0", lifespan=lifespan)
+
+
+def _configure_production(application: FastAPI) -> None:
+    """Fail closed on missing prod secrets and attach host / budget guards."""
+    from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+    settings = get_settings()
+    settings.require_production_secrets()
+    if settings.allowed_hosts:
+        application.add_middleware(
+            TrustedHostMiddleware, allowed_hosts=list(settings.allowed_hosts)
+        )
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(get_settings().cors_allow_origins),
@@ -67,6 +82,8 @@ app.add_middleware(
     allow_headers=["*"],
     allow_credentials=True,
 )
+app.add_middleware(SpeechBudgetMiddleware)
+_configure_production(app)
 app.include_router(events_router)
 app.include_router(reply_router)
 app.include_router(stream_router)
@@ -88,10 +105,7 @@ async def ingest_upload(audio_file: UploadFile = File(...)) -> dict:
     filename = audio_file.filename or "clip.wav"
     # The pipeline is still sync (Prisma and Timbre clients are sync). Run it
     # in a worker thread so an LLM or STT wait cannot block the event loop.
-    return await asyncio.to_thread(
-        _guard,
-        lambda: attach_event_store(app).append(ingest(data, filename)),
-    )
+    return await _run_speech(lambda: attach_event_store(app).append(ingest(data, filename)))
 
 
 @app.post("/api/ingest/sample")
@@ -113,7 +127,14 @@ async def ingest_sample(condition: str = "clean") -> dict:
         stamped["sample_text"] = SAMPLE_LINE
         return envelope(condition, wav, stamped)
 
-    return await asyncio.to_thread(_guard, run)
+    return await _run_speech(run)
+
+
+async def _run_speech(work):
+    try:
+        return await await_held_work(lambda: _guard(work), get_settings().max_speech_seconds)
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="The speech request timed out.") from exc
 
 
 def _guard(work):
@@ -136,6 +157,25 @@ def _guard(work):
             detail={"error": str(exc), "upstream_status": exc.status},
         ) from exc
 
+
+def _mount_static(application: FastAPI) -> None:
+    """Serve the built UI at ``/`` when a dist directory is configured or present."""
+    from pathlib import Path
+
+    from fastapi.staticfiles import StaticFiles
+
+    settings = get_settings()
+    candidates = []
+    if settings.static_dir:
+        candidates.append(Path(settings.static_dir))
+    candidates.append(Path("frontend/dist"))
+    for path in candidates:
+        if path.is_dir() and (path / "index.html").is_file():
+            application.mount("/", StaticFiles(directory=path, html=True), name="ui")
+            return
+
+
+_mount_static(app)
 
 # Imported so a schema drift test and callers share one extractor entry.
 __all__ = ["app", "extract_event"]

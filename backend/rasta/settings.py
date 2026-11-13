@@ -4,7 +4,9 @@ Issue 02 owns the LLM keys, model ids, timeout, and retry cap. Issue 04
 owns the in-memory event-store capacity. Issue 07 owns the realtime
 stream limits, timeouts, frame size, and CORS origin allow list. Issue 20
 owns the dispatcher passcode and unlock lockout. Issue 21 owns the
-structured log line size cap. Call ``get_settings()`` rather
+structured log line size cap. Issue 13 owns the production environment,
+trusted hosts, static dir, public speech budget, and per-IP cap. Call
+``get_settings()`` rather
 than ``os.environ`` so a typo, a negative timeout, or a non-positive
 capacity fails in one place. ``clear_settings_cache`` exists so tests
 can change the env without restarting the process.
@@ -47,6 +49,15 @@ ENV_DISPATCH_PASSCODE = "DISPATCH_PASSCODE"
 ENV_DISPATCH_UNLOCK_MAX_FAILURES = "DISPATCH_UNLOCK_MAX_FAILURES"
 ENV_DISPATCH_UNLOCK_WINDOW_SECONDS = "DISPATCH_UNLOCK_WINDOW_SECONDS"
 ENV_LOG_LINE_MAX_BYTES = "RASTA_LOG_LINE_MAX_BYTES"
+ENV_RASTA_ENV = "RASTA_ENV"
+ENV_RASTA_ALLOWED_HOSTS = "RASTA_ALLOWED_HOSTS"
+ENV_RASTA_STATIC_DIR = "RASTA_STATIC_DIR"
+ENV_DEMO_SPEECH_BUDGET = "RASTA_DEMO_SPEECH_BUDGET"
+ENV_DEMO_SPEECH_WINDOW_SECONDS = "RASTA_DEMO_SPEECH_WINDOW_SECONDS"
+ENV_PER_IP_REQUESTS_PER_MINUTE = "RASTA_PER_IP_REQUESTS_PER_MINUTE"
+ENV_TRUST_PROXY_HEADERS = "RASTA_TRUST_PROXY_HEADERS"
+ENV_MAX_SPEECH_SECONDS = "RASTA_MAX_SPEECH_SECONDS"
+ENV_MAX_CONCURRENT_SPEECH = "RASTA_MAX_CONCURRENT_SPEECH"
 
 # Checked 12 Nov 2026 against Groq deprecations: llama-3.1-8b-instant was
 # withdrawn for free and developer tiers on 16 Aug 2026. openai/gpt-oss-20b
@@ -104,6 +115,21 @@ DEFAULT_DISPATCH_UNLOCK_WINDOW_SECONDS = 600.0
 MAX_DISPATCH_UNLOCK_WINDOW_SECONDS = 3600.0
 DEFAULT_LOG_LINE_MAX_BYTES = 4096
 MAX_LOG_LINE_MAX_BYTES = 65_536
+ALLOWED_RASTA_ENVS = frozenset({"development", "production"})
+DEFAULT_RASTA_ENV = "development"
+DEFAULT_DEMO_SPEECH_BUDGET_PRODUCTION = 40
+DEFAULT_DEMO_SPEECH_BUDGET_DEVELOPMENT = 10_000
+MAX_DEMO_SPEECH_BUDGET = 1_000_000
+DEFAULT_DEMO_SPEECH_WINDOW_SECONDS = 86_400.0
+MAX_DEMO_SPEECH_WINDOW_SECONDS = 7 * 86_400.0
+DEFAULT_PER_IP_REQUESTS_PRODUCTION = 10
+DEFAULT_PER_IP_REQUESTS_DEVELOPMENT = 10_000
+MAX_PER_IP_REQUESTS_PER_MINUTE = 10_000
+DEFAULT_MAX_SPEECH_SECONDS = 30.0
+MAX_MAX_SPEECH_SECONDS = 120.0
+DEFAULT_MAX_CONCURRENT_SPEECH_PRODUCTION = 2
+DEFAULT_MAX_CONCURRENT_SPEECH_DEVELOPMENT = 32
+MAX_MAX_CONCURRENT_SPEECH = 32
 
 ALLOWED_PROVIDERS = frozenset({"rules", "groq", "gemini"})
 MAX_ALLOWED_RETRIES = 1
@@ -234,6 +260,76 @@ def _origin_list(name: str, default: str) -> tuple[str, ...]:
 
 
 
+
+def _bool(name: str, default: bool) -> bool:
+    raw = _raw(name)
+    if not raw:
+        return default
+    value = raw.lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise SettingsError(f"{name} must be true or false, got {raw!r}")
+
+
+def _rasta_env(name: str, default: str) -> str:
+    raw = _raw(name, default).lower()
+    if raw not in ALLOWED_RASTA_ENVS:
+        raise SettingsError(
+            f"{name} must be one of {sorted(ALLOWED_RASTA_ENVS)}, got {raw!r}"
+        )
+    return raw
+
+
+def _host_list(name: str) -> tuple[str, ...]:
+    """Comma-separated hostnames. Empty means the middleware is left off.
+
+    Starlette only treats ``*.example.com`` as a suffix wildcard. A leading
+    ``.example.com`` is normalized to that form. A bare ``*`` is rejected so
+    a typo cannot disable host checks in production.
+    """
+    raw = _raw(name)
+    if not raw:
+        return ()
+    hosts: list[str] = []
+    for part in raw.split(","):
+        host = part.strip().lower()
+        if not host:
+            continue
+        if host == "*":
+            raise SettingsError(f"{name} must not contain *")
+        if host.startswith(".") and "*" not in host:
+            host = f"*{host}"
+        if "*" in host:
+            if not host.startswith("*.") or "*" in host[1:]:
+                raise SettingsError(
+                    f"{name} may use a *.example.com suffix, not {part.strip()!r}"
+                )
+            suffix = host[2:]
+            if not suffix or "/" in suffix or ":" in suffix or " " in suffix:
+                raise SettingsError(f"{name} has an invalid host pattern {part.strip()!r}")
+        hosts.append(host)
+    return tuple(hosts)
+
+
+def _non_negative_int(name: str, default: int, maximum: int) -> int:
+    raw = _raw(name)
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise SettingsError(
+            f"{name} must be an integer between 0 and {maximum}, got {raw!r}"
+        ) from exc
+    if value < 0 or value > maximum:
+        raise SettingsError(
+            f"{name} must be an integer between 0 and {maximum}, got {raw!r}"
+        )
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     """Validated process settings for this process."""
@@ -263,6 +359,28 @@ class Settings:
     dispatch_unlock_max_failures: int
     dispatch_unlock_window_seconds: float
     log_line_max_bytes: int
+    rasta_env: str
+    allowed_hosts: tuple[str, ...]
+    static_dir: str
+    demo_speech_budget: int
+    demo_speech_window_seconds: float
+    per_ip_requests_per_minute: int
+    trust_proxy_headers: bool
+    max_speech_seconds: float
+    max_concurrent_speech: int
+
+    @property
+    def is_production(self) -> bool:
+        return self.rasta_env == "production"
+
+    def require_production_secrets(self) -> None:
+        """Refuse to boot a production process without the desk passcode and hosts."""
+        if not self.is_production:
+            return
+        if not self.dispatch_passcode:
+            raise SettingsError("DISPATCH_PASSCODE is required in production")
+        if not self.allowed_hosts:
+            raise SettingsError("RASTA_ALLOWED_HOSTS is required in production")
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -285,6 +403,23 @@ class Settings:
                 groq_model = _raw(ENV_GROQ_MODEL, DEFAULT_GROQ_MODEL)
             elif provider == "groq":
                 gemini_model = _raw(ENV_GEMINI_MODEL, DEFAULT_GEMINI_MODEL)
+        env = _rasta_env(ENV_RASTA_ENV, DEFAULT_RASTA_ENV)
+        production = env == "production"
+        budget_default = (
+            DEFAULT_DEMO_SPEECH_BUDGET_PRODUCTION
+            if production
+            else DEFAULT_DEMO_SPEECH_BUDGET_DEVELOPMENT
+        )
+        per_ip_default = (
+            DEFAULT_PER_IP_REQUESTS_PRODUCTION
+            if production
+            else DEFAULT_PER_IP_REQUESTS_DEVELOPMENT
+        )
+        concurrent_default = (
+            DEFAULT_MAX_CONCURRENT_SPEECH_PRODUCTION
+            if production
+            else DEFAULT_MAX_CONCURRENT_SPEECH_DEVELOPMENT
+        )
         return cls(
             llm_provider=provider,
             llm_timeout_seconds=_positive_float(
@@ -364,6 +499,35 @@ class Settings:
                 ENV_LOG_LINE_MAX_BYTES,
                 DEFAULT_LOG_LINE_MAX_BYTES,
                 MAX_LOG_LINE_MAX_BYTES,
+            ),
+            rasta_env=env,
+            allowed_hosts=_host_list(ENV_RASTA_ALLOWED_HOSTS),
+            static_dir=_raw(ENV_RASTA_STATIC_DIR),
+            demo_speech_budget=_non_negative_int(
+                ENV_DEMO_SPEECH_BUDGET,
+                budget_default,
+                MAX_DEMO_SPEECH_BUDGET,
+            ),
+            demo_speech_window_seconds=_bounded_float(
+                ENV_DEMO_SPEECH_WINDOW_SECONDS,
+                DEFAULT_DEMO_SPEECH_WINDOW_SECONDS,
+                MAX_DEMO_SPEECH_WINDOW_SECONDS,
+            ),
+            per_ip_requests_per_minute=_positive_int(
+                ENV_PER_IP_REQUESTS_PER_MINUTE,
+                per_ip_default,
+                MAX_PER_IP_REQUESTS_PER_MINUTE,
+            ),
+            trust_proxy_headers=_bool(ENV_TRUST_PROXY_HEADERS, False),
+            max_speech_seconds=_bounded_float(
+                ENV_MAX_SPEECH_SECONDS,
+                DEFAULT_MAX_SPEECH_SECONDS,
+                MAX_MAX_SPEECH_SECONDS,
+            ),
+            max_concurrent_speech=_positive_int(
+                ENV_MAX_CONCURRENT_SPEECH,
+                concurrent_default,
+                MAX_MAX_CONCURRENT_SPEECH,
             ),
         )
 
