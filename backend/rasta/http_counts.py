@@ -5,7 +5,7 @@ from __future__ import annotations
 import threading
 from typing import Any
 
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class HttpCounts:
@@ -49,7 +49,7 @@ class HttpCountMiddleware:
             await self.app(scope, receive, send)
             return
 
-        async def inner(message: dict[str, Any]) -> None:
+        async def inner(message: Message) -> None:
             if message["type"] == "http.response.start":
                 counts = scope.get("app")
                 state = getattr(counts, "state", None) if counts is not None else None
