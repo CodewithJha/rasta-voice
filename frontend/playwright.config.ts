@@ -20,13 +20,13 @@ export default defineConfig({
   reporter: "list",
   use: {
     ...devices["Desktop Chrome"],
-    baseURL: "http://127.0.0.1:4173",
+    baseURL: "http://127.0.0.1:8000",
     trace: "off",
     screenshot: "off", // Live screenshots may contain a transcript; capture deliberately.
   },
   webServer: [
     {
-      command: "python -m uvicorn rasta.main:app --host 127.0.0.1 --port 8000 --workers 1",
+      command: "npm --prefix frontend run build && python -m uvicorn rasta.main:app --host 127.0.0.1 --port 8000 --workers 1",
       cwd: repoRoot,
       url: "http://127.0.0.1:8000/api/health",
       reuseExistingServer: false,
@@ -34,14 +34,10 @@ export default defineConfig({
         PYTHONPATH: "backend:gnani_client:benchmark",
         GNANI_API_KEY: live ? process.env.GNANI_API_KEY! : "",
         LLM_PROVIDER: "rules",
-        CORS_ALLOW_ORIGINS: "http://127.0.0.1:4173",
+        CORS_ALLOW_ORIGINS: "",
+        RASTA_STATIC_DIR: "frontend/dist",
         DISPATCH_PASSCODE: process.env.RASTA_E2E_DISPATCH_PASSCODE,
       },
-    },
-    {
-      command: "npm run build && npx vite preview --host 127.0.0.1 --port 4173 --strictPort",
-      url: "http://127.0.0.1:4173",
-      reuseExistingServer: false,
     },
   ],
 });
