@@ -9,6 +9,8 @@ import "./dispatch.css";
 const POLL_INTERVAL_MS = 2_000;
 const BACKOFF_START_MS = 4_000;
 const BACKOFF_MAX_MS = 32_000;
+const USAGE_INTERVAL_MS = 15_000;
+const CSRF_COOKIE = "rasta_desk_csrf";
 
 export function initDispatch(root: HTMLElement): void {
   const slate = document.createElement("section");
@@ -48,7 +50,20 @@ export function initDispatch(root: HTMLElement): void {
   button.type = "submit";
   form.append(label, button);
 
-  slate.append(title, status, form, list);
+  const banner = document.createElement("p");
+  banner.className = "desk-banner";
+  banner.hidden = true;
+  banner.setAttribute("aria-live", "assertive");
+
+  const usage = document.createElement("p");
+  usage.className = "desk-usage";
+  usage.hidden = true;
+
+  const mute = document.createElement("button");
+  mute.type = "button";
+  mute.className = "desk-mute";
+
+  slate.append(title, status, form, banner, usage, list);
   root.append(slate);
 
   const tape = new DeskTape();
@@ -58,6 +73,10 @@ export function initDispatch(root: HTMLElement): void {
   let delay = POLL_INTERVAL_MS;
   let timer = 0;
   let inflight: AbortController | null = null;
+  let usageTimer = 0;
+  let sosMuted = false;
+  const heardSos = new Set<string>();
+  const records = new Map<string, DeskRecord>();
 
   const paintChrome = (): void => {
     form.hidden = !unlockOpen;
@@ -80,6 +99,7 @@ export function initDispatch(root: HTMLElement): void {
     status.dataset.kind = "live";
     status.textContent = t("desk.live");
     list.hidden = false;
+    paintAlerts();
   };
 
   const paintLabels = (): void => {
@@ -88,12 +108,189 @@ export function initDispatch(root: HTMLElement): void {
     form.setAttribute("aria-label", t("desk.unlockForm"));
     labelText.textContent = t("desk.passcode");
     button.textContent = t("desk.unlock");
+    mute.textContent = sosMuted ? t("desk.unmuteSos") : t("desk.muteSos");
+    banner.textContent = t("desk.sosBanner");
     paintChrome();
   };
   paintLabels();
 
+
+  const paintAlerts = (): void => {
+    const live = [...records.values()].filter(
+      (item) => item.event.intent === "accident_sos" && (item.state === "new" || item.state === "escalated" || !item.state),
+    );
+    banner.hidden = live.length === 0;
+    if (!banner.hidden) {
+      banner.textContent = t("desk.sosBanner");
+    }
+  };
+
+  const playSosIfNeeded = (record: DeskRecord): void => {
+    if (record.event.intent !== "accident_sos") {
+      return;
+    }
+    if (record.state && record.state !== "new" && record.state !== "escalated") {
+      return;
+    }
+    if (heardSos.has(record.id) || sosMuted) {
+      return;
+    }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      heardSos.add(record.id);
+      return;
+    }
+    heardSos.add(record.id);
+    try {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.value = 680;
+      gain.gain.value = 0.04;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.18);
+      window.setTimeout(() => {
+        void ctx.close();
+      }, 300);
+    } catch {
+      /* tone is best-effort */
+    }
+  };
+
+  const readCsrf = (): string => {
+    const prefix = `${CSRF_COOKIE}=`;
+    for (const part of document.cookie.split("; ")) {
+      if (part.startsWith(prefix)) {
+        return decodeURIComponent(part.slice(prefix.length));
+      }
+    }
+    return "";
+  };
+
+  const remember = (record: DeskRecord): void => {
+    records.set(record.id, record);
+    playSosIfNeeded(record);
+    paintAlerts();
+  };
+
+  const refreshRow = (record: DeskRecord): void => {
+    remember(record);
+    const existing = list.querySelector(`[data-id="${cssEscape(record.id)}"]`);
+    const row = renderRow(record, { onAck: (item) => void act(item, "ack"), onResolve: (item) => void act(item, "resolve") });
+    if (existing) {
+      existing.replaceWith(row);
+    }
+  };
+
+  const act = async (record: DeskRecord, action: "ack" | "resolve"): Promise<void> => {
+    const version = record.version ?? 1;
+    const csrf = readCsrf();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "If-Match": `"${version}"`,
+    };
+    if (csrf) {
+      headers["X-Dispatch-CSRF"] = csrf;
+    }
+    const showOn = (item: DeskRecord, message: string): void => {
+      const row = list.querySelector(`[data-id="${cssEscape(item.id)}"]`);
+      if (!row) {
+        return;
+      }
+      let note = row.querySelector(".desk-row-msg");
+      if (!note) {
+        note = document.createElement("p");
+        note.className = "desk-row-msg";
+        row.append(note);
+      }
+      note.textContent = message;
+    };
+    const refreshCurrent = async (): Promise<DeskRecord | undefined> => {
+      try {
+        const { response, text } = await fetchWithTimeout(
+          `/api/events/${encodeURIComponent(record.id)}`,
+          { credentials: "same-origin" },
+        );
+        if (!response.ok) {
+          void pull();
+          return undefined;
+        }
+        const current = asRecord(JSON.parse(text));
+        if (current) {
+          refreshRow(current);
+          return current;
+        }
+      } catch {
+        void pull();
+      }
+      return undefined;
+    };
+    try {
+      const { response, text } = await fetchWithTimeout(`/api/events/${encodeURIComponent(record.id)}/${action}`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers,
+        body: "{}",
+      });
+      if (response.status === 409) {
+        const current = await refreshCurrent();
+        showOn(current ?? record, t("desk.changed"));
+        return;
+      }
+      if (!response.ok) {
+        showOn(record, describeDeskError(response.status));
+        return;
+      }
+      const updated = asRecord(JSON.parse(text));
+      if (updated) {
+        refreshRow(updated);
+      }
+    } catch {
+      await refreshCurrent();
+      showOn(record, describeDeskError(0));
+    }
+  };
+
+  const paintUsage = (body: { demo_credits_remaining?: unknown; sos_unacked?: unknown }): void => {
+    const credits = body.demo_credits_remaining;
+    const sos = body.sos_unacked;
+    if (typeof credits !== "number" || typeof sos !== "number") {
+      usage.hidden = true;
+      usage.textContent = "";
+      return;
+    }
+    usage.hidden = false;
+    usage.textContent = `${t("desk.usageCredits")}: ${credits} · ${t("desk.usageSos")}: ${sos}`;
+    if (!usage.contains(mute)) {
+      usage.append(mute);
+    }
+  };
+
+  const pullUsage = async (): Promise<void> => {
+    try {
+      const { response, text } = await fetchWithTimeout("/api/admin/usage", {
+        credentials: "same-origin",
+      });
+      if (!response.ok) {
+        usage.hidden = true;
+        return;
+      }
+      paintUsage(JSON.parse(text) as { demo_credits_remaining?: unknown; sos_unacked?: unknown });
+    } catch {
+      usage.hidden = true;
+    }
+  };
+
+  mute.addEventListener("click", () => {
+    sosMuted = !sosMuted;
+    mute.textContent = sosMuted ? t("desk.unmuteSos") : t("desk.muteSos");
+  });
+
   const mount = (record: DeskRecord): void => {
-    const row = renderRow(record);
+    remember(record);
+    const row = renderRow(record, { onAck: (item) => void act(item, "ack"), onResolve: (item) => void act(item, "resolve") });
     const index = tape.ids.indexOf(record.id);
     const nextId = index >= 0 ? tape.ids[index + 1] : undefined;
     const next = nextId ? list.querySelector(`[data-id="${cssEscape(nextId)}"]`) : null;
@@ -118,15 +315,13 @@ export function initDispatch(root: HTMLElement): void {
     paintChrome();
   };
 
-  const ingestFetched = (records: DeskRecord[]): void => {
+  const ingestFetched = (incoming: DeskRecord[]): void => {
     const before = new Set(tape.ids);
-    tape.acceptFetched(records);
-    for (const id of tape.ids) {
-      if (before.has(id)) {
-        continue;
-      }
-      const record = records.find((item) => item.id === id);
-      if (record) {
+    tape.acceptFetched(incoming);
+    for (const record of incoming) {
+      if (before.has(record.id)) {
+        refreshRow(record);
+      } else if (tape.ids.includes(record.id)) {
         mount(record);
       }
     }
@@ -246,9 +441,21 @@ export function initDispatch(root: HTMLElement): void {
   });
 
   void tick();
+  void pullUsage();
+  window.clearInterval(usageTimer);
+  usageTimer = window.setInterval(() => {
+    void pullUsage();
+  }, USAGE_INTERVAL_MS);
 }
 
-function renderRow(record: DeskRecord): HTMLLIElement {
+
+function renderRow(
+  record: DeskRecord,
+  actions?: {
+    onAck: (record: DeskRecord) => void;
+    onResolve: (record: DeskRecord) => void;
+  },
+): HTMLLIElement {
   const event = record.event;
   const row = document.createElement("li");
   row.className = "desk-row";
@@ -293,14 +500,41 @@ function renderRow(record: DeskRecord): HTMLLIElement {
 
   const acks = document.createElement("div");
   acks.className = "desk-acks";
-  acks.setAttribute("aria-hidden", "true");
+
+  const state = record.state ?? "new";
+  const canAck = state === "new" || state === "escalated";
+  const canResolve = state === "acked" || (state === "escalated" && Boolean(record.ack_at));
+  if (actions && (canAck || canResolve)) {
+    if (canAck) {
+      const ack = document.createElement("button");
+      ack.type = "button";
+      ack.className = "desk-action-button";
+      ack.textContent = t("desk.ack");
+      ack.addEventListener("click", () => actions.onAck(record));
+      acks.append(ack);
+    }
+    if (canResolve) {
+      const resolve = document.createElement("button");
+      resolve.type = "button";
+      resolve.className = "desk-action-button";
+      resolve.textContent = t("desk.resolve");
+      resolve.addEventListener("click", () => actions.onResolve(record));
+      acks.append(resolve);
+    }
+  } else {
+    acks.setAttribute("aria-hidden", "true");
+  }
 
   row.append(main, action);
-  if (record.state) {
-    const state = document.createElement("span");
-    state.className = "desk-state";
-    state.textContent = record.state;
-    row.append(state);
+  const stateEl = document.createElement("span");
+  stateEl.className = "desk-state";
+  stateEl.textContent = state;
+  row.append(stateEl);
+  if (record.rider_id) {
+    const rider = document.createElement("span");
+    rider.className = "desk-order";
+    rider.textContent = record.rider_id;
+    row.append(rider);
   }
   row.append(acks);
   return row;

@@ -18,5 +18,6 @@ export function deskErrorKey(status: number): MessageKey {
   if (status === 429) return "desk.rateLimit";
   if (status === 503) return "desk.passcodeUnset";
   if (status === 502) return "desk.upstream";
+  if (status === 0) return "desk.network";
   return "desk.failed";
 }
