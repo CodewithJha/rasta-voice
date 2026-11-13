@@ -16,6 +16,7 @@ from rasta.store import attach_event_store
 IDEMPOTENCY_TTL_SECONDS = 10 * 60
 # Same 2 MB file plus multipart framing allowance as issue 27's raw guard.
 MAX_IDEMPOTENCY_REQUEST_BYTES = 2_000_000 + 64 * 1024
+MAX_BUFFERED_REQUESTS = 16
 
 
 class IdempotencyBodyTooLarge(Exception):
@@ -68,6 +69,7 @@ class IdempotencyMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
         self._claim_lock = threading.Lock()
+        self._body_slots = threading.BoundedSemaphore(MAX_BUFFERED_REQUESTS)
         self._pending: dict[tuple[object, str, str], str] = {}
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -91,6 +93,20 @@ class IdempotencyMiddleware:
             await response(scope, receive, send)
             return
 
+        if not self._body_slots.acquire(blocking=False):
+            response = error_json_response(
+                429, "request_busy", "Too many buffered speech requests."
+            )
+            response.headers["Retry-After"] = "1"
+            await response(scope, receive, send)
+            return
+        try:
+            await self._handle_keyed(scope, receive, send, raw_key)
+        finally:
+            self._body_slots.release()
+
+    async def _handle_keyed(self, scope: Scope, receive: Receive, send: Send, raw_key: str) -> None:
+        path = str(scope.get("path") or "")
         try:
             body, replay = await _buffer_body(receive)
         except IdempotencyBodyTooLarge:
@@ -178,7 +194,10 @@ class IdempotencyMiddleware:
                 return
             assert start is not None
             status = int(start.get("status") or 200)
-            store.remember_idempotency(key_hash, route, body_hash, status, bytes(chunks))
+            # Definitive pre-admission denials performed no paid work. Retrying
+            # them must not grow the ledger while speech is paused or throttled.
+            if scope.get("_rasta_speech_admitted") is not False:
+                store.remember_idempotency(key_hash, route, body_hash, status, bytes(chunks))
             recorded = True
             await send(start)
             await send({"type": "http.response.body", "body": bytes(chunks), "more_body": False})
@@ -187,6 +206,8 @@ class IdempotencyMiddleware:
             await self.app(scope, replay, capture)
         finally:
             try:
+                if not recorded and scope.get("_rasta_speech_admitted") is False:
+                    recorded = True
                 if not recorded:
                     # Cancellation may leave paid work running under the resilience
                     # guard. Never let a duplicate start that uncertain work again.
