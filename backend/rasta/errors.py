@@ -157,11 +157,7 @@ def _is_readiness_document(path: str, payload: Any) -> bool:
     # Issue 22 readiness 503 is a probe document, not an API error envelope.
     if path in {"/api/ready", "/api/v1/ready"}:
         return True
-    return (
-        isinstance(payload, dict)
-        and "db_writable" in payload
-        and "schema_version" in payload
-    )
+    return isinstance(payload, dict) and "db_writable" in payload and "schema_version" in payload
 
 
 def _rewrite_error_bytes(status: int, body: bytes) -> bytes | None:
@@ -187,9 +183,9 @@ def _rewrite_error_bytes(status: int, body: bytes) -> bytes | None:
             for key, value in parsed.items()
             if key not in {"code", "message", "request_id"}
         }
-        return json.dumps(
-            error_body(str(parsed["code"]), str(parsed["message"]), **extra)
-        ).encode("utf-8")
+        return json.dumps(error_body(str(parsed["code"]), str(parsed["message"]), **extra)).encode(
+            "utf-8"
+        )
     return json.dumps(envelope_from_detail(status, parsed)).encode("utf-8")
 
 
@@ -280,11 +276,13 @@ class ErrorEnvelope:
 class ContractApp(SecuredApp):
     """Request IDs and security headers enclose the error envelope and FastAPI."""
 
-    def build_application_stack(self) -> ASGIApp:
+    def build_response_stack(self) -> ASGIApp:
         from rasta.idempotency import IdempotencyMiddleware
 
         return V1Alias(
-            ErrorEnvelope(IdempotencyMiddleware(super().build_application_stack()))
+            ErrorEnvelope(
+                self.build_perimeter(IdempotencyMiddleware(super().build_application_stack()))
+            )
         )
 
 
