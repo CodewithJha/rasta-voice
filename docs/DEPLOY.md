@@ -33,3 +33,29 @@ cookies after unlock. Do not widen that list to `*`.
 
 After five wrong unlock attempts from one address inside the window, the
 unlock route returns 429 until the window expires.
+
+## Health and readiness
+
+`GET /api/health` is the cheap liveness probe: the process is up. It
+returns `ok`, `gnani_key_set`, and `llm_provider` only. It does not
+touch disk, the event store, a credit budget, or Gnani. Keep the host
+container health check on this path until the issue 13 image can be
+pointed at the readiness probe below.
+
+`GET /api/ready` is readiness, for operators and the issue 24 smoke.
+It reports `gnani_key_set`, `db_writable`, `rate_limit`,
+`demo_credits_remaining`, `demo_credits_exhausted`, `schema_version`,
+`circuit_breaker`, and `events_in_store`. Fields that issue 13, 19, or
+29 have not shipped yet are the string `not_deployed`; this process
+does not invent a second budget or a shadow database. `events_in_store`
+is the current in-memory desk length.
+
+HTTP 200 means the process should stay in rotation. A missing Gnani
+key or a spent (or not-yet-deployed) credit budget stays 200: speech
+routes already return 503, and the payload shows
+`demo_credits_remaining: 0` and `demo_credits_exhausted: true` when
+issue 13's budget is present and exhausted. HTTP 503 with
+`ok: false` and `db_writable: false` is reserved for a configured
+durable store that cannot be written, so the host can take the
+process out of rotation. Neither payload includes
+`DISPATCH_PASSCODE`, `GNANI_API_KEY`, or any other raw secret.

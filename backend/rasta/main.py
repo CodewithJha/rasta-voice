@@ -23,6 +23,7 @@ from rasta.pipeline import (
 )
 from rasta.request_id import RequestIdApp, configure_rasta_logging
 from rasta.routes_events import events_router
+from rasta.routes_health import health_router
 from rasta.routes_reply import reply_router
 from rasta.routes_sim import sim_router
 from rasta.routes_stream import stream_router
@@ -68,6 +69,7 @@ app.add_middleware(
     allow_credentials=True,
 )
 app.include_router(events_router)
+app.include_router(health_router)
 app.include_router(reply_router)
 app.include_router(stream_router)
 app.include_router(sim_router)
