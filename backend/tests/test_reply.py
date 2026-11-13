@@ -140,7 +140,7 @@ def test_missing_or_changed_key_cannot_use_previous_cache(speech, monkeypatch):
     assert client.post(path).status_code == 200
     monkeypatch.delenv("GNANI_API_KEY")
     response = client.post(path)
-    assert response.status_code == 503 and "GNANI_API_KEY" in response.json()["detail"]
+    assert response.status_code == 503 and "GNANI_API_KEY" in response.json()["error"]["message"]
     assert len(seen) == 1
     monkeypatch.setenv("GNANI_API_KEY", "replacement-key")
     assert client.post(path).status_code == 200 and len(seen) == 2
@@ -157,13 +157,25 @@ def test_unknown_or_evicted_event_does_not_spend(speech, monkeypatch, tmp_path):
     assert client.post(path).status_code == 404 and len(seen) == 1
 
 
-@pytest.mark.parametrize("status", [401, 402, 429, 500])
-def test_upstream_errors_are_502_without_retry_or_error_cache(speech, status):
+@pytest.mark.parametrize(
+    "status,http_status,code",
+    [
+        (401, 502, "upstream_error"),
+        (402, 503, "upstream_out_of_credit"),
+        (429, 429, "upstream_rate_limited"),
+        (500, 502, "upstream_error"),
+    ],
+)
+def test_upstream_errors_are_mapped_without_retry_or_error_cache(
+    speech, status, http_status, code
+):
     client, path, seen, options = speech
     options.update(status=status, audio=b'{"message":"Unavailable"}')
     response = client.post(path)
-    assert response.status_code == 502
-    assert response.json()["detail"]["upstream_status"] == status and len(seen) == 1
+    assert response.status_code == http_status
+    error = response.json()["error"]
+    assert error["code"] == code
+    assert error["upstream_status"] == status and len(seen) == 1
     options.update(status=200, audio=b"not a wav")
     assert client.post(path).status_code == 502 and len(seen) == 2
 

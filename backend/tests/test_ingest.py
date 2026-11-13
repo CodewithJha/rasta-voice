@@ -111,7 +111,7 @@ def test_missing_key_is_a_loud_503(monkeypatch: pytest.MonkeyPatch, make_wav):
         "/api/ingest", files={"audio_file": ("clip.wav", make_wav(), "audio/wav")}
     )
     assert response.status_code == 503
-    assert "GNANI_API_KEY is not set" in response.json()["detail"]
+    assert "GNANI_API_KEY is not set" in response.json()["error"]["message"]
     assert client.post("/api/ingest/sample").status_code == 503
 
 
@@ -129,10 +129,12 @@ def test_upstream_error_is_a_502(monkeypatch: pytest.MonkeyPatch, make_wav):
     response = TestClient(app).post(
         "/api/ingest", files={"audio_file": ("clip.wav", make_wav(), "audio/wav")}
     )
-    assert response.status_code == 502
-    detail = response.json()["detail"]
-    assert detail["upstream_status"] == 402
-    assert "No credit" in detail["error"]
+    assert response.status_code == 503
+    error = response.json()["error"]
+    assert error["code"] == "upstream_out_of_credit"
+    assert error["upstream_status"] == 402
+    assert "request_id" in error
+    assert "No credit" not in error["message"]
 
 
 def test_missing_llm_key_still_ingests_with_rules(
