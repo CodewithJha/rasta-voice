@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Opt-in live deployment check, never invoked by default CI as a live script.
 
-One noisy sample triggers at most two Gnani calls (Timbre then Prisma).
-There are no speech retries, extra synthesis calls, or application mock modes.
+One noisy sample starts two logical operations (Timbre then Prisma).
+Server retries can make up to six provider attempts under issue 29's
+two-retry cap per operation. This CLI never retries its sample POST.
+There are no extra synthesis calls or application mock modes.
 Unit tests replace the HTTP transport inside their test file only.
 A valid no-key health response is a clean exit-0 skip. Configured deployments
 must pass the request-id, readiness, unauthorized-error and cookie-auth checks
 from issues 20/21/22/26 before the sample. Positive readiness credit units are
 not assumed to equal provider-call costs. The server still enforces its budget.
-After a charged timeout the reported two-call upper bound is not an exact bill.
+After a charged timeout the conservative upper bound is not an exact bill.
 Use --require-security-headers on the public deployment after issue 27 lands.
 """
 
@@ -31,6 +33,9 @@ SAFE_ID = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 INTENTS = frozenset(
     {"customer_unreachable", "address_issue", "item_missing", "delay", "accident_sos", "other"}
 )
+# Two logical operations, each with one initial attempt plus at most two
+# server retries. Conservative even on deployments without issue 29 retries.
+SAMPLE_PROVIDER_ATTEMPTS_UPPER_BOUND = 2 * (1 + 2)
 
 
 class SmokeFailure(Exception):
@@ -201,7 +206,7 @@ class SmokeCheck:
 
         # From this point a timeout can have spent calls; report the upper bound,
         # never retry the charged POST or claim an unknown actual charge is zero.
-        self.speech_calls_upper_bound = 2
+        self.speech_calls_upper_bound = SAMPLE_PROVIDER_ATTEMPTS_UPPER_BOUND
         sample = self.request(
             "POST",
             "api/ingest/sample",
