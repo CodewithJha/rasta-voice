@@ -336,3 +336,51 @@ def test_missing_server_key_cannot_bypass_the_reply_guard_with_a_successful_repl
             assert calls == [1]
     finally:
         attach_event_store(probe).close()
+
+
+def test_production_replays_cross_host_and_cors_guards(tmp_path):
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    code = """
+from fastapi.testclient import TestClient
+from rasta.main import app
+origin = "https://synthetic-ui.example"
+headers = {"Idempotency-Key": "synthetic-perimeter-key", "Origin": origin}
+with TestClient(app, base_url="https://allowed.test") as client:
+    first = client.post("/api/reply/nonexistent", headers=headers)
+    replay = client.post("/api/reply/nonexistent", headers=headers)
+    denied = client.post("/api/reply/nonexistent", headers={**headers, "Host": "hostile.test"})
+    assert first.status_code == 404
+    problems = []
+    if replay.headers.get("Access-Control-Allow-Origin") != origin:
+        problems.append("cached response skipped CORS")
+    if denied.status_code != 400:
+        problems.append("cached response skipped the host guard")
+    assert not problems, problems
+    for response in (first, replay, denied):
+        assert response.headers.get("Content-Security-Policy")
+        assert response.json()["error"]["request_id"] == response.headers["X-Request-ID"]
+"""
+    env = {
+        **os.environ,
+        "RASTA_ENV": "production",
+        "RASTA_ALLOWED_HOSTS": "allowed.test",
+        "CORS_ALLOW_ORIGINS": "https://synthetic-ui.example",
+        "GNANI_API_KEY": "test-only-key",
+        "DISPATCH_PASSCODE": "synthetic-production-fixture",
+        "LLM_PROVIDER": "rules",
+        "RASTA_DB_PATH": str(tmp_path / "production.sqlite"),
+        "PYTHONPATH": "backend:gnani_client:benchmark",
+    }
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=Path(__file__).resolve().parents[2],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
