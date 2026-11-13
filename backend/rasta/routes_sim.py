@@ -7,7 +7,7 @@ from rasta.simulate import CONDITION_HINT, CONDITIONS, envelope, prepare_for_ing
 from rasta.store import attach_event_store, bind_rider_header, reset_rider_header
 from rasta.upload_security import AudioUploadRoute
 
-sim_router = APIRouter(route_class=AudioUploadRoute)
+sim_router = APIRouter(route_class=AudioUploadRoute, tags=["rider"])
 
 
 @sim_router.post("/api/simulate")

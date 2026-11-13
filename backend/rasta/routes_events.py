@@ -1,7 +1,10 @@
 """Dispatch event list for the desk slate."""
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from fastapi.responses import JSONResponse
+import base64
+import json
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from fastapi.responses import JSONResponse, Response
 
 from rasta.dispatch_auth import (
     COOKIE_UNLOCK_CSRF,
@@ -29,17 +32,62 @@ from rasta.store import (
     parse_if_match,
 )
 
-events_router = APIRouter()
+events_router = APIRouter(tags=["dispatch"])
 
 
 def get_event_store(request: Request) -> EventStore:
     return attach_event_store(request.app)
 
 
+DEFAULT_EVENT_PAGE_SIZE = 50
+MAX_EVENT_PAGE_SIZE = 200
+
+
+def encode_page_token(event: dict) -> str:
+    raw = json.dumps(
+        {"id": event["id"], "created_at": event["created_at"]},
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def decode_page_token(token: str) -> tuple[str, str]:
+    padded = token + "=" * (-len(token) % 4)
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(padded.encode("ascii")))
+    except (ValueError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise HTTPException(status_code=422, detail="Invalid page_token.") from exc
+    event_id = payload.get("id") if isinstance(payload, dict) else None
+    created = payload.get("created_at") if isinstance(payload, dict) else None
+    if not isinstance(event_id, str) or not isinstance(created, str):
+        raise HTTPException(status_code=422, detail="Invalid page_token.")
+    return event_id, created
+
+
+def apply_page_token(events: list[dict], token: str | None) -> list[dict]:
+    if token is None or not token.strip():
+        return events
+    event_id, created = decode_page_token(token)
+    for index, event in enumerate(events):
+        if event.get("id") == event_id and event.get("created_at") == created:
+            return events[index + 1 :]
+    # Token names a row that is no longer in this window; start at the first
+    # event strictly after that created_at, then id.
+    later = []
+    for event in events:
+        stamp = str(event.get("created_at") or "")
+        if stamp > created or (stamp == created and str(event.get("id") or "") > event_id):
+            later.append(event)
+    return later
+
+
+
 @events_router.get("/api/events")
 def list_events(
     since: str | None = None,
     updated_since: str | None = None,
+    page_token: str | None = None,
+    limit: int = Query(default=DEFAULT_EVENT_PAGE_SIZE, ge=1, le=MAX_EVENT_PAGE_SIZE),
     store: EventStore = Depends(get_event_store),
     _actor: str = Depends(require_desk_read),
 ) -> dict:
@@ -51,7 +99,10 @@ def list_events(
             events = store.list_since(since)
     except InvalidSince as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return {"events": events}
+    events = apply_page_token(events, page_token)
+    page = events[:limit]
+    next_page_token = encode_page_token(page[-1]) if len(events) > limit else None
+    return {"events": page, "next_page_token": next_page_token}
 
 
 @events_router.get("/api/events/{event_id}")
@@ -81,6 +132,17 @@ def unlock_csrf(request: Request) -> JSONResponse:
         max_age=UNLOCK_CSRF_SECONDS,
     )
     return response
+
+
+@events_router.delete("/api/events/{event_id}")
+def delete_event(
+    event_id: str,
+    store: EventStore = Depends(get_event_store),
+    _actor: str = Depends(require_desk_write),
+):
+    if not store.delete(event_id):
+        raise HTTPException(status_code=404, detail="Event not found.")
+    return Response(status_code=204)
 
 
 @events_router.post("/api/dispatch/unlock")

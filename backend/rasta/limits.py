@@ -130,7 +130,6 @@ async def await_held_work(work, timeout: float):
 
 
 class SpeechGuard:
-
     """In-process budget, per-IP window, and concurrency gate."""
 
     def __init__(self, settings: Settings, *, clock=time.monotonic) -> None:
@@ -221,9 +220,7 @@ def admit_websocket(app: Any, scope: Scope) -> Decision | None:
     settings = get_settings()
     cost = speech_cost("WEBSOCKET", "/api/stream")
     assert cost is not None
-    return attach_speech_guard(app).admit(
-        client_ip(scope, settings), cost, acquire_slot=False
-    )
+    return attach_speech_guard(app).admit(client_ip(scope, settings), cost, acquire_slot=False)
 
 
 class SpeechBudgetMiddleware:
@@ -245,15 +242,24 @@ class SpeechBudgetMiddleware:
         if app is None:
             await self.app(scope, receive, send)
             return
+        scope["_rasta_speech_admitted"] = False
         settings = get_settings()
         guard = attach_speech_guard(app)
         decision = guard.admit(client_ip(scope, settings), cost)
         if decision is not None:
-            from starlette.responses import JSONResponse
+            from rasta.errors import error_json_response
 
-            response = JSONResponse({"detail": decision.message}, status_code=decision.status)
+            code = (
+                "budget_exhausted"
+                if decision.message in {PAUSED, BUDGET}
+                else "rate_limited"
+                if decision.status == 429
+                else "speech_busy"
+            )
+            response = error_json_response(decision.status, code, decision.message)
             await response(scope, receive, send)
             return
+        scope["_rasta_speech_admitted"] = True
         lease = SlotLease(guard)
         token = _slot_lease.set(lease)
         try:

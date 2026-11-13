@@ -8,13 +8,18 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
 
 from gnani_client.env import api_key
 from gnani_client.errors import GnaniError, MissingApiKeyError
 from rasta.dispatch_auth import attach_dispatch_auth, enforce_desk_csrf
+from rasta.errors import (
+    ContractApp,
+    gnani_http_exception,
+    install_validation_handler,
+    missing_key_http_exception,
+)
 from rasta.extract import extract_event
-from rasta.http_counts import HttpCountMiddleware, attach_http_counts
+from rasta.http_counts import attach_http_counts
 from rasta.limits import SpeechBudgetMiddleware, attach_speech_guard, await_held_work
 from rasta.pipeline import (
     SAMPLE_LINE,
@@ -36,18 +41,18 @@ from rasta.routes_health import health_router
 from rasta.routes_reply import reply_router
 from rasta.routes_sim import sim_router
 from rasta.routes_stream import stream_router
-from rasta.security import SecuredApp
 from rasta.settings import get_settings
 from rasta.simulate import CONDITION_HINT, CONDITIONS, BadClip, envelope, prepare_for_ingest
 from rasta.store import attach_event_store, bind_rider_header, reset_rider_header
 from rasta.stream_runtime import attach_stream_runtime
-from rasta.tasks import start_task
+from rasta.tasks import run_until_stopped, start_task
 from rasta.upload_security import AudioUploadRoute, UploadBodyLimit
 
 # Real env vars win over .env, so a deploy secret is never shadowed.
 load_dotenv()
 configure_rasta_logging()
 log = logging.getLogger("rasta")
+
 
 
 @asynccontextmanager
@@ -60,9 +65,21 @@ async def lifespan(app: FastAPI):
     attach_speech_guard(app, replace=True)
     attach_http_counts(app, replace=True)
     attach_upstream_runtime(app, replace=True)
+    ttl_stopped = asyncio.Event()
     sweeper = start_task(_sos_sweep(app), name="sos-sweep")
     try:
-        yield
+        async with asyncio.TaskGroup() as group:
+            group.create_task(
+                run_until_stopped(
+                    attach_event_store(app).purge_expired,
+                    get_settings().event_ttl_sweep_seconds,
+                    ttl_stopped,
+                )
+            )
+            try:
+                yield
+            finally:
+                ttl_stopped.set()
     finally:
         sweeper.cancel()
         with contextlib.suppress(asyncio.CancelledError):
@@ -93,7 +110,7 @@ async def _sos_sweep(application: FastAPI) -> None:
         return
 
 
-app = SecuredApp(
+app = ContractApp(
     title="Rasta Voice",
     dependencies=[Depends(enforce_desk_csrf)],
     version="0.1.0",
@@ -102,34 +119,20 @@ app = SecuredApp(
     redoc_url=None if get_settings().is_production else "/redoc",
     openapi_url=None if get_settings().is_production else "/openapi.json",
 )
+install_validation_handler(app)
 
 app.router.route_class = AudioUploadRoute
 
 
-def _configure_production(application: FastAPI) -> None:
-    """Fail closed on missing prod secrets and attach host / budget guards."""
-    from starlette.middleware.trustedhost import TrustedHostMiddleware
-
-    settings = get_settings()
-    settings.require_production_secrets()
-    if settings.allowed_hosts:
-        application.add_middleware(
-            TrustedHostMiddleware, allowed_hosts=list(settings.allowed_hosts)
-        )
+def _configure_production(_application: FastAPI) -> None:
+    """Validate deploy secrets; SecuredApp owns the outer host/CORS boundary."""
+    get_settings().require_production_secrets()
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=list(get_settings().cors_allow_origins),
-    allow_methods=["*"],
-    allow_headers=["*"],
-    allow_credentials=True,
-)
 app.add_middleware(SpeechBudgetMiddleware)
 _configure_production(app)
-# Count body-limit rejections as well as inner route responses.
+# Limit bytes before parsing; SecuredApp counts all replay and denial responses.
 app.add_middleware(UploadBodyLimit)
-app.add_middleware(HttpCountMiddleware)
 app.include_router(events_router)
 app.include_router(admin_router)
 app.include_router(health_router)
@@ -138,8 +141,8 @@ app.include_router(stream_router)
 app.include_router(sim_router)
 
 
-@app.get("/api/health")
-def health() -> dict:
+@app.get("/api/health", tags=["ops"])
+async def health() -> dict:
     return {
         "ok": True,
         "gnani_key_set": bool(api_key()),
@@ -147,7 +150,7 @@ def health() -> dict:
     }
 
 
-@app.post("/api/ingest")
+@app.post("/api/ingest", tags=["rider"])
 async def ingest_upload(
     request: Request,
     audio_file: UploadFile = File(...),
@@ -167,7 +170,7 @@ async def ingest_upload(
         reset_rider_header(token)
 
 
-@app.post("/api/ingest/sample")
+@app.post("/api/ingest/sample", tags=["rider"])
 async def ingest_sample(
     condition: str = "clean",
     x_rider_id: str | None = Header(default=None, alias="X-Rider-Id"),
@@ -235,13 +238,10 @@ def _guard(work):
         log.warning("upstream resilience: %s", exc)
         raise HTTPException(status_code=exc.status, detail=exc.as_detail()) from exc
     except MissingApiKeyError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise missing_key_http_exception(exc) from exc
     except GnaniError as exc:
         log.warning("Gnani call failed: %s", exc)
-        raise HTTPException(
-            status_code=502,
-            detail={"error": str(exc), "upstream_status": exc.status},
-        ) from exc
+        raise gnani_http_exception(exc) from exc
 
 
 def _mount_static(application: FastAPI) -> None:
