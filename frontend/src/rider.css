@@ -16,3 +16,136 @@ button.talk[aria-pressed="true"] {
   color: var(--paper);
   letter-spacing: 0.03em;
 }
+
+.chit .hint,
+.chit .fine {
+  font-size: 0.875rem;
+}
+
+.rider-mix {
+  margin: 0 0 1rem;
+}
+
+.rider-mix-label,
+.rider-player p {
+  margin: 0 0 0.45rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.rider-mix-switch,
+.rider-players,
+.chit .row,
+.rider-live {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.rider-mix-switch button,
+.chit .row button,
+.chit .file,
+.chit button.talk,
+.rider-players button,
+.rider-live button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.chit .file {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 0.55rem 0.2rem;
+}
+
+.rider-mix-switch button {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: 4px 4px 0 var(--sodium);
+}
+
+.rider-mix-switch button[aria-checked="true"] {
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 4px 4px 0 var(--stamp);
+}
+
+.rider-players {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.85rem;
+  margin: 0.95rem 0 0;
+}
+
+.rider-player audio {
+  display: block;
+  width: 100%;
+}
+
+.rider-player audio[hidden] {
+  display: none;
+}
+
+@media (max-width: 400px) {
+  .chit {
+    transform: none;
+    box-shadow: 8px 8px 0 #140e0a;
+  }
+
+  .chit .sticker {
+    position: static;
+    width: 72px;
+    height: 72px;
+    margin: 0 0 0.7rem auto;
+    transform: rotate(8deg);
+  }
+
+  .chit h2 {
+    max-width: none;
+    font-size: 1.45rem;
+  }
+
+  .chit .hint,
+  .chit .fine,
+  .rider-mix-label,
+  .rider-player p {
+    font-size: 0.875rem;
+  }
+
+  .rider-mix-label,
+  .rider-player p {
+    font-size: 0.75rem;
+  }
+
+  .chit .row,
+  .rider-live,
+  .rider-mix-switch,
+  .rider-players {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .chit .row button,
+  .chit .file,
+  .rider-mix-switch button,
+  .rider-live button,
+  .rider-players button,
+  .rider-player audio {
+    width: 100%;
+  }
+}
+
+.rider-reply-text {
+  margin: 0.35rem 0 0.4rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+
+.rider-reply-text[hidden] {
+  display: none;
+}
