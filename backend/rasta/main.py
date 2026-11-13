@@ -12,11 +12,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from gnani_client.env import api_key
 from gnani_client.errors import GnaniError, MissingApiKeyError
 from rasta.extract import extract_event
-from rasta.pipeline import SAMPLE_LINE, ClipTooLarge, EmptyClip, ingest, speak_sample
+from rasta.pipeline import (
+    SAMPLE_LINE,
+    ClipTooLarge,
+    EmptyClip,
+    ingest,
+    read_upload_clip,
+    speak_sample,
+)
 from rasta.routes_events import events_router
 from rasta.routes_reply import reply_router
+from rasta.routes_sim import sim_router
 from rasta.routes_stream import stream_router
 from rasta.settings import get_settings
+from rasta.simulate import CONDITION_HINT, CONDITIONS, BadClip, envelope, prepare_for_ingest
 from rasta.store import attach_event_store
 from rasta.stream_runtime import attach_stream_runtime
 
@@ -56,6 +65,7 @@ app.add_middleware(
 app.include_router(events_router)
 app.include_router(reply_router)
 app.include_router(stream_router)
+app.include_router(sim_router)
 
 
 @app.get("/api/health")
@@ -69,7 +79,7 @@ def health() -> dict:
 
 @app.post("/api/ingest")
 async def ingest_upload(audio_file: UploadFile = File(...)) -> dict:
-    data = await audio_file.read()
+    data = await read_upload_clip(audio_file)
     filename = audio_file.filename or "clip.wav"
     # The pipeline is still sync (Prisma and Timbre clients are sync). Run it
     # in a worker thread so an LLM or STT wait cannot block the event loop.
@@ -80,18 +90,23 @@ async def ingest_upload(audio_file: UploadFile = File(...)) -> dict:
 
 
 @app.post("/api/ingest/sample")
-async def ingest_sample() -> dict:
+async def ingest_sample(condition: str = "clean") -> dict:
     """Timbre speaks a synthetic rider line, then Prisma transcribes it.
 
     Two real Gnani calls, no uploaded file needed. The response carries the
     exact text Timbre was given so the transcript can be compared to it.
+    ``condition`` shares the simulate envelope: clean re-wraps the spoken
+    WAV, noisy dirties it to 8 kHz before Prisma hears it.
     """
+    if condition not in CONDITIONS:
+        raise HTTPException(status_code=400, detail=CONDITION_HINT)
 
     def run() -> dict:
         audio = speak_sample()
-        stamped = attach_event_store(app).append(ingest(audio, "sample.wav"))
+        wav = prepare_for_ingest(audio, condition)
+        stamped = attach_event_store(app).append(ingest(wav, "sample.wav"))
         stamped["sample_text"] = SAMPLE_LINE
-        return stamped
+        return envelope(condition, wav, stamped)
 
     return await asyncio.to_thread(_guard, run)
 
@@ -100,6 +115,8 @@ def _guard(work):
     try:
         return work()
     except EmptyClip as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except BadClip as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ClipTooLarge as exc:
         raise HTTPException(status_code=413, detail=str(exc)) from exc

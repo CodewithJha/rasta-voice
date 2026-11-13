@@ -1,10 +1,23 @@
 import type { IngestResult } from "./types";
+import { renderReplyConfirmation, type ReplyPayload } from "./reply-view";
 import "./rider.css";
 
 const TARGET_RATE = 16_000;
 const FRAME_BYTES = 1024;
 const SAMPLES_PER_FRAME = FRAME_BYTES / 2;
+const FETCH_TIMEOUT_MS = 20_000;
 
+type LineCondition = "clean" | "noisy";
+
+interface SimulateEnvelope {
+  condition: LineCondition;
+  audio_base64: string;
+  ingest: IngestResult;
+}
+
+// Live-mic dirt would be a horn buffer summed in this worklet, not a second
+// server mix. This issue ships the upload / REST sample path as the demo
+// dirt; Talk and Stream a sample line stay a clean mic.
 const WORKLET_SRC = `
 class RastaPcm extends AudioWorkletProcessor {
   process(inputs) {
@@ -35,6 +48,35 @@ export function initRider(root: HTMLElement): void {
   hint.className = "hint";
   hint.textContent =
     "Talk into the mic (Prisma hears you live), stream a synthetic Timbre line, or upload a short clip. The key stays on the server.";
+
+  const mix = document.createElement("div");
+  mix.className = "rider-mix";
+  mix.setAttribute("role", "radiogroup");
+  mix.setAttribute("aria-label", "Line condition");
+
+  const mixLabel = document.createElement("p");
+  mixLabel.className = "rider-mix-label";
+  mixLabel.id = "rider-mix-hint";
+  mixLabel.textContent =
+    "Demo dirt. The scored mixes are in the benchmark. Talk and the live sample stream stay a clean mic.";
+
+  const switchRow = document.createElement("div");
+  switchRow.className = "rider-mix-switch";
+
+  const cleanBtn = document.createElement("button");
+  cleanBtn.type = "button";
+  cleanBtn.textContent = "Clean line";
+  cleanBtn.setAttribute("role", "radio");
+  cleanBtn.setAttribute("aria-label", "Clean line");
+
+  const noisyBtn = document.createElement("button");
+  noisyBtn.type = "button";
+  noisyBtn.textContent = "Noisy line";
+  noisyBtn.setAttribute("role", "radio");
+  noisyBtn.setAttribute("aria-label", "Noisy line");
+
+  switchRow.append(cleanBtn, noisyBtn);
+  mix.append(mixLabel, switchRow);
 
   const form = document.createElement("form");
   const row = document.createElement("div");
@@ -81,16 +123,82 @@ export function initRider(root: HTMLElement): void {
   out.tabIndex = 0;
   out.textContent = "Waiting for a clip.";
 
+  const players = document.createElement("div");
+  players.className = "rider-players";
+
+  const clipPlayer = document.createElement("div");
+  clipPlayer.className = "rider-player";
+  const clipCaption = document.createElement("p");
+  clipCaption.textContent = "What Prisma heard";
+  const clipAudio = document.createElement("audio");
+  clipAudio.controls = true;
+  clipAudio.hidden = true;
+  clipPlayer.append(clipCaption, clipAudio);
+
+  const replyPlayer = document.createElement("div");
+  replyPlayer.className = "rider-player";
+  const hear = document.createElement("button");
+  hear.type = "button";
+  hear.className = "ghost";
+  hear.textContent = "Hear dispatch";
+  hear.setAttribute("aria-label", "Hear dispatch");
+  hear.disabled = true;
+  const replyCaption = document.createElement("p");
+  replyCaption.textContent = "Sun lo — the Timbre confirmation";
+  const replyText = document.createElement("p");
+  replyText.className = "rider-reply-text";
+  replyText.hidden = true;
+  const replyAudio = document.createElement("audio");
+  replyAudio.controls = true;
+  replyAudio.hidden = true;
+  replyPlayer.append(hear, replyCaption, replyText, replyAudio);
+
+  players.append(clipPlayer, replyPlayer);
+
   const fine = document.createElement("p");
   fine.className = "fine";
   fine.textContent =
     "Timbre v3.0 → Prisma v3.0 · /api/stream or REST · transliterate · Hindi and English hints. No real phone numbers.";
 
-  chit.append(sticker, title, hint, form, live, out, fine);
+  chit.append(sticker, title, hint, mix, form, live, out, players, fine);
   root.append(chit);
 
-  const mic = new MicSession(out, talk, live, () => setBusy(false));
+  let condition: LineCondition = "clean";
+  let lastEventId: string | undefined;
   let busy = false;
+
+  const applyCondition = (value: LineCondition): void => {
+    condition = value;
+    cleanBtn.setAttribute("aria-checked", String(value === "clean"));
+    noisyBtn.setAttribute("aria-checked", String(value === "noisy"));
+    cleanBtn.tabIndex = value === "clean" ? 0 : -1;
+    noisyBtn.tabIndex = value === "noisy" ? 0 : -1;
+  };
+  applyCondition("clean");
+
+  const focusCurrent = (): void => {
+    (condition === "clean" ? cleanBtn : noisyBtn).focus();
+  };
+
+  for (const button of [cleanBtn, noisyBtn]) {
+    button.addEventListener("click", () => {
+      applyCondition(button === noisyBtn ? "noisy" : "clean");
+    });
+    button.addEventListener("keydown", (event) => {
+      if (
+        event.key === "ArrowRight" ||
+        event.key === "ArrowLeft" ||
+        event.key === "ArrowUp" ||
+        event.key === "ArrowDown"
+      ) {
+        event.preventDefault();
+        applyCondition(condition === "clean" ? "noisy" : "clean");
+        focusCurrent();
+      }
+    });
+  }
+
+  const mic = new MicSession(out, talk, live, () => setBusy(false), rememberIngest);
 
   const setBusy = (value: boolean): void => {
     busy = value;
@@ -98,7 +206,13 @@ export function initRider(root: HTMLElement): void {
     restSample.disabled = value;
     streamSample.disabled = value;
     talk.disabled = value && !mic.recording;
+    hear.disabled = value || !lastEventId;
   };
+
+  function rememberIngest(ingest: IngestResult): void {
+    lastEventId = ingest.id;
+    hear.disabled = busy || !lastEventId;
+  }
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -110,14 +224,22 @@ export function initRider(root: HTMLElement): void {
     }
     const body = new FormData();
     body.append("audio_file", picked, picked.name);
-    setBusy(true);
-    void post("/api/ingest", { method: "POST", body }, out).finally(() => setBusy(false));
+    void withBusy(send, () =>
+      post(`/api/simulate?condition=${condition}`, { method: "POST", body }, out, {
+        onIngest: rememberIngest,
+        clipAudio,
+      }),
+    );
   });
 
   restSample.addEventListener("click", () => {
     if (busy || mic.recording) return;
-    setBusy(true);
-    void post("/api/ingest/sample", { method: "POST" }, out).finally(() => setBusy(false));
+    void withBusy(restSample, () =>
+      post(`/api/ingest/sample?condition=${condition}`, { method: "POST" }, out, {
+        onIngest: rememberIngest,
+        clipAudio,
+      }),
+    );
   });
 
   talk.addEventListener("click", () => {
@@ -135,11 +257,31 @@ export function initRider(root: HTMLElement): void {
     setBusy(true);
     live.dataset.state = "live";
     out.textContent = "On the line…";
-    void openStream(out, { type: "sample" }).finally(() => {
+    clipAudio.removeAttribute("src");
+    clipAudio.hidden = true;
+    void openStream(out, { type: "sample" }, rememberIngest).finally(() => {
       delete live.dataset.state;
       setBusy(false);
     });
   });
+
+  hear.addEventListener("click", () => {
+    if (busy || !lastEventId) return;
+    void withBusy(hear, () => postReply(`/api/reply/${lastEventId}`, out, replyAudio, replyText));
+  });
+
+  async function withBusy(button: HTMLButtonElement, work: () => Promise<void>): Promise<void> {
+    if (busy) return;
+    const label = button.textContent;
+    setBusy(true);
+    button.textContent = "On the line…";
+    try {
+      await work();
+    } finally {
+      button.textContent = label;
+      setBusy(false);
+    }
+  }
 }
 
 class MicSession {
@@ -158,6 +300,7 @@ class MicSession {
     private readonly talk: HTMLButtonElement,
     private readonly live: HTMLElement,
     private readonly onDone: () => void,
+    private readonly onIngest: (ingest: IngestResult) => void,
   ) {}
 
   async start(): Promise<void> {
@@ -196,7 +339,7 @@ class MicSession {
     if (!hooked) {
       this.attachScriptProcessor(context, this.packer);
     }
-    this.socket = connectStream(this.out, () => this.teardown(false), this.onDone);
+    this.socket = connectStream(this.out, () => this.teardown(false), this.onDone, this.onIngest);
     this.recording = true;
     this.live.dataset.state = "live";
     this.talk.disabled = false;
@@ -345,16 +488,25 @@ function streamUrl(): string {
   return `${protocol}//${window.location.host}/api/stream`;
 }
 
-function openStream(out: HTMLElement, first: { type: string }): Promise<void> {
+function openStream(
+  out: HTMLElement,
+  first: { type: string },
+  onIngest?: (ingest: IngestResult) => void,
+): Promise<void> {
   return new Promise((resolve) => {
-    const socket = connectStream(out, () => undefined, resolve);
+    const socket = connectStream(out, () => undefined, resolve, onIngest);
     socket.addEventListener("open", () => {
       socket.send(JSON.stringify(first));
     });
   });
 }
 
-function connectStream(out: HTMLElement, onCloseEarly: () => void, onDone: () => void): WebSocket {
+function connectStream(
+  out: HTMLElement,
+  onCloseEarly: () => void,
+  onDone: () => void,
+  onIngest?: (ingest: IngestResult) => void,
+): WebSocket {
   const socket = new WebSocket(streamUrl());
   let settled = false;
   const finish = (): void => {
@@ -384,11 +536,12 @@ function connectStream(out: HTMLElement, onCloseEarly: () => void, onDone: () =>
       void _type;
       const ingest = result as IngestResult;
       out.textContent = JSON.stringify(ingest, null, 2);
+      onIngest?.(ingest);
       window.dispatchEvent(new CustomEvent<IngestResult>("rasta:event", { detail: ingest }));
     }
   });
   socket.addEventListener("error", () => {
-    if (!out.textContent || out.textContent.startsWith("Listening") || out.textContent === "On the line…") {
+    if (out.textContent?.startsWith("Listening") || out.textContent === "On the line…") {
       out.textContent = "Stream connection failed.";
     }
     onCloseEarly();
@@ -401,23 +554,151 @@ function connectStream(out: HTMLElement, onCloseEarly: () => void, onDone: () =>
   return socket;
 }
 
-async function post(url: string, init: RequestInit, out: HTMLElement): Promise<void> {
+async function post(
+  url: string,
+  init: RequestInit,
+  out: HTMLElement,
+  opts: { onIngest: (ingest: IngestResult) => void; clipAudio: HTMLAudioElement },
+): Promise<void> {
   out.textContent = "On the line…";
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
-    const response = await fetch(url, init);
+    const response = await fetch(url, { ...init, signal: controller.signal });
     const text = await response.text();
     if (!response.ok) {
-      out.textContent = "";
-      const err = document.createElement("span");
-      err.className = "err";
-      err.textContent = `${response.status} ${text}`;
-      out.append(err);
+      showError(out, response.status, text);
       return;
     }
-    const result = JSON.parse(text) as IngestResult;
-    out.textContent = JSON.stringify(result, null, 2);
-    window.dispatchEvent(new CustomEvent<IngestResult>("rasta:event", { detail: result }));
+    const parsed: unknown = JSON.parse(text);
+    const ingest = unwrapIngest(parsed);
+    const clip = clipAudioFrom(parsed);
+    out.textContent = JSON.stringify(ingest, null, 2);
+    opts.onIngest(ingest);
+    if (clip) {
+      setAudio(opts.clipAudio, clip);
+    } else {
+      opts.clipAudio.removeAttribute("src");
+      opts.clipAudio.hidden = true;
+    }
+    window.dispatchEvent(new CustomEvent<IngestResult>("rasta:event", { detail: ingest }));
   } catch (err) {
-    out.textContent = err instanceof Error ? err.message : "Request failed";
+    out.textContent = errorMessage(err);
+  } finally {
+    window.clearTimeout(timer);
   }
+}
+
+async function postReply(
+  url: string,
+  out: HTMLElement,
+  player: HTMLAudioElement,
+  textEl: HTMLElement,
+): Promise<void> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { method: "POST", signal: controller.signal });
+    const text = await response.text();
+    if (!response.ok) {
+      showError(out, response.status, text);
+      return;
+    }
+    renderReplyConfirmation(JSON.parse(text) as ReplyPayload, player, textEl);
+  } catch (err) {
+    out.textContent = errorMessage(err);
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+function setAudio(player: HTMLAudioElement, audioBase64: string): void {
+  player.src = `data:audio/wav;base64,${audioBase64}`;
+  player.hidden = false;
+}
+
+function unwrapIngest(parsed: unknown): IngestResult {
+  if (isEnvelope(parsed)) {
+    return parsed.ingest;
+  }
+  return parsed as IngestResult;
+}
+
+function clipAudioFrom(parsed: unknown): string | undefined {
+  return isEnvelope(parsed) ? parsed.audio_base64 : undefined;
+}
+
+function isEnvelope(value: unknown): value is SimulateEnvelope {
+  if (!value || typeof value !== "object") return false;
+  const body = value as Partial<SimulateEnvelope>;
+  return (
+    (body.condition === "clean" || body.condition === "noisy") &&
+    typeof body.audio_base64 === "string" &&
+    typeof body.ingest === "object" &&
+    body.ingest !== null
+  );
+}
+
+function showError(out: HTMLElement, status: number, text: string): void {
+  out.textContent = "";
+  const err = document.createElement("span");
+  err.className = "err";
+  err.textContent = describeError(status, text);
+  out.append(err);
+}
+
+function describeError(status: number, text: string): string {
+  const detail = parseDetail(text);
+  const upstream = detail && typeof detail === "object" ? readUpstream(detail) : undefined;
+  if (status === 503) {
+    return "The key is not set on the server.";
+  }
+  if (status === 429) {
+    return "The demo is busy, try in a minute.";
+  }
+  if (status === 402 || upstream === 402) {
+    return "Credit is exhausted on the speech service.";
+  }
+  if (status === 502) {
+    const extra = upstream != null ? ` (upstream ${upstream})` : "";
+    const message = readErrorMessage(detail);
+    return message ? `Upstream failed${extra}. ${message}` : `Upstream failed${extra}.`;
+  }
+  const message = typeof detail === "string" ? detail : readErrorMessage(detail);
+  return message ? `${status}: ${message}` : `${status}: ${text}`;
+}
+
+function parseDetail(text: string): unknown {
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (parsed && typeof parsed === "object" && "detail" in parsed) {
+      return (parsed as { detail: unknown }).detail;
+    }
+    return parsed;
+  } catch {
+    return text;
+  }
+}
+
+function readUpstream(detail: object): number | undefined {
+  if ("upstream_status" in detail && typeof (detail as { upstream_status: unknown }).upstream_status === "number") {
+    return (detail as { upstream_status: number }).upstream_status;
+  }
+  return undefined;
+}
+
+function readErrorMessage(detail: unknown): string | undefined {
+  if (typeof detail === "string") return detail;
+  if (detail && typeof detail === "object" && "error" in detail) {
+    const error = (detail as { error: unknown }).error;
+    if (typeof error === "string") return error;
+  }
+  return undefined;
+}
+
+function errorMessage(err: unknown): string {
+  if (err instanceof DOMException && err.name === "AbortError") {
+    return "The request timed out. Try again.";
+  }
+  return err instanceof Error ? err.message : "Request failed";
 }

@@ -5,7 +5,8 @@ from gnani_client.tts import TimbreTTS
 from gnani_client.wav import wav_duration_seconds
 from rasta.extract import extract_event_with_source
 
-_MAX_BYTES = 2_000_000
+MAX_CLIP_BYTES = 2_000_000
+CLIP_TOO_LARGE = "clip must be under 2 MB (Prisma REST is 30 seconds)"
 
 # Synthetic rider line for the "speak a sample" demo. Timbre says it, Prisma
 # hears it. Numbers are words so Timbre does not have to guess.
@@ -26,11 +27,25 @@ class EmptyClip(ValueError):
     pass
 
 
+def reject_oversize_clip(data: bytes) -> bytes:
+    """Raise ``ClipTooLarge`` when ``data`` exceeds ``MAX_CLIP_BYTES``."""
+    if len(data) > MAX_CLIP_BYTES:
+        raise ClipTooLarge(CLIP_TOO_LARGE)
+    return data
+
+
+async def read_upload_clip(audio_file) -> bytes:
+    """Read an upload, stopping at one byte past the clip ceiling.
+
+    Size rejection stays with the caller so it can run inside ``_guard``.
+    """
+    return await audio_file.read(MAX_CLIP_BYTES + 1)
+
+
 def ingest(audio: bytes, filename: str = "clip.wav") -> dict:
     if not audio:
         raise EmptyClip("empty audio")
-    if len(audio) > _MAX_BYTES:
-        raise ClipTooLarge("clip must be under 2 MB (Prisma REST is 30 seconds)")
+    reject_oversize_clip(audio)
     stt = PrismaSTT()
     result = stt.transcribe(
         audio,

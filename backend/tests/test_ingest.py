@@ -85,11 +85,14 @@ def test_sample_is_timbre_then_prisma(client: TestClient, calls):
     response = client.post("/api/ingest/sample")
     assert response.status_code == 200
     body = response.json()
+    assert body["condition"] == "clean"
+    assert body["audio_base64"]
+    ingest = body["ingest"]
     assert [r.url.path for r in calls] == ["/api/v1/tts/inference", "/stt/v3"]
     assert SAMPLE_LINE in calls[0].content.decode()
-    assert body["sample_text"] == SAMPLE_LINE
-    assert body["stt"]["audio_seconds"] == 1.0
-    assert body["event"]["urgency"] == "high"
+    assert ingest["sample_text"] == SAMPLE_LINE
+    assert ingest["stt"]["audio_seconds"] == 1.0
+    assert ingest["event"]["urgency"] == "high"
 
 
 def test_empty_upload(client: TestClient):
@@ -142,7 +145,7 @@ def test_missing_llm_key_still_ingests_with_rules(
     clear_settings_cache()
     response = client.post("/api/ingest/sample")
     assert response.status_code == 200
-    body = response.json()
+    body = response.json()["ingest"]
     assert body["extractor_source"] == "rules"
     assert body["fallback_reason"] == "missing_api_key"
     assert body["event"]["intent"] == "customer_unreachable"
