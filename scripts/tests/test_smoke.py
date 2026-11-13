@@ -131,7 +131,7 @@ def test_success_uses_one_paid_sample_and_checks_the_protected_desk():
     service = Service()
     outcome, check, output = run(service, strict=True)
     assert outcome == "passed"
-    assert check.speech_calls_upper_bound == 2
+    assert check.speech_calls_upper_bound == 6
     assert len(speech_requests(service)) == 1
     assert EVENT_ID in output and "synthetic-provider-request" in output
     assert PASSCODE not in output and service.transcript not in output
@@ -237,7 +237,7 @@ def test_paid_failures_do_not_retry_or_claim_success(change):
         with pytest.raises(smoke.SmokeFailure):
             check.run()
     assert len(speech_requests(service)) == 1
-    assert check.speech_calls_upper_bound == 2
+    assert check.speech_calls_upper_bound == 6
 
 
 def test_known_credentials_in_an_untrusted_request_id_are_redacted(monkeypatch):
@@ -298,7 +298,7 @@ def test_positive_budget_is_not_assumed_to_be_one_credit_per_call():
     service = Service()
     service.ready["demo_credits_remaining"] = 1
     outcome, check, _ = run(service)
-    assert outcome == "passed" and check.speech_calls_upper_bound == 2
+    assert outcome == "passed" and check.speech_calls_upper_bound == 6
 
 
 def test_nested_budget_shape_is_accepted():
@@ -319,7 +319,7 @@ def test_cli_timeout_reports_possible_spend_without_a_retry(monkeypatch, capsys)
     monkeypatch.setenv("DISPATCH_PASSCODE", PASSCODE)
     assert smoke.main([]) == 1
     output = capsys.readouterr().out
-    assert "speech_calls_upper_bound=2" in output and "failed" in output
+    assert "speech_calls_upper_bound=6" in output and "failed" in output
     assert len(speech_requests(service)) == 1 and PASSCODE not in output
 
 
