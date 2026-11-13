@@ -2,7 +2,7 @@ import { fillChitResult } from "./chit-view";
 import { describeError, describeNetworkError } from "./errors";
 import { fetchWithTimeout } from "./http";
 import { onLocaleChange, t } from "./i18n";
-import { renderReplyConfirmation, type ReplyPayload } from "./reply-view";
+import { renderReplyConfirmation, setWavAudio, type ReplyPayload } from "./reply-view";
 import type { IngestResult } from "./types";
 import "./rider.css";
 
@@ -698,8 +698,7 @@ async function postReply(
 }
 
 function setAudio(player: HTMLAudioElement, audioBase64: string): void {
-  player.src = `data:audio/wav;base64,${audioBase64}`;
-  player.hidden = false;
+  setWavAudio(player, audioBase64);
 }
 
 function unwrapIngest(parsed: unknown): IngestResult {
