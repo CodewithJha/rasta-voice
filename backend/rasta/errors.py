@@ -175,9 +175,9 @@ def _rewrite_error_bytes(status: int, body: bytes) -> bytes | None:
         return json.dumps(payload).encode("utf-8")
     if isinstance(parsed, dict) and isinstance(parsed.get("error"), dict):
         inner = parsed["error"]
-        if "request_id" not in inner or not inner.get("request_id"):
-            inner = {**inner, "request_id": current_request_id() or ""}
-            parsed = {"error": inner}
+        # A cached error belongs to this HTTP attempt, not the original one.
+        inner = {**inner, "request_id": current_request_id() or ""}
+        parsed = {"error": inner}
         return json.dumps(parsed).encode("utf-8")
     if isinstance(parsed, dict) and "detail" in parsed:
         return json.dumps(envelope_from_detail(status, parsed["detail"])).encode("utf-8")
@@ -280,11 +280,11 @@ class ErrorEnvelope:
 class ContractApp(SecuredApp):
     """Request IDs and security headers enclose the error envelope and FastAPI."""
 
-    def build_middleware_stack(self) -> ASGIApp:
+    def build_application_stack(self) -> ASGIApp:
         from rasta.idempotency import IdempotencyMiddleware
 
         return V1Alias(
-            IdempotencyMiddleware(ErrorEnvelope(super().build_middleware_stack()))
+            ErrorEnvelope(IdempotencyMiddleware(super().build_application_stack()))
         )
 
 

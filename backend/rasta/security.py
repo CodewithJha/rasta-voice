@@ -64,4 +64,8 @@ class SecuredApp(RequestIdApp):
     """Request IDs enclose headers, which enclose FastAPI's full error stack."""
 
     def build_middleware_stack(self) -> ASGIApp:
-        return SecurityHeaders(super().build_middleware_stack())
+        return SecurityHeaders(self.build_application_stack())
+
+    def build_application_stack(self) -> ASGIApp:
+        """Contract wrappers override this hook while keeping policy outermost."""
+        return super().build_middleware_stack()
