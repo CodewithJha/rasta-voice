@@ -1,144 +1,173 @@
 # Rasta Voice
 
-A noise-robust voice copilot for delivery riders. The rider speaks Hinglish on a phone-quality line ("bhaiya gate band hai, customer phone nahi utha raha"). Gnani Prisma transcribes it, a small extractor turns it into a dispatch event, and Gnani Timbre will speak a short confirmation back.
+A voice copilot for delivery riders speaking Hinglish in noisy conditions.
+Gnani Prisma transcribes the audio, the extractor produces a validated dispatch
+event, and Gnani Timbre speaks a confirmation that respects the dispatcher's
+acknowledgement state.
 
-This repository is the skeleton: one working path from an audio upload to that event, on the real Gnani APIs. There is no mock or offline mode. Without `GNANI_API_KEY` the speech routes answer `503` with a clear message. The rest of the product is sequenced in [docs/PLAN.md](docs/PLAN.md). An honest production-readiness register, including the definition of done, is in [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md). How Himanshu and Priyanshu open branches and pull requests is in [CONTRIBUTING.md](CONTRIBUTING.md).
+The app includes a rider chit, microphone streaming, a dispatch slate with
+acknowledgement and resolution, a SQLite event store, and bounded public speech
+controls. Every speech request uses the real Gnani APIs. Without
+`GNANI_API_KEY`, speech routes return a clear `503` error.
 
-Built for Gnani AI's Great Indian AI Internship Challenge. Target award: **Noise Canceller**. Speech is synthetic. No real phone numbers, calls, or customer records.
+**Release evidence is still incomplete:** the public host, consented field
+recordings, timed demo read-through, playable public video/posts and final form
+submission require verification. Rules accuracy is also below the issue 2
+holdout target. Read [production readiness](docs/PRODUCTION_READINESS.md) and
+[the submission checklist](docs/SUBMISSION.md) before making release claims.
 
-Docs: [Current architecture](docs/ARCHITECTURE.md), [security and open gaps](docs/SECURITY.md), [contributing](docs/CONTRIBUTING.md). See the Operations and project policies section below for the runbook, ADRs,
-license, changelog, conduct policy and governance.
+Built for Gnani AI's Great Indian AI Internship Challenge, targeting Noise
+Canceller. The committed speech benchmark is synthetic. It is not evidence
+from real customer calls or a carrier telephone network.
 
 ## Team
 
-The team is exactly these two people. No one else is a contributor.
+The two project owners are:
 
 - Member A, benchmark and audio: [Himanshu](https://github.com/himanshu748) (`@himanshu748`)
-- Member B, app, realtime, and UI: [Priyanshu Jha](https://github.com/CodewithJha) (`@CodewithJha`)
+- Member B, app, realtime and UI: [Priyanshu Jha](https://github.com/CodewithJha) (`@CodewithJha`)
 
-## Layout
+Ownership and the review workflow remain in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Himanshu and Priyanshu can work in parallel if they stay inside their trees.
-
-| Path | Who | What |
-| --- | --- | --- |
-| `gnani_client/` | shared, treat as frozen | Prisma STT, batch jobs, Timbre TTS |
-| `backend/rasta/` | Member B: Priyanshu Jha (@CodewithJha) | FastAPI hello path and, later, the live desk |
-| `frontend/` | Member B: Priyanshu Jha (@CodewithJha) | Rider chit and dispatch slate |
-| `benchmark/` | Member A: Himanshu (@himanshu748) | WER/CER now; noise, telephony, and the scored run later |
-| `shared/rider_event.schema.json` | frozen | Event contract. Matching types live in `backend/rasta/schema.py` and `frontend/src/types.ts` |
-| `docs/issues/` | both | One file per remaining slice of work |
-
-## Architecture
-
-Solid arrows are in this skeleton. Dashed arrows are the issue plan.
+## Runtime
 
 ```mermaid
-flowchart LR
-  rider["Rider chit<br/>frontend"] -->|POST /api/ingest| api["FastAPI<br/>backend/rasta"]
-  api --> stt["Prisma STT<br/>POST /stt/v3"]
-  stt --> extract["Extractor<br/>free LLM, rules fallback"]
-  extract --> event["RiderEvent JSON"]
-  event --> slate["Dispatch slate"]
-  event -.-> tts["Timbre TTS<br/>POST /api/v1/tts/inference"]
-  tts -.-> rider
-  mic["Live mic"] -.->|WebSocket /stt/v3/stream| stt
-  bench["benchmark/"] -.->|noisy 8 kHz clips| batch["Batch STT<br/>with_denoise"]
-  batch -.-> scores["WER, CER, intent accuracy"]
+sequenceDiagram
+  participant Rider
+  participant API
+  participant Prisma
+  participant Desk
+  participant Timbre
+  Rider->>API: Audio upload or WebSocket
+  API->>Prisma: Speech recognition
+  Prisma-->>API: Transcript and request metadata
+  API->>API: Extract, validate, redact and store
+  Desk->>API: Authenticated event polling
+  API-->>Desk: Dispatch record
+  Desk->>API: Ack or resolve with CSRF and version
+  Rider->>API: Hear dispatch
+  API->>Timbre: State-aware confirmation
+  Timbre-->>API: Audio
+  API-->>Rider: Playable confirmation
 ```
 
-Gnani base URL: `https://api.vachana.ai`. Auth header on every call: `X-API-Key-ID`.
+The API runs as **one worker** with SQLite and process-local admission limits.
+The rider stays public under configured budgets; desk reads require a session
+or passcode header, and cookie-authenticated writes also require CSRF.
+[Architecture](docs/ARCHITECTURE.md), [API contract](docs/API.md),
+[security](docs/SECURITY.md) and [upload limits](docs/UPLOADS.md) describe the
+boundaries. Secrets stay on the server.
 
-| Client | Live call | Notes |
+| Tree | Responsibility | Owner |
 | --- | --- | --- |
-| `PrismaSTT.transcribe` | `POST /stt/v3` | `model=prisma-v3.0` is opt-in. Omit `model` for Prisma v2.5. REST clips are 30 seconds. |
-| `stream_headers` | `wss://api.vachana.ai/stt/v3/stream` | Headers only. The socket loop is issue 07. `preset="telephony"` sets 8 kHz and the noisy-line VAD knobs. |
-| `PrismaBatch` | `POST /stt/v3/batch/jobs`, then `/start` | `with_denoise` exists here, not on REST. Creating a job does not start it. `list_files` returns pre-signed `transcript_url`s; `fetch_transcript` downloads one. |
-| `TimbreTTS.synthesize` | `POST /api/v1/tts/inference` | Default voice `Shivani`, model `timbre-v3.0`, language `hi-en` (Hinglish). Tags such as `<whispers>` are v3.0 only. |
+| `gnani_client/` | Prisma STT/batch and Timbre TTS clients | Shared, frozen interface |
+| `backend/rasta/` | API, extractor, dispatcher lifecycle, store and guards | Priyanshu |
+| `frontend/` | Rider and dispatcher browsers | Priyanshu |
+| `benchmark/` | Synthetic audio, noise/telephony simulation and scoring | Himanshu |
+| `shared/rider_event.schema.json` | Frozen event contract | Both owners |
 
-Every client needs `GNANI_API_KEY` and raises `MissingApiKeyError` when it is empty. API failures raise `GnaniError` with the HTTP status and Gnani's error code (`401 INVALID_API_KEY`, `402` out of credit, `429 RATE_LIMITED`, …). The backend maps a missing key to `503` and an upstream failure to `502` with `upstream_status`.
+## Run locally
 
-The hello path asks Prisma v3.0 for `language_code=hi-IN,en-IN` and `format=transliterate`, and sends a short rider topic plus keyterms (`order`, `gate`, `customer`, `item`, `accident`, `traffic`). Transliterate returns the whole line in Latin script, so the extractor and the dispatcher read one script. Numbers come back as words ("order eighteen", "das minute"), and the extractor parses both words and digits.
-
-Verified live on 12 Nov 2026: Timbre v3.0 (`Shivani`, `hi-en`, 16 kHz) spoke
-
-> Bhaiya, gate band hai aur customer phone nahi utha raha. Order eighteen pe main das minute se khada hoon.
-
-(6.1 s of audio), and Prisma v3.0 returned that line word for word. The event is `customer_unreachable`, order `18`, ETA `10` min, urgency `high`. The closed gate is in the words, and the contact failure wins. The same clip downsampled to 8 kHz with white noise at 5 dB SNR still came back with the same intent, order and ETA.
-
-## Setup
-
-Python 3.11+ and Node 22. From a clean checkout:
+Use Python 3.11+ and Node 22. CI and the runtime use Python 3.12.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements-dev.txt
+pip install -r requirements-ci.lock
+pip install --no-deps -e ./gnani_client -e ./backend -e ./benchmark
 cp .env.example .env
 ```
 
-Put your key in `.env` as `GNANI_API_KEY=…` (the API loads `.env` on start; real environment variables win). `.env` is gitignored, never commit it. `LLM_PROVIDER=rules` uses the keyword extractor, which needs no LLM key and is the fallback when a free-tier Groq or Gemini call fails. `groq` and `gemini` need `GROQ_API_KEY` or `GEMINI_API_KEY`. Defaults, timeout, and retry caps are listed in `.env.example` and documented in [docs/EXTRACTOR.md](docs/EXTRACTOR.md).
+Set `GNANI_API_KEY` and a private `DISPATCH_PASSCODE` in `.env`.
+Real environment variables take precedence. Keep filled values out of git,
+URLs, recordings and screenshots. `LLM_PROVIDER=rules` needs no LLM key;
+optional Groq/Gemini configuration is in [EXTRACTOR.md](docs/EXTRACTOR.md).
 
-API:
+Start the API from the repository root:
 
 ```bash
 uvicorn rasta.main:app --reload --port 8000
-curl -s http://127.0.0.1:8000/api/health          # gnani_key_set must be true
-curl -s -X POST http://127.0.0.1:8000/api/ingest/sample | python -m json.tool
-curl -s http://127.0.0.1:8000/api/events | python -m json.tool
-# later polls: /api/events?since=<last created_at>
 ```
 
-Web (proxies `/api` to port 8000):
+In a second terminal, start the web proxy:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-Open the printed localhost URL. **Speak a sample line** has Timbre say a synthetic rider line, sends that audio to Prisma, and fills the chit and the slate. It costs two API calls.
+Open Vite's printed localhost URL. Unlock the dispatch slate in the browser.
+**Speak a sample line** synthesizes invented rider speech, submits the actual
+audio to Prisma and fills the chit/slate. **Dispatch suno / Hear dispatch**
+requests a state-aware Timbre confirmation. Ack and Resolve update the stored
+record with optimistic versions and an audit trail.
 
-Upload a real clip with:
+A sample has two logical speech operations and a new confirmation has one.
+Configured server retries can increase outbound attempts. The budget and
+retry cap are operator settings, not a provider balance or billing quote.
+See [RUNBOOK.md](docs/RUNBOOK.md) before enabling a public sample.
 
-```bash
-curl -s -X POST http://127.0.0.1:8000/api/ingest \
-  -F audio_file=@clip.wav
-```
+Uploads accept validated WAV, MP3, M4A, OGG and FLAC containers within the
+2 MB / 30-second limits in [UPLOADS.md](docs/UPLOADS.md). Noisy simulation
+additionally requires its supported PCM WAV format. Keep real consented field
+clips off the app host and out of git; the contest demo uses invented speech.
 
-Every upload is a live Prisma REST call (30 seconds max). The response includes `request_id`, `processing_time` and `audio_seconds`, plus an `id` and UTC `created_at`. `GET /api/events` lists stored ingest records (oldest first); `?since=` returns only newer ones. The list lives in process memory and clears on restart.
+`GET /api/events` is authenticated and paginated. Events persist in SQLite
+with redaction, retention and explicit deletion. Free-host disk remains
+ephemeral; persistence across a process restart is not an off-site backup.
 
-## Event
+## Contract and accuracy
 
-`shared/rider_event.schema.json` is the contract.
+`shared/rider_event.schema.json`, `backend/rasta/schema.py` and
+`frontend/src/types.ts` define the frozen `RiderEvent`. Lifecycle, actor,
+request and extractor-source metadata stay outside `event`.
 
 | Field | Meaning |
 | --- | --- |
-| `intent` | `customer_unreachable`, `address_issue`, `item_missing`, `delay`, `accident_sos`, or `other` |
-| `order_id` | Short synthetic token. An 8-digit run is never promoted to an order id. |
-| `eta_minutes` | Minutes the rider quoted, else null |
-| `urgency` | `low`, `medium`, `high` |
-| `dispatch_action` | One instruction for the desk |
-| `transcript` | Text the extractor saw |
-| `confidence` | Rules use `0.5` on a hit and `0.0` otherwise. An LLM may return its own number in `[0, 1]`. |
+| `intent` | `customer_unreachable`, `address_issue`, `item_missing`, `delay`, `accident_sos`, `other` |
+| `order_id` | Short invented token, or null; phone-like digit runs are excluded |
+| `eta_minutes` | Quoted minutes, or null |
+| `urgency` | `low`, `medium` or `high` |
+| `dispatch_action` | One instruction for the dispatcher |
+| `transcript` | Speech text, subject to privacy redaction |
+| `confidence` | Rule hit 0.5, unmatched 0.0; an LLM value is not calibrated safety evidence |
 
-Change the JSON schema, `backend/rasta/schema.py`, and `frontend/src/types.ts` in the same commit. Envelope fields such as `extractor_source` (`llm` or `rules`) and `fallback_reason` stay next to `event`, never inside it.
+The 14 November context correction preserves 30/30 development and 24/24 seen
+tuning results. The locked holdout is **8/36 (22.22%)**, below the **0.8**
+acceptance target. No LLM success is inferred from a rule fallback. The paired
+report, frozen file hashes and confusion matrices are in
+[the rule evaluation evidence](docs/evidence/rules-context-eval-2026-11-14.md).
+Keep a person in charge of dispatch decisions and emergency action.
 
-Rules intent accuracy, measured 12 Nov 2026, is 8/36 = 0.222 on the blind holdout after the channel-bound contact fix (still below the 0.8 target, which remains open on issue 2; earlier official runs were 6/36). The development gold set is 30/30, the 24-line tuning holdout that was seen during rule expansion is 24/24, and Himanshu's benchmark corpus, which was not used for tuning, is 41/48. The write-up is in [docs/EXTRACTOR.md](docs/EXTRACTOR.md).
-
-## Checks
+## Verify
 
 ```bash
 ruff check gnani_client backend benchmark
+mypy backend/rasta gnani_client benchmark
 pytest
-cd frontend && npm run check
+python scripts/check_frontend_types.py
+cd frontend
+npm run check
+npm run test
+npm run check:tests
+npx playwright install chromium
+npm run test:e2e
 ```
 
-GitHub Actions runs the same three commands with no secrets. Tests swap the HTTP transport (`httpx.MockTransport`) inside the test files only; the app code has no fake path.
+CI enforces the 80% coverage floor, types/contracts, real keyless browser
+flows, load thresholds, secret/dependency/SAST checks and the production
+container build/scan. Test-only transports and labelled stored fixtures do
+not add an application mock mode. Live browser/smoke paths are opt-in and
+must use a bounded credit allowance. See [QUALITY.md](docs/QUALITY.md),
+[SUPPLY_CHAIN.md](docs/SUPPLY_CHAIN.md) and
+[the integration evidence](docs/evidence/integration-2026-11-14.md).
 
-## What is deliberately not here
+## Benchmark evidence
 
-Noise mixing, the scored Prisma matrix, realtime streaming, the spoken reply, deployment, and the contest post. Those are issues, with owners and days, in [docs/PLAN.md](docs/PLAN.md).
+The following committed run is preserved as recorded. New extractor code does
+not retroactively alter its hypotheses or scores. Synthetic phone-channel
+processing is labelled separately from real field capture.
 
 <!-- benchmark:start -->
 
