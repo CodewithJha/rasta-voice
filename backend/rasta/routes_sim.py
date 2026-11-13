@@ -7,7 +7,7 @@ from rasta.pipeline import ingest, read_upload_clip, reject_oversize_clip
 from rasta.simulate import CONDITION_HINT, CONDITIONS, envelope, prepare_for_ingest
 from rasta.store import attach_event_store, bind_rider_header, reset_rider_header
 
-sim_router = APIRouter()
+sim_router = APIRouter(tags=["rider"])
 
 
 @sim_router.post("/api/simulate")

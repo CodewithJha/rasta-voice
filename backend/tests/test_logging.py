@@ -162,8 +162,9 @@ def test_upstream_error_still_has_request_id(monkeypatch: pytest.MonkeyPatch, ma
             files={"audio_file": ("clip.wav", make_wav(seconds=1.0), "audio/wav")},
             headers={REQUEST_ID_HEADER: "ingest-402-1"},
         )
-        assert response.status_code == 502
+        assert response.status_code == 503
         assert _header(response) == "ingest-402-1"
+        assert response.json()["error"]["request_id"] == "ingest-402-1"
 
 
 def test_sample_ingest_logs_one_line_per_gnani_call(client: TestClient, caplog):

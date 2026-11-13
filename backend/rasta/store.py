@@ -31,7 +31,8 @@ log = logging.getLogger("rasta")
 # Current schema. Version 1 is an events table only (id, created_at, payload).
 # Version 2 adds the schema_version table and the created_at index.
 # Version 3 adds the audit table for desk workflow (issue 25).
-CURRENT_SCHEMA_VERSION = 3
+# Version 4 adds the hashed idempotency table (issue 26).
+CURRENT_SCHEMA_VERSION = 4
 BUSY_TIMEOUT_MS = 3000
 RIDER_ID_RE = re.compile(r"^r_[A-Za-z0-9_-]{1,32}$")
 ACTOR_RE = re.compile(r"^d_[A-Za-z0-9_-]{1,32}$")
@@ -238,6 +239,22 @@ def migrate(connection: sqlite3.Connection) -> None:
         connection.execute(
             "CREATE INDEX IF NOT EXISTS audit_event_id_at_idx ON audit (event_id, at)"
         )
+        _write_schema_version(connection, 3)
+        version = 3
+    if version < 4:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS idempotency (
+                key_hash TEXT NOT NULL,
+                route TEXT NOT NULL,
+                body_hash TEXT NOT NULL,
+                status INTEGER NOT NULL,
+                response TEXT NOT NULL,
+                stored_at TEXT NOT NULL,
+                PRIMARY KEY (key_hash, route)
+            )
+            """
+        )
         _write_schema_version(connection, CURRENT_SCHEMA_VERSION)
         version = CURRENT_SCHEMA_VERSION
     connection.commit()
@@ -424,6 +441,56 @@ class EventStore:
             }
             events.append(item)
         return events
+
+    def lookup_idempotency(
+        self, key_hash: str, route: str, body_hash: str
+    ) -> tuple[int, bytes] | str | None:
+        """Return ``(status, body)``, ``"conflict"``, or ``None`` if unseen."""
+        from rasta.idempotency import IDEMPOTENCY_TTL_SECONDS
+
+        now = self._clock()
+        cutoff = (now - timedelta(seconds=IDEMPOTENCY_TTL_SECONDS)).astimezone(UTC).isoformat()
+        with self._lock:
+            self._conn.execute("DELETE FROM idempotency WHERE stored_at <= ?", (cutoff,))
+            row = self._conn.execute(
+                "SELECT body_hash, status, response FROM idempotency "
+                "WHERE key_hash = ? AND route = ?",
+                (key_hash, route),
+            ).fetchone()
+            self._conn.commit()
+        if row is None:
+            return None
+        if str(row[0]) != body_hash:
+            return "conflict"
+        return int(row[1]), str(row[2]).encode("utf-8")
+
+    def remember_idempotency(
+        self,
+        key_hash: str,
+        route: str,
+        body_hash: str,
+        status: int,
+        response: bytes,
+    ) -> None:
+        from rasta.idempotency import IDEMPOTENCY_TTL_SECONDS
+
+        now = self._clock()
+        if now.tzinfo is None or now.tzinfo.utcoffset(now) is None:
+            now = now.replace(tzinfo=UTC)
+        else:
+            now = now.astimezone(UTC)
+        cutoff = (now - timedelta(seconds=IDEMPOTENCY_TTL_SECONDS)).isoformat()
+        stamp = now.isoformat()
+        payload = response.decode("utf-8")
+        with self._lock:
+            self._conn.execute("DELETE FROM idempotency WHERE stored_at <= ?", (cutoff,))
+            self._conn.execute(
+                "INSERT OR REPLACE INTO idempotency "
+                "(key_hash, route, body_hash, status, response, stored_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (key_hash, route, body_hash, int(status), payload, stamp),
+            )
+            self._conn.commit()
 
     def counts_by_state(self) -> dict[str, int]:
         counts = {state: 0 for state in WORKFLOW_STATES}

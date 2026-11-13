@@ -141,7 +141,7 @@ def test_bad_condition_is_400_and_skips_prisma(client: TestClient, calls, make_w
         files={"audio_file": ("clip.wav", make_wav(), "audio/wav")},
     )
     assert response.status_code == 400
-    assert "clean or noisy" in response.json()["detail"]
+    assert "clean or noisy" in response.json()["error"]["message"]
     assert calls == []
 
 
@@ -158,7 +158,7 @@ def test_non_wav_and_bad_rate_are_400(client: TestClient, calls, make_wav):
         files={"audio_file": ("clip.wav", make_wav(seconds=0.2, rate=44100), "audio/wav")},
     )
     assert odd.status_code == 400
-    assert "8000" in odd.json()["detail"]
+    assert "8000" in odd.json()["error"]["message"]
     assert calls == []
 
 
@@ -254,7 +254,7 @@ def test_oversize_upload_skips_prepare_and_prisma(client: TestClient, calls, mon
         files={"audio_file": ("clip.wav", oversized, "audio/wav")},
     )
     assert response.status_code == 413
-    assert CLIP_TOO_LARGE in response.json()["detail"]
+    assert CLIP_TOO_LARGE in response.json()["error"]["message"]
     assert seen == []
     assert calls == []
 

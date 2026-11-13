@@ -13,10 +13,14 @@ export interface DeskRecord {
   updated_at?: string;
 }
 
+export const DESK_EVENT_PAGE_SIZE = 200;
+
 export function eventsUrl(since?: string): string {
-  return since
-    ? `/api/events?updated_since=${encodeURIComponent(since)}`
-    : "/api/events";
+  const params = new URLSearchParams({ limit: String(DESK_EVENT_PAGE_SIZE) });
+  if (since) {
+    params.set("updated_since", since);
+  }
+  return `/api/events?${params.toString()}`;
 }
 
 export function changeStamp(record: DeskRecord): string {

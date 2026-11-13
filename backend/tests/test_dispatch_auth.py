@@ -108,10 +108,10 @@ def test_missing_passcode_makes_desk_routes_503(monkeypatch: pytest.MonkeyPatch)
     with _client() as client:
         listed = client.get("/api/events")
         assert listed.status_code == 503
-        assert listed.json()["detail"] == "DISPATCH_PASSCODE is not set"
+        assert listed.json()["error"]["message"] == "DISPATCH_PASSCODE is not set"
         unlocked = client.post("/api/dispatch/unlock", json={"passcode": "guess"})
         assert unlocked.status_code == 503
-        assert unlocked.json()["detail"] == "DISPATCH_PASSCODE is not set"
+        assert unlocked.json()["error"]["message"] == "DISPATCH_PASSCODE is not set"
         assert "guess" not in unlocked.text
 
 
@@ -119,7 +119,7 @@ def test_unlock_sets_cookie_and_lists_events(desk_env):
     with _client() as client:
         denied = client.get("/api/events")
         assert denied.status_code == 401
-        assert denied.json()["detail"] == "Unlock the desk to keep polling."
+        assert denied.json()["error"]["message"] == "Unlock the desk to keep polling."
         assert TEST_PASSCODE not in denied.text
 
         wrong = client.post(
@@ -151,7 +151,7 @@ def test_unlock_sets_cookie_and_lists_events(desk_env):
 
         listed = client.get("/api/events")
         assert listed.status_code == 200
-        assert listed.json() == {"events": []}
+        assert listed.json() == {"events": [], "next_page_token": None}
 
 
 def test_header_lists_events_without_a_cookie(desk_env):
@@ -160,7 +160,7 @@ def test_header_lists_events_without_a_cookie(desk_env):
             "/api/events", headers={HEADER_PASSCODE: TEST_PASSCODE}
         )
         assert listed.status_code == 200
-        assert listed.json() == {"events": []}
+        assert listed.json() == {"events": [], "next_page_token": None}
         wrong = client.get(
             "/api/events", headers={HEADER_PASSCODE: OTHER_PASSCODE}
         )
@@ -288,7 +288,7 @@ def test_valid_cookie_still_works_when_guesses_are_locked(
         # Cookie access is not a new shared-secret guess.
         listed = client.get("/api/events")
         assert listed.status_code == 200
-        assert listed.json() == {"events": []}
+        assert listed.json() == {"events": [], "next_page_token": None}
 
 
 def test_concurrent_wrong_unlocks_do_not_exceed_the_cap(

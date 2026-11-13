@@ -13,6 +13,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from gnani_client.env import api_key
 from gnani_client.errors import GnaniError, MissingApiKeyError
 from rasta.dispatch_auth import attach_dispatch_auth
+from rasta.errors import (
+    ContractApp,
+    gnani_http_exception,
+    install_validation_handler,
+    missing_key_http_exception,
+)
 from rasta.extract import extract_event
 from rasta.http_counts import HttpCountMiddleware, attach_http_counts
 from rasta.limits import SpeechBudgetMiddleware, attach_speech_guard, await_held_work
@@ -24,7 +30,7 @@ from rasta.pipeline import (
     read_upload_clip,
     speak_sample,
 )
-from rasta.request_id import RequestIdApp, configure_rasta_logging
+from rasta.request_id import configure_rasta_logging
 from rasta.resilience import (
     ResilienceError,
     attach_upstream_runtime,
@@ -92,7 +98,8 @@ async def _sos_sweep(application: FastAPI) -> None:
         return
 
 
-app = RequestIdApp(title="Rasta Voice", version="0.1.0", lifespan=lifespan)
+app = ContractApp(title="Rasta Voice", version="0.1.0", lifespan=lifespan)
+install_validation_handler(app)
 
 
 def _configure_production(application: FastAPI) -> None:
@@ -125,7 +132,7 @@ app.include_router(stream_router)
 app.include_router(sim_router)
 
 
-@app.get("/api/health")
+@app.get("/api/health", tags=["ops"])
 def health() -> dict:
     return {
         "ok": True,
@@ -134,7 +141,7 @@ def health() -> dict:
     }
 
 
-@app.post("/api/ingest")
+@app.post("/api/ingest", tags=["rider"])
 async def ingest_upload(
     request: Request,
     audio_file: UploadFile = File(...),
@@ -154,7 +161,7 @@ async def ingest_upload(
         reset_rider_header(token)
 
 
-@app.post("/api/ingest/sample")
+@app.post("/api/ingest/sample", tags=["rider"])
 async def ingest_sample(
     condition: str = "clean",
     x_rider_id: str | None = Header(default=None, alias="X-Rider-Id"),
@@ -222,13 +229,10 @@ def _guard(work):
         log.warning("upstream resilience: %s", exc)
         raise HTTPException(status_code=exc.status, detail=exc.as_detail()) from exc
     except MissingApiKeyError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise missing_key_http_exception(exc) from exc
     except GnaniError as exc:
         log.warning("Gnani call failed: %s", exc)
-        raise HTTPException(
-            status_code=502,
-            detail={"error": str(exc), "upstream_status": exc.status},
-        ) from exc
+        raise gnani_http_exception(exc) from exc
 
 
 def _mount_static(application: FastAPI) -> None:
