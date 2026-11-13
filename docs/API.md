@@ -46,6 +46,8 @@ a deleted or expired event is unavailable even if its memory TTL has not
 elapsed. SQLite replay rows contain no transcript or base64 audio. Successful
 cached speech responses are not served while the server Gnani key is absent.
 Usage counters include replays and early idempotency denials exactly once.
+Trusted Host and exact CORS policy run before cache lookup, so replays cannot
+bypass the configured host boundary or lose allowed-origin response headers.
 
 
 ## Pagination
