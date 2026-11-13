@@ -16,6 +16,7 @@ from rasta.limits import attach_speech_guard
 from rasta.main import app
 from rasta.resilience import (
     UPSTREAM_STT,
+    UPSTREAM_TTS,
     CircuitBreaker,
     ResilienceError,
     UpstreamRuntime,
@@ -26,6 +27,16 @@ from rasta.resilience import (
 )
 from rasta.settings import clear_settings_cache, get_settings
 from rasta.store import attach_event_store
+
+
+@pytest.fixture(autouse=True)
+def _reset_upstream_runtime():
+    from rasta.resilience import set_upstream_runtime
+
+    set_upstream_runtime(None)
+    yield
+    set_upstream_runtime(None)
+
 
 LINE = (
     "Bhaiya, gate band hai aur customer phone nahi utha raha. "
@@ -495,3 +506,108 @@ def test_reply_speech_uses_the_shared_runtime(monkeypatch: pytest.MonkeyPatch, m
     assert seen
     assert seen[0] == 15.0
     assert "audio_base64" in response.json()
+
+
+
+def test_queued_call_is_rejected_after_shutdown():
+    settings = replace(get_settings(), max_inflight=1, inflight_wait_seconds=2.0)
+    runtime = UpstreamRuntime(settings, sleeper=lambda _delay: None, rng=lambda: 0.0)
+    started = threading.Event()
+    release = threading.Event()
+    queued_started = threading.Event()
+    second = {"calls": 0, "code": ""}
+
+    def hold() -> str:
+        started.set()
+        release.wait(timeout=2)
+        return "held"
+
+    def late() -> str:
+        queued_started.set()
+        second["calls"] += 1
+        return "should-not-run"
+
+    first = threading.Thread(target=lambda: runtime.call_gnani(UPSTREAM_STT, hold))
+    first.start()
+    assert started.wait(timeout=1)
+    waiter = threading.Thread(
+        target=lambda: _capture(runtime, UPSTREAM_TTS, late, second)
+    )
+    waiter.start()
+    # Give the waiter time to block on the single slot.
+    time.sleep(0.05)
+    runtime.begin_shutdown()
+    release.set()
+    first.join(timeout=2)
+    waiter.join(timeout=2)
+    runtime.close()
+    assert second["code"] == "shutting_down"
+    assert second["calls"] == 0
+    assert not queued_started.is_set()
+
+
+def _capture(runtime, upstream, func, result: dict) -> None:
+    try:
+        runtime.call_gnani(upstream, func)
+    except ResilienceError as exc:
+        result["code"] = exc.code
+    except Exception as exc:
+        result["code"] = type(exc).__name__
+
+
+def test_shutdown_waits_for_llm_during_ingest(
+    monkeypatch: pytest.MonkeyPatch, make_wav
+):
+    import json
+
+    started = threading.Event()
+    release = threading.Event()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if path == "/stt/v3":
+            return _stt_ok()
+        if "/chat/completions" in path or "groq" in request.url.host:
+            started.set()
+            release.wait(timeout=2)
+            payload = {
+                "intent": "item_missing",
+                "order_id": "18",
+                "eta_minutes": None,
+                "urgency": "medium",
+                "dispatch_action": "Hold the drop.",
+                "transcript": LINE,
+                "confidence": 0.91,
+            }
+            return httpx.Response(
+                200, json={"choices": [{"message": {"content": json.dumps(payload)}}]}
+            )
+        raise AssertionError(request.url)
+
+    _speech_env(monkeypatch)
+    monkeypatch.setenv("LLM_PROVIDER", "groq")
+    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    clear_settings_cache()
+    client = _install_transport(httpx.MockTransport(handler))
+    from rasta.resilience import get_upstream_runtime
+
+    runtime = get_upstream_runtime()
+    assert runtime is not None
+    result: dict[str, int] = {}
+
+    def ingest() -> None:
+        response = client.post(
+            "/api/ingest",
+            files={"audio_file": ("clip.wav", make_wav(seconds=1.0), "audio/wav")},
+        )
+        result["status"] = response.status_code
+
+    worker = threading.Thread(target=ingest)
+    worker.start()
+    assert started.wait(timeout=2)
+    runtime.begin_shutdown()
+    assert runtime.wait_for_idle(timeout=0.15) is False
+    release.set()
+    worker.join(timeout=2)
+    assert result["status"] == 200
+    assert runtime.wait_for_idle(timeout=0.2) is True

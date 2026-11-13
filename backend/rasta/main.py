@@ -154,8 +154,15 @@ async def _run_speech(work, *, deadline: float | None = None):
             detail={"code": "shutting_down", "message": "The process is shutting down."},
         )
     limit = get_settings().max_speech_seconds if deadline is None else deadline
+
+    def leased():
+        if runtime is None:
+            return _guard(work)
+        with runtime.operation():
+            return _guard(work)
+
     try:
-        return await await_held_work(lambda: _guard(work), limit)
+        return await await_held_work(leased, limit)
     except TimeoutError as exc:
         raise HTTPException(
             status_code=504,

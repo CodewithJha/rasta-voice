@@ -6,7 +6,8 @@ import logging
 import random
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from email.utils import parsedate_to_datetime
 from typing import Any, TypeVar
@@ -335,6 +336,19 @@ class UpstreamRuntime:
         if not self.client.is_closed:
             self.client.close()
 
+    @contextmanager
+    def operation(self) -> Iterator[None]:
+        """Hold a drainable lease around accepted speech work."""
+        if not self.accepting:
+            raise ResilienceError(
+                503, "shutting_down", "The process is shutting down."
+            )
+        self._begin_operation()
+        try:
+            yield
+        finally:
+            self._end_operation()
+
     def _begin_operation(self) -> None:
         with self._inflight_lock:
             self._inflight += 1
@@ -394,6 +408,12 @@ class UpstreamRuntime:
                 claimed = False
                 started = time.perf_counter()
                 try:
+                    if not self.accepting:
+                        raise ResilienceError(
+                            503,
+                            "shutting_down",
+                            "The process is shutting down.",
+                        )
                     if not breaker.allow():
                         self.publish()
                         raise ResilienceError(

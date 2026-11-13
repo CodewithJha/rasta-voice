@@ -105,48 +105,85 @@ def request_with_retry(
     Does not log the URL query (keys must not be placed there), the
     request body, or the response body.
     """
-    from rasta.resilience import UPSTREAM_LLM, get_upstream_runtime
+    from rasta.resilience import UPSTREAM_LLM, ResilienceError, get_upstream_runtime
 
     runtime = get_upstream_runtime()
-    if runtime is not None:
-        breaker = runtime.breakers[UPSTREAM_LLM]
-        if not breaker.allow():
-            runtime.publish()
-            raise LlmError("LLM circuit is open", reason="circuit_open")
 
-    attempts = settings.llm_max_retries + 1
-    last_error: LlmError | None = None
-    for index in range(attempts):
+    def send() -> httpx.Response:
+        if runtime is not None and not runtime.accepting:
+            raise LlmError("The process is shutting down.", reason="shutting_down")
+        claimed = False
+        recorded = False
+
+        def record(*, success: bool) -> None:
+            nonlocal recorded
+            _record_llm(success=success)
+            recorded = True
+
+        if runtime is not None:
+            breaker = runtime.breakers[UPSTREAM_LLM]
+            if not breaker.allow():
+                runtime.publish()
+                raise LlmError("LLM circuit is open", reason="circuit_open")
+            claimed = True
+        started = False
         try:
-            response = client.request(method, url, **kwargs)
-        except httpx.TimeoutException as exc:
-            _record_llm(success=False)
-            raise LlmError("LLM call timed out", reason="timeout") from exc
-        except httpx.RequestError as exc:
-            _record_llm(success=False)
-            raise LlmError("LLM connection failed", reason="connection_error") from exc
+            attempts = settings.llm_max_retries + 1
+            last_error: LlmError | None = None
+            for index in range(attempts):
+                if runtime is not None and not runtime.accepting:
+                    raise LlmError(
+                        "The process is shutting down.", reason="shutting_down"
+                    )
+                try:
+                    started = True
+                    response = client.request(method, url, **kwargs)
+                except httpx.TimeoutException as exc:
+                    record(success=False)
+                    raise LlmError("LLM call timed out", reason="timeout") from exc
+                except httpx.RequestError as exc:
+                    record(success=False)
+                    raise LlmError("LLM connection failed", reason="connection_error") from exc
 
-        status = response.status_code
-        if status == 200:
-            _record_llm(success=True)
-            return response
-        reason = f"http_{status}"
-        error = LlmError(f"LLM HTTP {status}", reason=reason)
-        if status in NO_RETRY_STATUS:
-            _record_llm(success=False)
-            raise error
-        if status in RETRYABLE_STATUS and index < attempts - 1:
-            delay = settings.llm_retry_backoff_seconds * (2**index)
-            log.warning("LLM HTTP %s, retrying once", status)
-            if delay > 0:
-                sleeper(delay)
-            last_error = error
-            continue
-        _record_llm(success=False)
-        raise error
-    assert last_error is not None
-    _record_llm(success=False)
-    raise last_error
+                status = response.status_code
+                if status == 200:
+                    record(success=True)
+                    return response
+                reason = f"http_{status}"
+                error = LlmError(f"LLM HTTP {status}", reason=reason)
+                if status in NO_RETRY_STATUS:
+                    record(success=False)
+                    raise error
+                if status in RETRYABLE_STATUS and index < attempts - 1:
+                    delay = settings.llm_retry_backoff_seconds * (2**index)
+                    log.warning("LLM HTTP %s, retrying once", status)
+                    if delay > 0:
+                        sleeper(delay)
+                    last_error = error
+                    continue
+                record(success=False)
+                raise error
+            assert last_error is not None
+            record(success=False)
+            raise last_error
+        except Exception:
+            if claimed and not recorded:
+                assert runtime is not None
+                if not started:
+                    runtime.breakers[UPSTREAM_LLM].release_unstarted_probe()
+                else:
+                    record(success=False)
+            raise
+
+    if runtime is None:
+        return send()
+    try:
+        with runtime.operation():
+            return send()
+    except ResilienceError as exc:
+        if exc.code == "shutting_down":
+            raise LlmError(exc.message, reason="shutting_down") from exc
+        raise
 
 
 def _record_llm(*, success: bool) -> None:
