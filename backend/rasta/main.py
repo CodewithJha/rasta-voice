@@ -22,7 +22,7 @@ from rasta.pipeline import (
     read_upload_clip,
     speak_sample,
 )
-from rasta.request_id import RequestIdApp, configure_rasta_logging
+from rasta.request_id import configure_rasta_logging
 from rasta.resilience import (
     ResilienceError,
     attach_upstream_runtime,
@@ -34,6 +34,7 @@ from rasta.routes_health import health_router
 from rasta.routes_reply import reply_router
 from rasta.routes_sim import sim_router
 from rasta.routes_stream import stream_router
+from rasta.security import SecuredApp
 from rasta.settings import get_settings
 from rasta.simulate import CONDITION_HINT, CONDITIONS, BadClip, envelope, prepare_for_ingest
 from rasta.store import attach_event_store
@@ -71,7 +72,14 @@ async def lifespan(app: FastAPI):
             store.close()
 
 
-app = RequestIdApp(title="Rasta Voice", version="0.1.0", lifespan=lifespan)
+app = SecuredApp(
+    title="Rasta Voice",
+    version="0.1.0",
+    lifespan=lifespan,
+    docs_url=None if get_settings().is_production else "/docs",
+    redoc_url=None if get_settings().is_production else "/redoc",
+    openapi_url=None if get_settings().is_production else "/openapi.json",
+)
 
 
 def _configure_production(application: FastAPI) -> None:
