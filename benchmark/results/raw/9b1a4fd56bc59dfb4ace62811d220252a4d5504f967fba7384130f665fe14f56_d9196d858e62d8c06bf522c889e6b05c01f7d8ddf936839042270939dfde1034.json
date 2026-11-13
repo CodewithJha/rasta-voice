@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "d9196d858e62d8c06bf522c889e6b05c01f7d8ddf936839042270939dfde1034",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-8690-7a4e-8a33-57db286be5cb",
+  "file_id": "5b607c7f-65cc-43a6-8902-09bf96eead9d",
+  "evaluated_at": "2026-11-13T09:21:19.825477+00:00",
+  "full_transcript": "भैया गेट बैंड है कस्टमर फ़ोन नहीं उठा रहा ऑर्डर 18",
+  "transcript_sha256": "815cc3a5d1b5fc337e7b93e8c9f157ff69052c0900679e2f42bd8af83057c929"
+}

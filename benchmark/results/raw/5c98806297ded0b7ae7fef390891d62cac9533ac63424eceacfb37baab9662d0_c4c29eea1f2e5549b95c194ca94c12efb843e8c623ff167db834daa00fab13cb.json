@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "c4c29eea1f2e5549b95c194ca94c12efb843e8c623ff167db834daa00fab13cb",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-52c5-766f-a40d-88fc7e81da4f",
+  "file_id": "3a100cbc-d187-4b28-8338-84c433a51aa8",
+  "evaluated_at": "2026-11-13T09:26:26.967492+00:00",
+  "full_transcript": "Gate Bank मेला और phone नहीं लग रहा order eighteen dispatch से call करवा दो।",
+  "transcript_sha256": "30031de05fd11c5150c8e03310aca594ca6eb69f7350e16cb40a10e90c60b982"
+}

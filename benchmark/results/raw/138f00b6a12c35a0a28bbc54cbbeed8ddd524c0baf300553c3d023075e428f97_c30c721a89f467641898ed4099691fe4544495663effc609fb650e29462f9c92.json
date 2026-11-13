@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "c30c721a89f467641898ed4099691fe4544495663effc609fb650e29462f9c92",
+  "config_hash": "138f00b6a12c35a0a28bbc54cbbeed8ddd524c0baf300553c3d023075e428f97",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": true,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43e-6a0a-75b8-93ca-b2136b21e16b",
+  "file_id": "da0424e6-fc1d-4c03-9bb6-500c5e21bf32",
+  "evaluated_at": "2026-11-13T09:33:55.420689+00:00",
+  "full_transcript": "भैया order एक शून्य दो का customer phone नहीं उठा रहा मैं gate पर हूँ।",
+  "transcript_sha256": "191c1b80ddc4fb6930baf1599a6195065025b189aacd5b9014de24fba6415be9"
+}

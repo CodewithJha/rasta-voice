@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "50e5123d3c62c78b3670e654fba4391d896d3fb17740f37b2c120b361c2dee51",
+  "config_hash": "a8f5d4bb9ac65e49712d7a1f4eac94fcbd9d321f74d18a565ca683d6787dddcb",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43b-d54d-78c0-8153-a15e7766ffdc",
+  "file_id": "793f810d-ae49-4f87-b068-7f25a6b7ead1",
+  "evaluated_at": "2026-11-13T09:27:58.123678+00:00",
+  "full_transcript": "भैया gate पे आके customer, customer phone नहीं उठा रहा। phone नहीं order one eight",
+  "transcript_sha256": "93957e9aea21b5748ceafe6ab888edf372af225ce9d4c9997bef0b9ff869a6e6"
+}

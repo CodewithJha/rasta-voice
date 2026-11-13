@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "5251d7c51ed7da1c1bde5dccde7b172af0c1120cfdf7f4489c972ce16d7e4fa1",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-48d8-706e-88e7-0714f8a04cf7",
+  "file_id": "d1451333-387d-4aca-8ae7-01ce35a439ac",
+  "evaluated_at": "2026-11-13T09:26:07.921040+00:00",
+  "full_transcript": "Customer not picking, bell bhi bajaye par koi jawab nahi",
+  "transcript_sha256": "a734fc42ab007527e7b0d5ff41f11dbc9f1d17c36429d6a49b6d4ad729bd044e"
+}

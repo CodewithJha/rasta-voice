@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "b0f15eedd951b072d23b3fb92bd7218a3ba034f52a645d53f667d5d7e591b135",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-52c5-766f-a40d-88fc7e81da4f",
+  "file_id": "948053b5-3279-4654-9307-477ce3c0eed4",
+  "evaluated_at": "2026-11-13T09:26:25.507778+00:00",
+  "full_transcript": "लेकिन customer phone नहीं उठा रहा। कॉल करवा दूँ",
+  "transcript_sha256": "868071ae6129af31fa5b9a6c9be4b9eb24d8856a7ff5966838900420a607e1e4"
+}

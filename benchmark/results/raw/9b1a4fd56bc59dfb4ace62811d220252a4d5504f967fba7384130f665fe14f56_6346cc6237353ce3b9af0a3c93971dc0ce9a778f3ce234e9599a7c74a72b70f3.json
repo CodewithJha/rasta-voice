@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "6346cc6237353ce3b9af0a3c93971dc0ce9a778f3ce234e9599a7c74a72b70f3",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-99d3-719c-a1f9-68e0e2f70e99",
+  "file_id": "9ae2ff22-84b2-4de3-bb21-1e0dee121d84",
+  "evaluated_at": "2026-11-13T09:17:54.477501+00:00",
+  "full_transcript": "भैया ऑर्डर 1 0 2 का कस्टमर फ़ोन नहीं उठा रहा, मैं गेट पर हूँ।",
+  "transcript_sha256": "8ab72a92960b0b1cca25726f21146831b8ff062ec3b8c8ffce1648650b4bf56d"
+}

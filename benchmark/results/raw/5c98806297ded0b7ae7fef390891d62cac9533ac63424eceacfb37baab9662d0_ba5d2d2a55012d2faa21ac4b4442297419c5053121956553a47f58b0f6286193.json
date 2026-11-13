@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "ba5d2d2a55012d2faa21ac4b4442297419c5053121956553a47f58b0f6286193",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-3eba-7d77-afdd-d79a6588b2a6",
+  "file_id": "c049f9aa-9c60-40ed-81da-c4cb836457d6",
+  "evaluated_at": "2026-11-13T09:25:30.979061+00:00",
+  "full_transcript": "ऑर्डर चार के कस्टमर को दो बार कॉल किया, फोन नहीं उठा रहे।",
+  "transcript_sha256": "8678e6b6d11ef1a56bc0255b646bbf67ddc48c35a85fd98cae716a72946221be"
+}

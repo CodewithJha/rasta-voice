@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "50e5123d3c62c78b3670e654fba4391d896d3fb17740f37b2c120b361c2dee51",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-3eba-7d77-afdd-d79a6588b2a6",
+  "file_id": "9f4ee0ad-5907-4293-92d6-7f3a9931e12c",
+  "evaluated_at": "2026-11-13T09:25:19.266235+00:00",
+  "full_transcript": "भैया gate पे आके customer, customer phone नहीं उठा रहा। phone नहीं order one eight",
+  "transcript_sha256": "93957e9aea21b5748ceafe6ab888edf372af225ce9d4c9997bef0b9ff869a6e6"
+}

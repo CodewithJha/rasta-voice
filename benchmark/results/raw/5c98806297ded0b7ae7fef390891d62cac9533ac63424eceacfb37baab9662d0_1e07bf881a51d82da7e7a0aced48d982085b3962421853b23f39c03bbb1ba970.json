@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "1e07bf881a51d82da7e7a0aced48d982085b3962421853b23f39c03bbb1ba970",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-52c5-766f-a40d-88fc7e81da4f",
+  "file_id": "4ea5c740-bad2-49ee-9ef8-76bc9060f7b8",
+  "evaluated_at": "2026-11-13T09:26:26.241007+00:00",
+  "full_transcript": "gate बंद मिला और phone नहीं लग रहा। ऑर्डर eighteen dispatch से कॉल करवा दो।",
+  "transcript_sha256": "5301217e58585129a018aa2bfe4cf91ac4503a3dbd1247603eea4e597d9dc59d"
+}

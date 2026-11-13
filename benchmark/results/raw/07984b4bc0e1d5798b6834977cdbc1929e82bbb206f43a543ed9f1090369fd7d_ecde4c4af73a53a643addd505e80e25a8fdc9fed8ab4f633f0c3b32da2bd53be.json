@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "ecde4c4af73a53a643addd505e80e25a8fdc9fed8ab4f633f0c3b32da2bd53be",
+  "config_hash": "07984b4bc0e1d5798b6834977cdbc1929e82bbb206f43a543ed9f1090369fd7d",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "bias_list": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "bias_score": 1.0
+  },
+  "job_id": "01a1d436-fe18-74eb-b76f-f76e7c5fbf35",
+  "file_id": "28897ccf-135b-4989-9726-8877211028c1",
+  "evaluated_at": "2026-11-13T09:24:29.837657+00:00",
+  "full_transcript": "भैया ऑर्डर के बाद कस्टमर फ़ोन",
+  "transcript_sha256": "2de14be019101e8bcc8ce996e45a1aafcfb0514996f4e3cf4b418e9c0b6de67e"
+}

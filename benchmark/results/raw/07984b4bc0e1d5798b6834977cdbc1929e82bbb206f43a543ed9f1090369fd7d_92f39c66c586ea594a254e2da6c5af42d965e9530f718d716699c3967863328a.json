@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "92f39c66c586ea594a254e2da6c5af42d965e9530f718d716699c3967863328a",
+  "config_hash": "07984b4bc0e1d5798b6834977cdbc1929e82bbb206f43a543ed9f1090369fd7d",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "bias_list": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "bias_score": 1.0
+  },
+  "job_id": "01a1d436-e9ba-7eb2-8294-f58469682e67",
+  "file_id": "44536ffd-ac90-43fa-8bb8-c9034102c612",
+  "evaluated_at": "2026-11-13T09:23:24.524111+00:00",
+  "full_transcript": "",
+  "transcript_sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+}

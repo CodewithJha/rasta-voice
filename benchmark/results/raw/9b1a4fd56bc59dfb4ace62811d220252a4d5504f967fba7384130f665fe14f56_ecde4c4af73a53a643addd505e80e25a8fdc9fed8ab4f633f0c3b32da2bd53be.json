@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "ecde4c4af73a53a643addd505e80e25a8fdc9fed8ab4f633f0c3b32da2bd53be",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-99d3-719c-a1f9-68e0e2f70e99",
+  "file_id": "c36e2bf5-2dfe-41e2-9c64-096a244c4c4f",
+  "evaluated_at": "2026-11-13T09:17:49.354573+00:00",
+  "full_transcript": "भैया ऑर्डर के बाद कस्टमर फ़ोन",
+  "transcript_sha256": "2de14be019101e8bcc8ce996e45a1aafcfb0514996f4e3cf4b418e9c0b6de67e"
+}

@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "b737356b05d1d4d5fc931ab26f96a57726918f522f1384cc1d3cb991861b2633",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-48d8-706e-88e7-0714f8a04cf7",
+  "file_id": "26e519ac-93bf-4c1c-8923-40a125802dc2",
+  "evaluated_at": "2026-11-13T09:26:04.265091+00:00",
+  "full_transcript": "customer और phone नहीं, bell भी बजाई पर।",
+  "transcript_sha256": "3f9d7ebf0fb66da1654eab9b55210435dafad449ec137b71b0569eb6a660c6c8"
+}

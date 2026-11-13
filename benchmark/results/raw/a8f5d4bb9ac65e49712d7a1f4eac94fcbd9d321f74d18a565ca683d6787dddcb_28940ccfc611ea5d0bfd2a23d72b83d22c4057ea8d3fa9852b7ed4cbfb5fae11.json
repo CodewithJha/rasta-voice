@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "28940ccfc611ea5d0bfd2a23d72b83d22c4057ea8d3fa9852b7ed4cbfb5fae11",
+  "config_hash": "a8f5d4bb9ac65e49712d7a1f4eac94fcbd9d321f74d18a565ca683d6787dddcb",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43b-d54d-78c0-8153-a15e7766ffdc",
+  "file_id": "d82cfa42-84d5-4036-abf3-69fb1cfaebaf",
+  "evaluated_at": "2026-11-13T09:28:04.687301+00:00",
+  "full_transcript": "Order charge customer को दो बार कहा है। Phone नहीं उठा",
+  "transcript_sha256": "3f0cd643664f58494dc80f99d618b711be2ea47ff4a63f86fa634ad5f84498cb"
+}

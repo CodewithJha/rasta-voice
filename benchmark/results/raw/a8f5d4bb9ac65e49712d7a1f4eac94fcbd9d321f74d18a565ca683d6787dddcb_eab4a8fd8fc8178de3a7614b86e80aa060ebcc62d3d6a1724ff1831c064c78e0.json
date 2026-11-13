@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "eab4a8fd8fc8178de3a7614b86e80aa060ebcc62d3d6a1724ff1831c064c78e0",
+  "config_hash": "a8f5d4bb9ac65e49712d7a1f4eac94fcbd9d321f74d18a565ca683d6787dddcb",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43b-f38a-7c34-84d7-7fa1a8730295",
+  "file_id": "e033f191-8b45-4859-8d9a-85892a5bff22",
+  "evaluated_at": "2026-11-13T09:29:59.594622+00:00",
+  "full_transcript": "भैया order एक शून्य दो का customer phone में मैं gate पर हूँ।",
+  "transcript_sha256": "f212c67d67c7990bc704e39410cbaf793ef1c7eeaac9ebd5e29f8118e0d258af"
+}

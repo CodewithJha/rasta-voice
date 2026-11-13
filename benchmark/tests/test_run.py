@@ -51,7 +51,8 @@ def upstream():
             names = re.findall(rb'filename="([^"]+)"', request.content)
             identifier = f"job-{len(jobs)}"
             jobs[identifier] = [name.decode() for name in names]
-            return httpx.Response(201, json={"job_id": identifier})
+            return httpx.Response(201, json={"job_id": identifier,
+                                            "request_id": f"req-{identifier}"})
         if path.endswith("/start"):
             started.add(path.split("/")[-2])
             return httpx.Response(202, json={"status": "RUNNING"})
@@ -105,6 +106,8 @@ def test_batch_math_provenance_and_cache_resume(grid, upstream):
     assert result["systems"][0]["normalized_wer"] == 0
     assert result["systems"][0]["intent_accuracy"] == 1
     assert all(r["job_id"] and r["file_id"] for r in result["evaluations"])
+    assert all(r["request_id"] for r in result["evaluations"])
+    assert result["request_ids"]["v25-bias"] == ["req-job-0"]
     assert "Raw WER" in (output / "scores.md").read_text()
     assert "X-API-Key-ID" not in "".join(p.read_text() for p in output.rglob("*.json"))
     assert "transcripts.test" not in "".join(p.read_text() for p in output.rglob("*.json"))
@@ -284,3 +287,179 @@ def test_manifest_hash_and_grid_completeness_are_checked(grid):
     file.write_text("")
     with pytest.raises(ValueError, match="complete requested grid"):
         run.load_grid(root, 2)
+
+
+def test_operator_supplied_budget_is_recorded(grid, upstream):
+    root, rows, output = grid
+    client, _, _ = upstream
+    systems = {"v30": run.SYSTEMS["v30"]}
+    plan = run.preflight(rows, systems, output, client.base)
+    plan["estimated_new_credits_upper_bound"] = 0.1
+    plan["credit"] = run.credit_record(40, 1.0, plan)
+    run.evaluate(root, rows, systems, output, client)
+    result = run.summarize(rows, systems, output, client.base, plan)
+    assert result["credit"]["source"] == "operator_supplied"
+    assert result["credit"]["budget"] == 40
+    assert result["credit"]["credits_per_minute"] == 1.0
+    assert "operator-supplied" in (output / "scores.md").read_text()
+    assert "Gnani-reported remaining balance" in (output / "scores.md").read_text()
+
+
+def test_collect_retries_transient_get_429(tmp_path, grid):
+    """Job-status GETs are not spending POSTs and may be retried on 429."""
+    _root, rows, output = grid
+    row = rows[0]
+    gets = {"n": 0}
+    started = []
+
+    def handler(request):
+        path = request.url.path
+        status_get = (
+            request.method == "GET"
+            and "/files" not in path
+            and request.url.host != "transcripts.test"
+        )
+        if status_get:
+            gets["n"] += 1
+            if gets["n"] == 1:
+                return httpx.Response(429, json={"message": "rate-limited"})
+            status = "COMPLETED" if started else "CREATED"
+            return httpx.Response(200, json={"status": status})
+        if path.endswith("/start"):
+            started.append(path)
+            return httpx.Response(202, json={"status": "RUNNING"})
+        if path.endswith("/files"):
+            return httpx.Response(200, json={
+                "data": [{
+                    "file_id": "file-0",
+                    "original_path": f"uploads/{row['path']}",
+                    "status": "COMPLETED",
+                    "transcript_url": "https://transcripts.test/job/0",
+                }],
+                "pagination": {"has_more": False},
+            })
+        if request.url.host == "transcripts.test":
+            return httpx.Response(200, json={"full_transcript": row["reference"]})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    client = PrismaBatch(key="test-key", client=httpx.Client(transport=transport))
+    state = {
+        "system": "v25",
+        "config_hash": run.digest({"config": run.SYSTEMS["v25"], "base": client.base}),
+        "config": run.SYSTEMS["v25"],
+        "job_id": "job-429-get",
+        "files": {row["path"]: row["sha256"]},
+    }
+    checkpoint = tmp_path / "job.json"
+    run.save(checkpoint, state)
+    run.collect_job(client, state, checkpoint, output, sleep=lambda _: None, timeout=30)
+    assert state.get("finished") is True
+    assert gets["n"] >= 2
+    assert started
+
+
+def test_collect_restarts_when_get_still_says_created(tmp_path, grid):
+    """A prior 429 on start must not leave a CREATED job unstarted on resume."""
+    _root, rows, output = grid
+    row = rows[0]
+    started = []
+
+    def handler(request):
+        path = request.url.path
+        status_get = (
+            request.method == "GET"
+            and "/files" not in path
+            and request.url.host != "transcripts.test"
+        )
+        if status_get:
+            status = "COMPLETED" if "ok" in started else "CREATED"
+            return httpx.Response(200, json={"status": status})
+        if path.endswith("/start"):
+            if not started:
+                started.append("fail")
+                return httpx.Response(429, json={"message": "rate-limited"})
+            started.append("ok")
+            return httpx.Response(202, json={"status": "RUNNING"})
+        if path.endswith("/files"):
+            return httpx.Response(200, json={
+                "data": [{
+                    "file_id": "file-0",
+                    "original_path": f"uploads/{row['path']}",
+                    "status": "COMPLETED",
+                    "transcript_url": "https://transcripts.test/job/0",
+                }],
+                "pagination": {"has_more": False},
+            })
+        if request.url.host == "transcripts.test":
+            return httpx.Response(200, json={"full_transcript": row["reference"]})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    client = PrismaBatch(key="test-key", client=httpx.Client(transport=transport))
+    state = {
+        "system": "v25",
+        "config_hash": run.digest({"config": run.SYSTEMS["v25"], "base": client.base}),
+        "config": run.SYSTEMS["v25"],
+        "job_id": "job-resume",
+        "files": {row["path"]: row["sha256"]},
+        "start_attempted": True,
+        "error": "GnaniError:429",
+    }
+    checkpoint = tmp_path / "job.json"
+    run.save(checkpoint, state)
+    run.collect_job(client, state, checkpoint, output, sleep=lambda _: None, timeout=30)
+    assert state.get("finished") is True
+    assert started.count("fail") >= 1 and "ok" in started
+    assert any((output / "raw").glob("*.json"))
+
+
+
+def test_collect_retries_list_files_429(tmp_path, grid):
+    """Listing files is a GET and may be retried on 429 after a completed job."""
+    _root, rows, output = grid
+    row = rows[0]
+    lists = {"n": 0}
+    started = []
+
+    def handler(request):
+        path = request.url.path
+        if path.endswith("/files"):
+            lists["n"] += 1
+            if lists["n"] == 1:
+                return httpx.Response(429, json={"message": "rate-limited"})
+            return httpx.Response(200, json={
+                "data": [{
+                    "file_id": "file-0",
+                    "original_path": f"uploads/{row['path']}",
+                    "status": "COMPLETED",
+                    "transcript_url": "https://transcripts.test/job/0",
+                }],
+                "pagination": {"has_more": False},
+            })
+        if path.endswith("/start"):
+            started.append(path)
+            return httpx.Response(202, json={"status": "RUNNING"})
+        if request.url.host == "transcripts.test":
+            return httpx.Response(200, json={"full_transcript": row["reference"]})
+        if request.method == "GET":
+            return httpx.Response(200, json={"status": "COMPLETED" if started else "CREATED"})
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(handler)
+    client = PrismaBatch(key="test-key", client=httpx.Client(transport=transport))
+    state = {
+        "system": "v25",
+        "config_hash": run.digest({"config": run.SYSTEMS["v25"], "base": client.base}),
+        "config": run.SYSTEMS["v25"],
+        "job_id": "job-list-429",
+        "files": {row["path"]: row["sha256"]},
+        "start_attempted": True,
+        "status": "COMPLETED",
+    }
+    checkpoint = tmp_path / "job.json"
+    run.save(checkpoint, state)
+    run.collect_job(client, state, checkpoint, output, sleep=lambda _: None, timeout=30)
+    assert state.get("finished") is True
+    assert lists["n"] >= 2
+    assert any((output / "raw").glob("*.json"))

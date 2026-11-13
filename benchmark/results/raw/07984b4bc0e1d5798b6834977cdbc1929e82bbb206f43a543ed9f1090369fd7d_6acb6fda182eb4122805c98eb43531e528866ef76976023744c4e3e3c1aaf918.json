@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "6acb6fda182eb4122805c98eb43531e528866ef76976023744c4e3e3c1aaf918",
+  "config_hash": "07984b4bc0e1d5798b6834977cdbc1929e82bbb206f43a543ed9f1090369fd7d",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "bias_list": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "bias_score": 1.0
+  },
+  "job_id": "01a1d436-fe18-74eb-b76f-f76e7c5fbf35",
+  "file_id": "dbc9f6ff-cfa0-450e-a559-50f03b5cf277",
+  "evaluated_at": "2026-11-13T09:24:37.134230+00:00",
+  "full_transcript": "ग्राहक से बात नहीं हो पा रहे कस्टमर फ़ोन करवा 2",
+  "transcript_sha256": "9ab4f2716d2737502112f28df3d050dd31780e1737b3f39e66d23c24a68c9d6d"
+}

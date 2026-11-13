@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "ed5f008b6373ca495480b0f7e1f3786e6f5b10b2c5e2529d616eb6ff04ef77fc",
+  "config_hash": "a8f5d4bb9ac65e49712d7a1f4eac94fcbd9d321f74d18a565ca683d6787dddcb",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43b-dfa2-745a-9947-e4d43f93e973",
+  "file_id": "c8b53ba4-9f1b-4312-aad0-a9f8fb8fb0d5",
+  "evaluated_at": "2026-11-13T09:28:55.637398+00:00",
+  "full_transcript": "ऑर्डर one zero two लेकर बाहर खड़ा हूँ customer unreachable आ रहा है।",
+  "transcript_sha256": "165e7f0c1c64947431316cb29aa3dfacc5aaa5f97167156c644be8d5fa787b52"
+}

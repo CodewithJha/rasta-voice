@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "7affc4ac0c89b80983fee4827f8c15f2f7aa6ff17a532d42e1fa852c5576608d",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-99d3-719c-a1f9-68e0e2f70e99",
+  "file_id": "6c5dcdcf-4833-46c1-b793-8c6f171804cf",
+  "evaluated_at": "2026-11-13T09:18:01.791159+00:00",
+  "full_transcript": "ग्राहक से बात नहीं हो पा रही, डिस्पैच एक बार संपर्क करवा दो।",
+  "transcript_sha256": "8e88c18990bb05732e2c3ce642447d79f237ff2d733e2ac1f44b6e7bfa87a00b"
+}

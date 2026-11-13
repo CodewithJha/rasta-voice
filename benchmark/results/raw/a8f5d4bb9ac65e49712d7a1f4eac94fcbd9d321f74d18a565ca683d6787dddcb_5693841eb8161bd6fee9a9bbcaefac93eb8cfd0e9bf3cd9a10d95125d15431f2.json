@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "5693841eb8161bd6fee9a9bbcaefac93eb8cfd0e9bf3cd9a10d95125d15431f2",
+  "config_hash": "a8f5d4bb9ac65e49712d7a1f4eac94fcbd9d321f74d18a565ca683d6787dddcb",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43b-e9b7-7ac7-8001-bf59faab6962",
+  "file_id": "7d7cc3fb-b3f3-4422-a93c-6e210faabe08",
+  "evaluated_at": "2026-11-13T09:29:19.720477+00:00",
+  "full_transcript": "गेट बैंड मिला और फोन नहीं लग रहा है order eighteen dispatch से call करवा दो।",
+  "transcript_sha256": "ab67f01eaf75c90ac1d3449f766cc76c9bdde7d81ad638be5deadc2a011de362"
+}

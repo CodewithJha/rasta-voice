@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "ed9f118f823f8590acb32752847dcfcefd4c394e0109363d510e5b360a5eac14",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-5cca-79e4-be94-1e47be57246a",
+  "file_id": "c43045b1-50ad-46ce-af64-819137cfff98",
+  "evaluated_at": "2026-11-13T09:27:25.068638+00:00",
+  "full_transcript": "शून्य दो का customer phone नहीं उठा रहा। मैं wait पर हूँ।",
+  "transcript_sha256": "f2941b3e02c4460faaef30199dd307d319925465e3bb1e8166b5aece13205b67"
+}

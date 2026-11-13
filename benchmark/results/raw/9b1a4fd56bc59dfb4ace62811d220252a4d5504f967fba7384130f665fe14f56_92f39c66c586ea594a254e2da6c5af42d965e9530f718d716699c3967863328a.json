@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "92f39c66c586ea594a254e2da6c5af42d965e9530f718d716699c3967863328a",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-90b3-7457-883c-f074a47f1b50",
+  "file_id": "b91a2699-ec94-420d-9c3d-879ec1104257",
+  "evaluated_at": "2026-11-13T09:18:23.303221+00:00",
+  "full_transcript": "",
+  "transcript_sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+}

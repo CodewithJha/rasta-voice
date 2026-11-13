@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "a65943a5557bd28fedaf232bfe85e3d399a5bab6942a82b375f0f50ba85972f5",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-9760-71c5-8f4d-359158e05d73",
+  "file_id": "55bf1d4b-77ea-4a8c-9ccd-b53e7f441e9c",
+  "evaluated_at": "2026-11-13T09:22:00.820029+00:00",
+  "full_transcript": "गेट बैग मिला और फ़ोन नहीं लग रहा है ऑर्डर 18 डिस्पैच से कॉल करवा 2",
+  "transcript_sha256": "f7a3502eaef93cc256f4a5b148008907b776b3242f152f7b8b28022aff85bf84"
+}

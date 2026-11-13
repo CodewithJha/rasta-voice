@@ -1,0 +1,15 @@
+{
+  "audio_sha256": "b659e68148c75f890e3b7d9f4a78a33796efeceb6a233cb42d3059bc1da3312e",
+  "config_hash": "9b1a4fd56bc59dfb4ace62811d220252a4d5504f967fba7384130f665fe14f56",
+  "config": {
+    "model": "prisma-v2.5",
+    "language_code": "hi-IN",
+    "mode": "transcribe",
+    "with_denoise": false
+  },
+  "job_id": "01a1d430-90b3-7457-883c-f074a47f1b50",
+  "file_id": "1c93534f-8bf3-40d3-9fbf-d4808e37a6cd",
+  "evaluated_at": "2026-11-13T09:18:24.060550+00:00",
+  "full_transcript": "ऑर्डर 102 लेके बाहर खड़ा हूँ कस्टमर अनरीचेबल आ रहा है",
+  "transcript_sha256": "d21d3706e07b871dc6cc5e069fcb549a4ec412361988b619fd21c4d8bdfb4673"
+}

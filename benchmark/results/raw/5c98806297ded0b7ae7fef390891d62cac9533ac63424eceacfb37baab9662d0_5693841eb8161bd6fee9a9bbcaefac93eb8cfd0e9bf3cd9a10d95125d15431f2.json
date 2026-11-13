@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "5693841eb8161bd6fee9a9bbcaefac93eb8cfd0e9bf3cd9a10d95125d15431f2",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-52c5-766f-a40d-88fc7e81da4f",
+  "file_id": "0c5a9537-ff16-47ad-9c82-e2bd5cefdc20",
+  "evaluated_at": "2026-11-13T09:26:27.698860+00:00",
+  "full_transcript": "गेट बैंड मिला और फोन नहीं लग रहा है order eighteen dispatch से call करवा दो।",
+  "transcript_sha256": "ab67f01eaf75c90ac1d3449f766cc76c9bdde7d81ad638be5deadc2a011de362"
+}

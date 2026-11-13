@@ -1,0 +1,16 @@
+{
+  "audio_sha256": "cca65451903ce27d1e32739c7a2dd9b69dfbe7c6d709555277fc344c782e46a3",
+  "config_hash": "5c98806297ded0b7ae7fef390891d62cac9533ac63424eceacfb37baab9662d0",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": false,
+    "format": "codemix"
+  },
+  "job_id": "01a1d439-3eba-7d77-afdd-d79a6588b2a6",
+  "file_id": "6bf612c7-9039-49c1-baf3-f9c8ebdc5ab1",
+  "evaluated_at": "2026-11-13T09:25:18.536063+00:00",
+  "full_transcript": "order चार के customer को दो बार call, phone नहीं उठा रहा। phone नहीं उठा, order one eight।",
+  "transcript_sha256": "7d6a8e81b4f2e566535cf301f5e0e14079d9e91a40993d04ede4d1822c2d5b8b"
+}

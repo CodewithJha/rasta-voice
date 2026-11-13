@@ -1,0 +1,22 @@
+{
+  "audio_sha256": "68e147daf78a8fbf09d7c45131d30b36addae17d074702522a38cb2e16513843",
+  "config_hash": "138f00b6a12c35a0a28bbc54cbbeed8ddd524c0baf300553c3d023075e428f97",
+  "config": {
+    "model": "prisma-v3.0",
+    "language_code": "hi-IN,en-IN",
+    "mode": "transcribe",
+    "with_denoise": true,
+    "keyterms": [
+      "order",
+      "gate",
+      "item",
+      "accident"
+    ],
+    "format": "codemix"
+  },
+  "job_id": "01a1d43e-5a2a-764d-9b52-ebce0b50efdc",
+  "file_id": "6b2c6f3c-b340-4bb0-b386-93357e6db73f",
+  "evaluated_at": "2026-11-13T09:32:54.275531+00:00",
+  "full_transcript": "order four का address सही है, लेकिन customer phone नहीं उठा रहा।",
+  "transcript_sha256": "e923095a3a88a3fe183ae2bd663fdb2a6a5c89d61dc87a097246bc92e839de0d"
+}
