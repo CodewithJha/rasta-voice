@@ -155,3 +155,5 @@ The noise benchmark is not scored yet. Issue 12 fills this section with the WER 
 - [Decision 3: proposed SQLite topology](docs/adr/0003-sqlite-single-worker.md)
 - [Decision 4: proposed desk passcode](docs/adr/0004-shared-desk-passcode.md)
 - [MIT license](LICENSE), [changelog](CHANGELOG.md), [code of conduct](CODE_OF_CONDUCT.md)
+
+Supply-chain checks and dependency-lock updates: [docs/SUPPLY_CHAIN.md](docs/SUPPLY_CHAIN.md).

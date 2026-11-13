@@ -1,0 +1,3 @@
+# Free scanners used by issue 33's CI checks. Resolved versions are in requirements-ci.lock.
+pip-audit==2.10.1
+bandit==1.9.4

@@ -1,0 +1,10 @@
+# Keep the upstream detectors and add the provider format used by this project.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "gnani-api-key"
+description = "Gnani testing or production API key"
+regex = '''vach_[A-Za-z0-9_-]{40,}'''
+entropy = 3.5
+keywords = ["vach_"]
