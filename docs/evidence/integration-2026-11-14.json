@@ -1,16 +1,40 @@
 {
   "date": "2026-11-14 Asia/Kolkata",
   "local_code_commit": "e9fea31b98fda1aba2fa222c4633abdb748456fe",
-  "code_sha256": {
-    "backend/rasta/main.py": "549d07ec76fa3285179e5d21988ecf7c006e5bb085821f26b531caee91218784",
-    "backend/rasta/security.py": "522cad4a130162f8dfd3ec89befec48ed9de2484bde9fcdc6b1e9641676d0d88",
-    "backend/rasta/idempotency.py": "0c4cfb7b049291cea780ab9419305b4379eca34be530410e7cc37dd00e8bcd82",
-    "backend/rasta/store.py": "e4048938cce5f75e4e0944c875ec01c0afb7ff1fcb35487f4b4f63f2d3f5866a",
-    "backend/rasta/dispatch_auth.py": "548a03bebdcd681f223c098d10fbf3b32d3ec43a62c9e87181e52d1752a7cf1e",
-    "backend/rasta/upload_security.py": "b608d1488fe063513047749ec5175a385fd2514e4e4abd762a763674dc6fe402",
-    "backend/rasta/extract.py": "6903f7c5ccd89339b11c559596487b675629b5a18295ce35ab70581c01e61aed",
-    "backend/rasta/limits.py": "fe05d77135cc211612d2bad14501e37464e0efec0dc9aa3cfb06d367b450575c"
-  },
+  "code_sha256": [
+    {
+      "path": "backend/rasta/main.py",
+      "sha256": "549d07ec76fa3285179e5d21988ecf7c006e5bb085821f26b531caee91218784"
+    },
+    {
+      "path": "backend/rasta/security.py",
+      "sha256": "522cad4a130162f8dfd3ec89befec48ed9de2484bde9fcdc6b1e9641676d0d88"
+    },
+    {
+      "path": "backend/rasta/idempotency.py",
+      "sha256": "0c4cfb7b049291cea780ab9419305b4379eca34be530410e7cc37dd00e8bcd82"
+    },
+    {
+      "path": "backend/rasta/store.py",
+      "sha256": "e4048938cce5f75e4e0944c875ec01c0afb7ff1fcb35487f4b4f63f2d3f5866a"
+    },
+    {
+      "path": "backend/rasta/dispatch_auth.py",
+      "sha256": "548a03bebdcd681f223c098d10fbf3b32d3ec43a62c9e87181e52d1752a7cf1e"
+    },
+    {
+      "path": "backend/rasta/upload_security.py",
+      "sha256": "b608d1488fe063513047749ec5175a385fd2514e4e4abd762a763674dc6fe402"
+    },
+    {
+      "path": "backend/rasta/extract.py",
+      "sha256": "6903f7c5ccd89339b11c559596487b675629b5a18295ce35ab70581c01e61aed"
+    },
+    {
+      "path": "backend/rasta/limits.py",
+      "sha256": "fe05d77135cc211612d2bad14501e37464e0efec0dc9aa3cfb06d367b450575c"
+    }
+  ],
   "benchmark_section_sha256": "0186efce7fe9c226f95a3af28038a2470ab18a1ac1b9177812343095cd2c9730",
   "python": {
     "passed": 1854,
@@ -128,7 +152,7 @@
   },
   "limits": [
     "Local keyless checks are not public deployment or live Gnani proof.",
-    "The local Chromium binary could not launch because this environment denied a socket. Real browser verification is required from GitHub CI.",
+    "The local Chromium binary could not launch because this environment denied a socket. The real keyless browser workflow passed on GitHub CI; it does not establish a live provider or public-host result.",
     "Rules holdout remains 8/36 below 0.8.",
     "Host account/workspace, field consent/audio, measured read-through, public video/posts and form confirmation remain external gates."
   ],
@@ -163,5 +187,31 @@
     "desk_error_rate": 0,
     "speech_error_rate": null,
     "thresholds_passed": true
+  },
+  "secret_scan_false_positive": {
+    "rule": "generic-api-key",
+    "historical_commit": "4f609e171d4ba4fa64fbedb6ab70332a1131d8b5",
+    "file": "docs/evidence/integration-2026-11-14.json",
+    "line": 9,
+    "source_file": "backend/rasta/dispatch_auth.py",
+    "proof": "The flagged value equals the SHA-256 of the source file in the same commit, not a credential.",
+    "owner": "himanshu748",
+    "review_by": "2026-11-21",
+    "scope": "One immutable historical fingerprint only. Current hash records separate path and sha256 fields."
+  },
+  "github_application_verification": {
+    "head": "0770c8b2236b0bee2071902164da01b39c7b798f",
+    "python_job": 132227022642,
+    "python_passed": 1854,
+    "coverage_percent": 90.93,
+    "typed_source_files": 57,
+    "browser_job": 132227022691,
+    "browser_passed": 8,
+    "browser_workflow_ms": 849,
+    "container_job": 132226970348,
+    "load_job": 132227073798,
+    "all_application_jobs_passed": true,
+    "secret_scan_job": 132227022574,
+    "secret_scan_result": "failed on the verified source-digest false positive; exact historical exception added separately, final CI still required"
   }
 }

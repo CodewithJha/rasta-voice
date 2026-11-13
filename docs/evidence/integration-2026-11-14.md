@@ -23,7 +23,7 @@ merged-state verification. Issue ownership and labels are unchanged.
 | Mypy | Clean on 57 production source files |
 | Frontend | Source/test types, 4 Node tests, 23 unit tests and build pass |
 | Runtime dependency inputs | Same audited pinned locks as the upload slice |
-| Browser | Local launch blocked by a denied socket; final GitHub browser job must verify the candidate |
+| Browser | Local launch blocked; real GitHub browser job 132227022691 passed 8 cases, including Ack/Resolve |
 
 The expected failure is the unmet issue 2 holdout-accuracy target. It is not a
 waiver or an LLM success. The live speech path is skipped without a key. All
@@ -90,3 +90,29 @@ public-host SLO guarantee or a live speech latency benchmark.
 - Issue 35's post-contest infrastructure remains unfinished.
 
 Keep public speech paused until its release prerequisites are verified.
+
+## Secret-scan finding and exact historical exception
+
+The first complete remote scan failed on the source digest beside
+`backend/rasta/dispatch_auth.py` in the evidence JSON, line 9 of commit
+`4f609e171d4ba4fa64fbedb6ab70332a1131d8b5`. Recomputing SHA-256 from that
+source file in the same commit equals the reported digest. It is public code
+provenance, not an authentication credential.
+
+Current records separate `path` from `sha256` so a digest is not assigned to
+an auth-like property name. `.gitleaksignore` contains only that immutable
+commit/file/rule/line fingerprint. It does not allowlist a path, detector,
+credential prefix or future commit. Owner: Himanshu (`himanshu748`); review
+by 21 November 2026. The full-history detector remains enforced.
+
+## GitHub application verification
+
+At remote head `0770c8b2236b0bee2071902164da01b39c7b798f`, the published
+tree matched the tested local candidate exactly. GitHub Python job
+`132227022642` confirms 1,854 passed, 90.93% coverage and 57 typed files.
+Browser job `132227022691` passed 8 cases, including real Ack/Resolve in
+849 ms. Container job `132226970348` passed the non-root image smoke and
+HIGH/CRITICAL scan; load job `132227073798` confirms the real keyless load
+and exit-99 closed-port negative. The separate secret scan failed on the
+verified source digest above. The final evidence/exception-only head must
+still pass all ten checks before its verification is complete.
