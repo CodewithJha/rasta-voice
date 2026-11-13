@@ -35,7 +35,18 @@ INTENTS = frozenset(
 )
 # Two logical operations, each with one initial attempt plus at most two
 # server retries. Conservative even on deployments without issue 29 retries.
-SAMPLE_PROVIDER_ATTEMPTS_UPPER_BOUND = 2 * (1 + 2)
+SAMPLE_LOGICAL_OPERATIONS = 2
+DEFAULT_SERVER_RETRY_CAP = 2  # Published issue 29 default/max; never infer remote settings.
+
+
+def server_retry_cap(value: object) -> int:
+    try:
+        cap = int(str(value))
+    except ValueError:
+        raise SmokeFailure("server retry cap must be an integer from 0 to 2") from None
+    if not 0 <= cap <= DEFAULT_SERVER_RETRY_CAP:
+        raise SmokeFailure("server retry cap must be an integer from 0 to 2")
+    return cap
 
 
 class SmokeFailure(Exception):
@@ -71,12 +82,20 @@ def checked_base_url(value: str) -> str:
 
 class SmokeCheck:
     def __init__(
-        self, client: httpx.Client, passcode: str, emit: Callable[[str], None] = print
+        self,
+        client: httpx.Client,
+        passcode: str,
+        emit: Callable[[str], None] = print,
+        *,
+        max_server_retries: int = DEFAULT_SERVER_RETRY_CAP,
     ) -> None:
         self.client = client
         self.passcode = passcode
         self.emit = emit
         self.speech_calls_upper_bound = 0
+        self.provider_attempts_bound = SAMPLE_LOGICAL_OPERATIONS * (
+            1 + server_retry_cap(max_server_retries)
+        )
         self._redactions = tuple(
             value
             for value in (
@@ -206,7 +225,7 @@ class SmokeCheck:
 
         # From this point a timeout can have spent calls; report the upper bound,
         # never retry the charged POST or claim an unknown actual charge is zero.
-        self.speech_calls_upper_bound = SAMPLE_PROVIDER_ATTEMPTS_UPPER_BOUND
+        self.speech_calls_upper_bound = self.provider_attempts_bound
         sample = self.request(
             "POST",
             "api/ingest/sample",
@@ -272,8 +291,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="require CSP and nosniff on / and health after issue 27",
     )
+    parser.add_argument(
+        "--server-max-retries",
+        default=os.environ.get("RASTA_UPSTREAM_MAX_RETRIES", str(DEFAULT_SERVER_RETRY_CAP)),
+        help="verified remote retry cap (0..2); env RASTA_UPSTREAM_MAX_RETRIES or default 2",
+    )
     args = parser.parse_args(argv)
     try:
+        retry_cap = server_retry_cap(args.server_max_retries)
         base = checked_base_url(args.base_url)
         if not math.isfinite(args.timeout) or not 0 < args.timeout <= 120:
             raise SmokeFailure("timeout must be finite and between 0 and 120 seconds")
@@ -288,7 +313,11 @@ def main(argv: list[str] | None = None) -> int:
         print("speech_calls_upper_bound=0")
         return 1
     with client:
-        check = SmokeCheck(client, os.environ.get("DISPATCH_PASSCODE", "").strip())
+        check = SmokeCheck(
+            client,
+            os.environ.get("DISPATCH_PASSCODE", "").strip(),
+            max_server_retries=retry_cap,
+        )
         try:
             check.run(require_security_headers=args.require_security_headers)
         except SmokeFailure as exc:
