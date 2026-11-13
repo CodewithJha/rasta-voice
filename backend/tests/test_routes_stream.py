@@ -434,7 +434,8 @@ def test_sample_disconnect_does_not_store_event():
                 ws.send_json({"type": "sample"})
                 _wait_audio(connect)
                 ws.close()
-            hold.set()
+                # Let the session finish cleanup before TestClient cancels the ASGI task.
+                hold.set()
             assert _stored() == []
             assert not any(_is_commit(m) for m in connect.sockets[0].sent)
             _assert_cleanup(client, connect, upstream="open")
@@ -590,8 +591,8 @@ def test_session_outcome_table(mode: str, condition: str, monkeypatch: pytest.Mo
                             for frame in frames
                         )
                     assert code == expect_close
-            if hold is not None:
-                hold.set()
+                if hold is not None:
+                    hold.set()
             stored = _stored()
             if expect_append:
                 assert stored

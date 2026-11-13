@@ -4,6 +4,7 @@ from gnani_client.stt import RIDER_KEYTERMS, RIDER_TOPIC, PrismaSTT
 from gnani_client.tts import TimbreTTS
 from gnani_client.wav import wav_duration_seconds
 from rasta.extract import extract_event_with_source
+from rasta.request_id import watch_gnani_call
 
 MAX_CLIP_BYTES = 2_000_000
 CLIP_TOO_LARGE = "clip must be under 2 MB (Prisma REST is 30 seconds)"
@@ -47,14 +48,18 @@ def ingest(audio: bytes, filename: str = "clip.wav") -> dict:
         raise EmptyClip("empty audio")
     reject_oversize_clip(audio)
     stt = PrismaSTT()
-    result = stt.transcribe(
-        audio,
-        filename=filename,
-        model="prisma-v3.0",
-        language_code="hi-IN,en-IN",
-        output_format=STT_FORMAT,
-        keyterms=RIDER_KEYTERMS,
-        topic=RIDER_TOPIC,
+    result = watch_gnani_call(
+        "stt_rest",
+        lambda: stt.transcribe(
+            audio,
+            filename=filename,
+            model="prisma-v3.0",
+            language_code="hi-IN,en-IN",
+            output_format=STT_FORMAT,
+            keyterms=RIDER_KEYTERMS,
+            topic=RIDER_TOPIC,
+        ),
+        audio=audio,
     )
     extracted = extract_event_with_source(result.transcript)
     return {
@@ -74,4 +79,7 @@ def ingest(audio: bytes, filename: str = "clip.wav") -> dict:
 
 def speak_sample(text: str = SAMPLE_LINE) -> bytes:
     """Synthesize a rider line with Timbre (16 kHz WAV) for the sample route."""
-    return TimbreTTS().synthesize(text, sample_rate=16000)
+    return watch_gnani_call(
+        "tts_inference",
+        lambda: TimbreTTS().synthesize(text, sample_rate=16000),
+    )

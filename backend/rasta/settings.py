@@ -3,7 +3,8 @@
 Issue 02 owns the LLM keys, model ids, timeout, and retry cap. Issue 04
 owns the in-memory event-store capacity. Issue 07 owns the realtime
 stream limits, timeouts, frame size, and CORS origin allow list. Issue 20
-owns the dispatcher passcode and unlock lockout. Call ``get_settings()`` rather
+owns the dispatcher passcode and unlock lockout. Issue 21 owns the
+structured log line size cap. Call ``get_settings()`` rather
 than ``os.environ`` so a typo, a negative timeout, or a non-positive
 capacity fails in one place. ``clear_settings_cache`` exists so tests
 can change the env without restarting the process.
@@ -45,6 +46,7 @@ ENV_CORS_ALLOW_ORIGINS = "CORS_ALLOW_ORIGINS"
 ENV_DISPATCH_PASSCODE = "DISPATCH_PASSCODE"
 ENV_DISPATCH_UNLOCK_MAX_FAILURES = "DISPATCH_UNLOCK_MAX_FAILURES"
 ENV_DISPATCH_UNLOCK_WINDOW_SECONDS = "DISPATCH_UNLOCK_WINDOW_SECONDS"
+ENV_LOG_LINE_MAX_BYTES = "RASTA_LOG_LINE_MAX_BYTES"
 
 # Checked 12 Nov 2026 against Groq deprecations: llama-3.1-8b-instant was
 # withdrawn for free and developer tiers on 16 Aug 2026. openai/gpt-oss-20b
@@ -100,6 +102,8 @@ DEFAULT_DISPATCH_UNLOCK_MAX_FAILURES = 5
 MAX_DISPATCH_UNLOCK_MAX_FAILURES = 100
 DEFAULT_DISPATCH_UNLOCK_WINDOW_SECONDS = 600.0
 MAX_DISPATCH_UNLOCK_WINDOW_SECONDS = 3600.0
+DEFAULT_LOG_LINE_MAX_BYTES = 4096
+MAX_LOG_LINE_MAX_BYTES = 65_536
 
 ALLOWED_PROVIDERS = frozenset({"rules", "groq", "gemini"})
 MAX_ALLOWED_RETRIES = 1
@@ -258,6 +262,7 @@ class Settings:
     dispatch_passcode: str
     dispatch_unlock_max_failures: int
     dispatch_unlock_window_seconds: float
+    log_line_max_bytes: int
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -354,6 +359,11 @@ class Settings:
                 ENV_DISPATCH_UNLOCK_WINDOW_SECONDS,
                 DEFAULT_DISPATCH_UNLOCK_WINDOW_SECONDS,
                 MAX_DISPATCH_UNLOCK_WINDOW_SECONDS,
+            ),
+            log_line_max_bytes=_positive_int(
+                ENV_LOG_LINE_MAX_BYTES,
+                DEFAULT_LOG_LINE_MAX_BYTES,
+                MAX_LOG_LINE_MAX_BYTES,
             ),
         )
 

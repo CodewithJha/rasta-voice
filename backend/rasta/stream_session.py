@@ -27,6 +27,7 @@ from gnani_client.stt_stream import (
 )
 from rasta.extract import extract_event_with_source
 from rasta.pipeline import STT_FORMAT
+from rasta.request_id import log_gnani_call
 from rasta.settings import Settings
 from rasta.store import attach_event_store
 from rasta.tasks import cancel_all, first_completed
@@ -127,7 +128,15 @@ class StreamSession:
         self._done.set()
         return True
 
+    def _gnani_status(self) -> int | str:
+        if self.outcome is None:
+            return "error"
+        if self.outcome is SessionOutcome.COMPLETED:
+            return 200
+        return self.outcome.value
+
     async def run(self) -> None:
+        started = time.perf_counter()
         try:
             async with _open_stream(self.app, self.settings) as stream:
                 self._tasks = [
@@ -151,6 +160,13 @@ class StreamSession:
             if self.websocket.client_state == WebSocketState.CONNECTED:
                 await self._finalize()
             await _cancel_tasks(self._tasks)
+            log_gnani_call(
+                endpoint="stt_stream",
+                latency_ms=max(0, int(round((time.perf_counter() - started) * 1000))),
+                status=self._gnani_status(),
+                gnani_request_id=self.request_id,
+                audio_seconds=None,
+            )
 
     async def _uplink(self, stream: SttStream) -> None:
         try:

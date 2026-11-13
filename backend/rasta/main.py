@@ -21,6 +21,7 @@ from rasta.pipeline import (
     read_upload_clip,
     speak_sample,
 )
+from rasta.request_id import RequestIdApp, configure_rasta_logging
 from rasta.routes_events import events_router
 from rasta.routes_reply import reply_router
 from rasta.routes_sim import sim_router
@@ -32,6 +33,7 @@ from rasta.stream_runtime import attach_stream_runtime
 
 # Real env vars win over .env, so a deploy secret is never shadowed.
 load_dotenv()
+configure_rasta_logging()
 log = logging.getLogger("rasta")
 
 
@@ -57,7 +59,7 @@ async def lifespan(app: FastAPI):
         close_shared_client()
 
 
-app = FastAPI(title="Rasta Voice", version="0.1.0", lifespan=lifespan)
+app = RequestIdApp(title="Rasta Voice", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(get_settings().cors_allow_origins),
