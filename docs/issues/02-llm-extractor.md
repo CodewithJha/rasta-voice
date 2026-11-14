@@ -147,3 +147,14 @@ was scored). Rules accuracy there is 8/36 = 0.222 after the
 channel-bound contact fix (earlier official runs were 6/36). The 6/36
 figure stays as a regression floor, distinct from the 0.8 target. The
 measured numbers are in [docs/EXTRACTOR.md](../EXTRACTOR.md).
+
+## Live refresh (14 Nov 2026)
+
+Model ids `openai/gpt-oss-20b` and `gemini-3.5-flash-lite` were re-checked
+and left unchanged. The default timeout stayed at 4 s. A live Gemini run
+on the frozen blind holdout at 9:30 PM IST scored 26/36 = 0.722
+end-to-end (24/26 = 0.923 on validated LLM answers; 10 HTTP 429
+fallbacks, counted as rules, never as LLM successes). A Groq key was
+not present. The 0.8 target is still unmet. Evidence:
+[docs/evidence/gemini-holdout-2026-11-14.md](../evidence/gemini-holdout-2026-11-14.md)
+and [docs/EXTRACTOR.md](../EXTRACTOR.md).

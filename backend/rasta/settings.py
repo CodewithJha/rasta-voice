@@ -77,12 +77,12 @@ ENV_BREAKER_WINDOW_SECONDS = "RASTA_BREAKER_WINDOW_SECONDS"
 ENV_BREAKER_OPEN_SECONDS = "RASTA_BREAKER_OPEN_SECONDS"
 ENV_SHUTDOWN_DRAIN_SECONDS = "RASTA_SHUTDOWN_DRAIN_SECONDS"
 
-# Checked 12 Nov 2026 against Groq deprecations: llama-3.1-8b-instant was
+# Checked 12 Nov 2026, re-checked 14 Nov 2026, against Groq deprecations: llama-3.1-8b-instant was
 # withdrawn for free and developer tiers on 16 Aug 2026. openai/gpt-oss-20b
 # is the documented free-tier replacement.
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b"
 
-# Checked 12 Nov 2026 against Google AI Studio model docs: new work should
+# Checked 12 Nov 2026, re-checked 14 Nov 2026, against Google AI Studio model docs: new work should
 # use gemini-3.5-flash-lite (or 3.8 Flash). gemini-2.0-flash is shut down;
 # gemini-2.5-flash is limited to existing users.
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
