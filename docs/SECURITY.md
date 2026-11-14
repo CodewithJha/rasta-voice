@@ -70,17 +70,33 @@ speech or substitute for spend limits.
 
 ## Data policy and remaining acceptance
 
-Repository audio, references and order tokens are synthetic. Real consented
-field audio from issue 17 must stay outside git and public demos and follow
-its consent/deletion process. Simulated telephone audio is not evidence from
-a real telephone channel. Uploading audio sends it to Gnani; selecting an
-external extraction provider also sends transcript content to that provider.
+Repository audio, references and order tokens are synthetic. This host is
+only for invented speech: do not upload real customer calls, phone numbers,
+names, government IDs, delivery addresses or real order records into git or
+a public demo. Real consented field recordings from issue 17 stay off this
+host and remain under that issue's consent and deletion process. Simulated
+8 kHz/G.711 audio is not evidence of a real telephone channel.
 
-Events persist in SQLite. Privacy issue 28 covers transcript redaction,
-retention TTL, export and deletion. Its PR review includes expired-event
-transitions; do not claim acceptance until those paths and integration with
-memory-only uploads are verified. An order-token heuristic alone does not
-redact personal data. Hosting, private field evidence, a real public smoke,
+Stored speech text is treated as sensitive even when the source is synthetic.
+Before persistence and again before list, detail or export responses, digit
+runs of eight or more and obvious `+91` / spaced Indian mobile shapes in
+`transcript`, `sample_text` and `event.transcript` are replaced with
+`[redacted]`. Short order tokens such as `18` are left intact; an eight-digit
+run is still never promoted to an `order_id`. Events expire after
+`RASTA_EVENT_TTL_HOURS` (default 24). A sweeper deletes expired rows on boot
+and on a short interval. The 200-row cap remains a safety valve and prefers
+resolved rows when a workflow state is present; evicting a live
+`accident_sos` is logged with the event id, never the transcript. Operators
+can delete one event (`DELETE /api/events/{id}`) or wipe the desk
+(`POST /api/admin/wipe` with `{"confirm":"wipe"}`); both require the dispatch
+passcode. Usage counters are left in place. Ingest, simulate and reply do
+not write wav files to disk. Uploading audio still sends it to Gnani;
+choosing Groq/Gemini also sends transcript content to that provider.
+
+An order-token heuristic alone does not redact personal data. Privacy issue 28
+is not accepted until review of this branch, including expired-event
+transitions and integration with memory-only uploads and CSRF-protected desk
+writes, is complete. Hosting, private field evidence, a real public smoke,
 owner-side branch settings and submission evidence remain separate gates.
 
 ## Reporting

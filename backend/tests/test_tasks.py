@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from rasta.tasks import first_completed
+from rasta.tasks import first_completed, run_until_stopped
 
 RASTA = Path(__file__).resolve().parents[1] / "rasta"
 ALLOWED_TASK_CALLS = {("StreamSession.run", "asyncio.create_task")}
@@ -57,6 +57,25 @@ def test_first_completed_cancels_and_awaits_children_when_the_caller_is_cancelle
         await asyncio.sleep(0)
         assert all(task.done() for task in children)
         leftover = asyncio.all_tasks() - {asyncio.current_task()}
+        assert leftover == set()
+
+    asyncio.run(body())
+
+
+def test_run_until_stopped_ticks_then_exits_without_leaving_tasks():
+    async def body():
+        ticks = {"n": 0}
+        stopped = asyncio.Event()
+
+        def tick() -> None:
+            ticks["n"] += 1
+            if ticks["n"] >= 2:
+                stopped.set()
+
+        await run_until_stopped(tick, 0.05, stopped)
+        await asyncio.sleep(0)
+        leftover = asyncio.all_tasks() - {asyncio.current_task()}
+        assert ticks["n"] >= 2
         assert leftover == set()
 
     asyncio.run(body())

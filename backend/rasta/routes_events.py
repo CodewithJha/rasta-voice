@@ -4,7 +4,7 @@ import base64
 import json
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from rasta.dispatch_auth import (
     COOKIE_UNLOCK_CSRF,
@@ -132,6 +132,17 @@ def unlock_csrf(request: Request) -> JSONResponse:
         max_age=UNLOCK_CSRF_SECONDS,
     )
     return response
+
+
+@events_router.delete("/api/events/{event_id}")
+def delete_event(
+    event_id: str,
+    store: EventStore = Depends(get_event_store),
+    _actor: str = Depends(require_desk_write),
+):
+    if not store.delete(event_id):
+        raise HTTPException(status_code=404, detail="Event not found.")
+    return Response(status_code=204)
 
 
 @events_router.post("/api/dispatch/unlock")

@@ -36,6 +36,8 @@ ENV_GROQ_BASE_URL = "GROQ_BASE_URL"
 ENV_GEMINI_BASE_URL = "GEMINI_BASE_URL"
 ENV_EVENT_STORE_CAPACITY = "EVENT_STORE_CAPACITY"
 ENV_RASTA_DB_PATH = "RASTA_DB_PATH"
+ENV_EVENT_TTL_HOURS = "RASTA_EVENT_TTL_HOURS"
+ENV_EVENT_TTL_SWEEP_SECONDS = "RASTA_EVENT_TTL_SWEEP_SECONDS"
 ENV_RASTA_MAX_STREAMS = "RASTA_MAX_STREAMS"
 ENV_STREAM_SESSION_SECONDS = "RASTA_STREAM_SESSION_SECONDS"
 ENV_STREAM_IDLE_SECONDS = "RASTA_STREAM_IDLE_SECONDS"
@@ -98,6 +100,11 @@ DEFAULT_LLM_RETRY_BACKOFF_SECONDS = 0.25
 # does not read the environment itself.
 DEFAULT_EVENT_STORE_CAPACITY = 200
 DEFAULT_RASTA_DB_PATH = "data/rasta-events.sqlite"
+
+DEFAULT_EVENT_TTL_HOURS = 24
+MAX_EVENT_TTL_HOURS = 8760
+DEFAULT_EVENT_TTL_SWEEP_SECONDS = 60.0
+MAX_EVENT_TTL_SWEEP_SECONDS = 3600.0
 # Hard ceiling so a typo cannot allocate unbounded memory in one process.
 MAX_EVENT_STORE_CAPACITY = 10_000
 
@@ -413,6 +420,8 @@ class Settings:
     gemini_api_key: str
     event_store_capacity: int
     db_path: str
+    event_ttl_hours: int
+    event_ttl_sweep_seconds: float
     max_streams: int
     stream_session_seconds: float
     stream_idle_seconds: float
@@ -526,6 +535,16 @@ class Settings:
                 MAX_EVENT_STORE_CAPACITY,
             ),
             db_path=_db_path(ENV_RASTA_DB_PATH, DEFAULT_RASTA_DB_PATH),
+            event_ttl_hours=_non_negative_int(
+                ENV_EVENT_TTL_HOURS,
+                DEFAULT_EVENT_TTL_HOURS,
+                MAX_EVENT_TTL_HOURS,
+            ),
+            event_ttl_sweep_seconds=_bounded_float(
+                ENV_EVENT_TTL_SWEEP_SECONDS,
+                DEFAULT_EVENT_TTL_SWEEP_SECONDS,
+                MAX_EVENT_TTL_SWEEP_SECONDS,
+            ),
             max_streams=_positive_int(
                 ENV_RASTA_MAX_STREAMS, DEFAULT_MAX_STREAMS, MAX_MAX_STREAMS
             ),

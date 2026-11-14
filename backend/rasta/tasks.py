@@ -8,7 +8,7 @@ the caller itself is cancelled. Callers must not spawn waiters with
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Iterable
+from collections.abc import Awaitable, Callable, Iterable
 from typing import Any
 
 
@@ -52,6 +52,26 @@ async def first_completed(
         return tasks.index(winner), winner.result()
     finally:
         await cancel_all(tasks)
+
+
+async def run_until_stopped(
+    func: Callable[[], object],
+    interval: float,
+    stopped: asyncio.Event,
+) -> None:
+    """Call ``func`` immediately, then every ``interval`` seconds until stopped.
+
+    ``stopped`` is the only way this loop ends. The wait is owned by
+    ``first_completed`` so the interval sleep cannot leak on shutdown.
+    """
+    if interval <= 0:
+        raise ValueError("interval must be a positive number of seconds")
+    func()
+    while not stopped.is_set():
+        index, _result = await first_completed(stopped.wait(), asyncio.sleep(interval))
+        if index == 0:
+            return
+        func()
 
 
 def start_task(
