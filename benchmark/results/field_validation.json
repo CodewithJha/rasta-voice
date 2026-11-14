@@ -1,0 +1,6 @@
+{
+  "status": "not_collected",
+  "normalization": "rasta_bench.run.normalize",
+  "limitation": "No explicitly consented microphone or telephone recordings were available in this verification pass. No live field audio was sent to Gnani, so no field WER, CER, intent accuracy, latency or request IDs are claimed.",
+  "results": []
+}
