@@ -2,25 +2,24 @@
 
 ## Integrated candidate status, 14 November 2026
 
-This dated overlay describes the combined candidate in this branch. It does
-not claim that prerequisite PRs are merged, a public host is running or a
-contest form has been submitted. The audit rows below are the original
-12 November snapshot, not a live assertion that every historical gap remains.
+The prerequisite component PRs 83 through 91 and 93 are now merged. PR 92
+contains the remaining inexpensive async request handling, explicit wipe-write
+authentication and current documentation. It still requires peer review and CI.
+The audit rows below preserve the original 12 November snapshot.
 
-| Area | Candidate evidence | Remaining gate |
+| Area | Verified code evidence | Remaining gate |
 | --- | --- | --- |
-| Response policy and uploads | CSP, self-hosted assets, memory-only bounded uploads; PRs 84/86 | Merge/review and final combined CI |
-| Dispatcher security | Signed unlock challenge, session CSRF, lockout; PR 87 | Merge/review and deployed smoke |
-| Privacy | Redaction, TTL, wipe/delete, expired-transition repair; PRs 83/88 | Merge/review and replay lifecycle integration |
-| API and paid-work safety | Error contract, aliases, pagination, atomic replay, memory-only response bodies; PRs 85/89 | Owner review of the replay storage clarification and final integration |
-| Quality and operations | Types, coverage, real keyless UI/load, scans, container and runbook | Final combined CI, public smoke/rollback and owner-side branch settings |
-| Extraction quality | Locked holdout 8/36 against 0.8 target | Issue 2 remains unmet; no fabricated LLM/accuracy result |
+| Response policy and uploads | CSP, self-hosted assets and bounded memory-only uploads merged in 84/86 | Public-host smoke |
+| Dispatcher security | Signed unlock challenge, session CSRF and lockout merged in 87 | Deployed verification |
+| Privacy | Redaction, TTL, deletion and immediate replay cleanup merged in 83/88 | Public-host acceptance |
+| API and paid-work safety | API envelopes, pagination, atomic claims and hashed ledger merged in 85/89; both owners accepted memory-only response bodies | Public-host acceptance |
+| Quality and operations | Ten checks green on both reviewed peer heads; combined local tests and runbook | Refreshed PR 92 CI, public smoke/rollback and owner-side branch settings |
+| Extraction quality | Locked holdout 8/36 against 0.8 target | Issue 2 remains unmet |
 | Human/public evidence | Synthetic benchmark exists | Verified free host, consented field audio, timed script, video/posts and form |
 | Post-contest stretch | Documented separately | Issue 35 remains optional and unfinished |
 
-[Integration evidence](evidence/integration-2026-11-14.md) records the exact
-checks and limitations. Definition-of-done boxes stay open until their
-merged-code and external-evidence requirements are verified.
+[Integration evidence](evidence/integration-2026-11-14.md) records dated checks
+and their limits. External-evidence requirements remain open.
 
 ## Historical audit, 12 November 2026
 
