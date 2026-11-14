@@ -46,6 +46,7 @@ from rasta.simulate import CONDITION_HINT, CONDITIONS, BadClip, envelope, prepar
 from rasta.store import attach_event_store, bind_rider_header, reset_rider_header
 from rasta.stream_runtime import attach_stream_runtime
 from rasta.tasks import start_task
+from rasta.upload_security import AudioUploadRoute, UploadBodyLimit
 
 # Real env vars win over .env, so a deploy secret is never shadowed.
 load_dotenv()
@@ -84,7 +85,6 @@ async def lifespan(app: FastAPI):
             store.close()
 
 
-
 async def _sos_sweep(application: FastAPI) -> None:
     """Escalate unacked accident_sos rows on a short interval."""
     try:
@@ -107,6 +107,8 @@ app = ContractApp(
 )
 install_validation_handler(app)
 
+app.router.route_class = AudioUploadRoute
+
 
 def _configure_production(_application: FastAPI) -> None:
     """Validate deploy secrets; SecuredApp owns the outer host/CORS boundary."""
@@ -115,6 +117,9 @@ def _configure_production(_application: FastAPI) -> None:
 
 app.add_middleware(SpeechBudgetMiddleware)
 _configure_production(app)
+# Count body-limit rejections as well as inner route responses.
+# HttpCount already wraps this stack in SecuredApp.
+app.add_middleware(UploadBodyLimit)
 app.include_router(events_router)
 app.include_router(admin_router)
 app.include_router(health_router)
