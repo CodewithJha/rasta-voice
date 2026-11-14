@@ -212,10 +212,10 @@ def test_malformed_or_multiple_file_uploads_fail_closed_and_close_handles(monkey
 
 
 def test_oversized_request_is_counted_and_rejected_before_parsing():
-    from rasta.http_counts import HttpCountMiddleware, attach_http_counts
+    from rasta.http_counts import attach_http_counts
 
     app = probe_app()
-    app.add_middleware(HttpCountMiddleware)
+    # SecuredApp already wraps HttpCountMiddleware around the body limiter.
     counts = attach_http_counts(app)
     response = TestClient(app).post(
         "/api/ingest",
