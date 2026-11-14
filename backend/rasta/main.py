@@ -7,12 +7,12 @@ import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Header, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from gnani_client.env import api_key
 from gnani_client.errors import GnaniError, MissingApiKeyError
-from rasta.dispatch_auth import attach_dispatch_auth
+from rasta.dispatch_auth import attach_dispatch_auth, enforce_desk_csrf
 from rasta.extract import extract_event
 from rasta.http_counts import HttpCountMiddleware, attach_http_counts
 from rasta.limits import SpeechBudgetMiddleware, attach_speech_guard, await_held_work
@@ -108,6 +108,7 @@ async def _sos_sweep(application: FastAPI) -> None:
 
 app = SecuredApp(
     title="Rasta Voice",
+    dependencies=[Depends(enforce_desk_csrf)],
     version="0.1.0",
     lifespan=lifespan,
     docs_url=None if get_settings().is_production else "/docs",

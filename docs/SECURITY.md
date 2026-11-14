@@ -1,71 +1,74 @@
 # Security and data handling
 
-This is the current state at `22d2676`, not a production-security claim. Read
-[ARCHITECTURE.md](ARCHITECTURE.md) and the
-[production-readiness register](PRODUCTION_READINESS.md) before publishing a
-demo URL. The unresolved controls below matter even with synthetic data.
+Read [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) and the open issue
+acceptance checks before publishing a demo URL. Passing tests is not proof of
+a deployed host, field consent, available provider credit or production suitability.
 
-Keep `GNANI_API_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY` and future
-`DISPATCH_PASSCODE` values in environment variables or host secret settings.
-The API loads a local `.env` without overriding real environment variables;
-`.env` is ignored by git. Never place filled values in commits, image layers,
-frontend bundles, URLs, screenshots, recordings, logs or issue comments.
-`.env.example` contains names and empty secret values only. Browser clients
-call our API; the server authenticates to speech providers. If a key leaks,
-revoke/rotate it at the provider and update the host secret; deleting a git
-line alone does not revoke a credential.
+Keep provider keys and `DISPATCH_PASSCODE` in environment variables or host
+secret settings. `.env` is ignored by git. Never include filled credentials in
+commits, image layers, browser bundles, URLs, screenshots, recordings or logs.
+The server authenticates to providers; browser clients call our API. Rotate a
+leaked key at its provider before updating host secrets. Removing a git line
+does not revoke a credential.
 
-## Controls implemented now
+## Dispatcher authentication and CSRF
 
-- Uploads have a 2 MB read/ingest ceiling. The simulate route checks it before
-  decoding or mixing. Only supported mono-compatible 16-bit PCM WAV inputs
-  can enter that simulation path; broader content/duration validation is not
-  a completed production control.
-- Reply generation is limited locally to six requests/minute per direct
-  client address, one in-flight upstream reply call and a 15-second HTTP
-  timeout, with no automatic speech retries. Cache entries expire after ten
-  minutes and are bounded by 128 entries / 8 MB of base64 audio. A missing
-  key cannot use old cached replies. Client-supplied speech text is ignored.
-- Streaming checks the WebSocket `Origin` against `CORS_ALLOW_ORIGINS` and
-  enforces configured concurrent slots, frame/queue bounds and session/idle
-  deadlines. Its generic admission hook currently allows requests; it is
-  not an implemented shared credit budget.
-- HTTP CORS uses the configured exact origin list. CORS and a WebSocket
-  Origin check are browser boundaries, not authentication for direct API
-  callers. A shared reverse proxy can also make the reply limiter see one
-  client address; trusted forwarding policy is not yet implemented.
-- UI text is set through text content rather than treating transcripts or
-  provider replies as HTML. Emergency wording makes no unverified dispatch
-  promise. This does not make automated extraction a safety authority.
+Desk reads require a signed session cookie or a valid `X-Dispatch-Passcode`
+header. Secret comparisons use constant-time digests. Failed unlocks and header
+guesses share an atomic, process-local lockout per direct client address.
 
-## Controls still pending
+Browser unlock requires this sequence:
 
-Issue 13 owns deployment-wide per-IP limits and a global speech credit
-budget across upload, sample, simulation, reply and streaming. Those limits
-are not present on every route today. A REST sample uses two Gnani calls;
-a new confirmation uses another; live streaming is also billable. Local
-reply caching and stream slot limits do not bound the whole account's spend.
-The backend currently maps a Gnani 402 to 502 with `upstream_status: 402`;
-the rider shows credit exhaustion distinctly. There is no automatic billing
-balance query or global public-demo pause switch yet. Do not infer that a
-200 health response means credits or public abuse protection are available.
+1. Fetch `GET /api/dispatch/csrf` with same-origin credentials. Its non-cacheable
+   JSON contains `csrf_token`; an HttpOnly, SameSite=Strict cookie binds the
+   challenge to this browser. The token is signed, purpose-separated and valid
+   for five minutes. Refresh it after expiry or a successful unlock.
+2. Send `POST /api/dispatch/unlock` with the JSON passcode, same-origin
+   credentials and `X-Dispatch-CSRF: <csrf_token>`. Missing, altered or expired
+   tokens fail before checking the body passcode. Successful unlock deletes
+   the challenge cookie and sets the signed HttpOnly session cookie.
+3. For subsequent writes, copy the readable `rasta_desk_csrf` cookie into
+   `X-Dispatch-CSRF`. The server verifies both equality and its MAC bound to
+   the current signed session actor. Tokens copied from another desk session
+   cannot authorize this one.
 
-Desk authentication is issue 20. `GET /api/events` is currently public and
-unprotected: setting `DISPATCH_PASSCODE` today does not enable an unlock
-route, cookie or header check. The planned implementation must use timing-safe
-comparison, an appropriately protected session/header mechanism, lockout and
-CSRF defenses while leaving rider speech routes accessible under their spend
-limits. None of those future controls is claimed as shipped here.
+All unsafe event, admin and dispatch routes, including versioned aliases,
+share this guard. Browser Origin must match the request's exact origin when
+present; cross-site or same-site Fetch Metadata is rejected. Non-browser
+clients can perform the challenge flow or supply a valid custom passcode
+header. Merely supplying an arbitrary header is not a CSRF bypass. Keep this
+header out of public HTML, URLs, logs and screenshots.
 
-Issue 27 owns CSP, security headers, broader input/Origin hardening and CSRF
-protection where relevant to the passcode session. The current app does not
-install a CSP/security-header middleware. Issue 21 owns structured redacted
-logging; current upstream warning logs can contain provider error messages.
-Do not publish unreviewed log dumps. Issue 29 owns shared HTTP timeouts,
-bounded retries and circuit breakers; reply's local timeout is not a global
-resilience guarantee. Issue 22's readiness endpoint is still absent.
+Cookies use Secure on HTTPS, on trusted forwarded HTTPS and in production.
+Forwarded scheme headers are ignored unless the trusted-proxy setting is
+explicitly enabled. Desk authentication does not authenticate public rider
+speech or substitute for spend limits.
 
-## Data policy
+## Request and browser boundaries
+
+- [UPLOADS.md](UPLOADS.md) documents raw request and file size ceilings,
+  duration/container validation, memory-only multipart handling, safe filenames
+  and cleanup. Oversized bodies are bounded before multipart parsing. The
+  simulation route additionally requires its supported PCM WAV format.
+- Response policy covers normal responses, middleware denials and unhandled
+  errors: CSP restricts resources to self, with Blob audio/worklet allowances;
+  framing is denied, MIME sniffing disabled and referrers suppressed. HSTS is
+  present on HTTPS and production responses. Production disables generated
+  API documentation. Trusted Host and exact CORS/stream Origin checks apply.
+- UI transcripts and provider replies are rendered as text. Emergency wording
+  does not promise an unverified dispatch response. Extraction is not a safety
+  authority.
+- Speech routes share admission/concurrency limits, configured budgets and a
+  pause switch. Samples and simulations can use multiple paid operations;
+  upstream resilience permits bounded retries. See configuration, the smoke
+  budget and [RUNBOOK.md](RUNBOOK.md) before enabling public speech.
+  Process-local limits are not a provider account balance or distributed quota.
+- Readiness and redacted request-ID logging help operations. A health/readiness
+  200 does not establish usable credit or correct deployment permissions.
+  Never publish unreviewed logs. The API contract and privacy integrations have
+  separate acceptance checks in issues 26 and 28.
+
+## Data policy and remaining acceptance
 
 Repository audio, references and order tokens are synthetic. This host is
 only for invented speech: do not upload real customer calls, phone numbers,
@@ -90,11 +93,17 @@ passcode. Usage counters are left in place. Ingest, simulate and reply do
 not write wav files to disk. Uploading audio still sends it to Gnani;
 choosing Groq/Gemini also sends transcript content to that provider.
 
+An order-token heuristic alone does not redact personal data. Privacy issue 28
+is not accepted until review of this branch, including expired-event
+transitions and integration with memory-only uploads and CSRF-protected desk
+writes, is complete. Hosting, private field evidence, a real public smoke,
+owner-side branch settings and submission evidence remain separate gates.
+
 ## Reporting
 
 Open a [GitHub issue](https://github.com/CodewithJha/rasta-voice/issues) with a
 minimal synthetic reproduction, affected route and observed behavior. Never
-paste an API key, passcode, session cookie, presigned URL or raw personal data.
-For a leaked credential, revoke it first and report only that rotation was
-required. There is no private security contact published by the team yet;
-do not invent one or disclose sensitive exploit data in the public tracker.
+paste credentials, session cookies, presigned URLs or raw personal data. For
+a leaked key, rotate it first and report only that rotation was required.
+No private security contact is published; do not invent one or disclose
+sensitive exploit data in the public tracker.

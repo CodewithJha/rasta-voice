@@ -73,7 +73,11 @@ export function ops() {
 export function desk() {
   if (!unlocked) {
     const p = params("desk_unlock");
-    p.headers = { "Content-Type": "application/json" };
+    const challenge = http.get(`${config.base}/api/dispatch/csrf`, params("desk_csrf"));
+    if (!okJson(challenge, (body) => typeof body.csrf_token === "string" && body.csrf_token.length > 0)) {
+      exec.test.abort("Desk CSRF challenge failed; stopping without logging response bodies.");
+    }
+    p.headers = { "Content-Type": "application/json", "X-Dispatch-CSRF": challenge.json().csrf_token };
     const response = http.post(`${config.base}/api/dispatch/unlock`, JSON.stringify({ passcode: __ENV.DISPATCH_PASSCODE }), p);
     const good = okJson(response, (body) => body.ok === true);
     deskErrors.add(!good);
