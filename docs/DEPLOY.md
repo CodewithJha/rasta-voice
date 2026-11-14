@@ -1,7 +1,48 @@
 # Deploy
 
-Public URL: _not published yet — paste the Space URL here after the
-first successful deploy._
+Public URL: https://rasta-voice-himanshu748.onrender.com
+
+## Verified paused deployment, 14 November 2026
+
+The Render backup is live on the **free** plan in Singapore, in Himanshu
+Kumar's Workspace. Deployed revision:
+`5facb5569b7aee0f29c06c19d01231aa7a785376` (merged PR 94).
+Automatic deployment is off so an unchecked later revision does not replace
+this verified build. PRs 95-97 are not part of this deployment.
+
+This is a real production-mode deployment with **speech paused**:
+`GNANI_API_KEY` is empty, `LLM_PROVIDER=rules`, and
+`RASTA_DEMO_SPEECH_BUDGET=0`. It does not return canned transcripts.
+The public sample returns 503 and the UI displays the pause message.
+The measured usage endpoint reports zero Gnani calls. No live speech,
+microphone recording, provider request ID, field accuracy or rollback is
+claimed. Issues 13, 24 and 32 remain open for their live acceptance checks.
+
+The [deployment evidence](evidence/render-paused-deploy-2026-11-14.json)
+records actual HTTP results and correlation IDs. The page, health and
+readiness returned 200; production API docs returned 404; unauthenticated
+desk/usage requests returned 401. A signed CSRF challenge unlocked the
+real desk with Secure cookies, and a cookie-authenticated write without a
+CSRF header returned 403. No events were added or removed. CSP, HSTS,
+nosniff and request-ID checks passed. The public browser loaded the UI,
+changed language and displayed the paused-speech state.
+
+The image runs as its non-root user with one worker and SQLite under
+`/app/data`. Disk remains ephemeral. Render currently uses its default
+TCP health probe; the image's own HEALTHCHECK uses `/api/ready`, which
+also passed the public HTTP probe. Changing Render's platform probe to
+`/api/ready` needs dashboard access because the connected service tool
+does not expose that setting. This is an optional remaining operator step.
+
+Manage this service in the [Render dashboard](https://dashboard.render.com/web/srv-dbsa8sbrjlhs73dkv8o0).
+The generated private desk passcode is stored only in Render's environment
+configuration. An owner can view or rotate it there; do not paste it into
+git, chat, URLs or screenshots. To enable real speech later, set the real
+`GNANI_API_KEY` in Render's Environment settings, choose an authorized
+bounded speech budget, deploy the configuration, then run the public live
+smoke once. Keep the budget at zero until that operator step is intended.
+
+The hosting instructions below remain the general setup procedure.
 
 Hugging Face Spaces (Docker SDK) is the default host: one process, port
 `7860`, no paid plan, no extra database. Render's free web service is the
