@@ -144,3 +144,21 @@ The added job names, including `container`, must be added to required branch che
 owner after this workflow passes on a PR. A workflow file alone cannot change
 branch settings. Existing required check names are preserved. Both owners must
 agree to this `.github/` contract before merge; do not self-merge it.
+
+## Verified source-digest false positive, 14 November 2026
+
+Gitleaks scans every available ref after the full-history checkout, including
+other open PR branches. A generic-api-key finding in integration commit
+`4f609e171d4ba4fa64fbedb6ab70332a1131d8b5`, line 9 of
+`docs/evidence/integration-2026-11-14.json`, is a source SHA-256 beside the
+`backend/rasta/dispatch_auth.py` property. Recomputing the digest of that
+source file at the same commit exactly matches the recorded value. It is
+public source provenance, not a credential. The current integration evidence
+separates path and digest fields.
+
+`.gitleaksignore` records only that immutable commit/file/rule/line fingerprint.
+No detector, file path, token prefix or future commit is excluded. This record
+is also needed by unrelated PRs because their full checkout includes the
+integration ref. Owner: Himanshu (`himanshu748`); review by 21 November 2026.
+The detector still rejects a synthetic Gnani-shaped probe with exit 1 and
+accepts an empty example with exit 0; no real credential was used.
