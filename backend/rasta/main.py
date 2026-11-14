@@ -42,6 +42,7 @@ from rasta.simulate import CONDITION_HINT, CONDITIONS, BadClip, envelope, prepar
 from rasta.store import attach_event_store, bind_rider_header, reset_rider_header
 from rasta.stream_runtime import attach_stream_runtime
 from rasta.tasks import run_until_stopped, start_task
+from rasta.upload_security import AudioUploadRoute, UploadBodyLimit
 
 # Real env vars win over .env, so a deploy secret is never shadowed.
 load_dotenv()
@@ -93,7 +94,6 @@ async def lifespan(app: FastAPI):
             store.close()
 
 
-
 async def _sos_sweep(application: FastAPI) -> None:
     """Escalate unacked accident_sos rows on a short interval."""
     try:
@@ -115,6 +115,8 @@ app = SecuredApp(
     openapi_url=None if get_settings().is_production else "/openapi.json",
 )
 
+app.router.route_class = AudioUploadRoute
+
 
 def _configure_production(application: FastAPI) -> None:
     """Fail closed on missing prod secrets and attach host / budget guards."""
@@ -128,7 +130,6 @@ def _configure_production(application: FastAPI) -> None:
         )
 
 
-app.add_middleware(HttpCountMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(get_settings().cors_allow_origins),
@@ -138,6 +139,9 @@ app.add_middleware(
 )
 app.add_middleware(SpeechBudgetMiddleware)
 _configure_production(app)
+# Count body-limit rejections as well as inner route responses.
+app.add_middleware(UploadBodyLimit)
+app.add_middleware(HttpCountMiddleware)
 app.include_router(events_router)
 app.include_router(admin_router)
 app.include_router(health_router)

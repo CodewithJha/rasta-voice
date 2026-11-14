@@ -1,0 +1,528 @@
+{
+  "evaluated_code_sha": "cc36618ce34ec7ac2cde1843e75b77d02329cb4c",
+  "baseline_code_sha": "d0b6bbc1cc655244b036e049ca856f331a13a5b4",
+  "holdout_sha256": "d5c56ffdc68bde183f40a8ac1e3f14088455f25083d292cf386bdf05893ac62a",
+  "threshold": 0.8,
+  "target_met": false,
+  "live_llm_evaluated": false,
+  "method": "Development regressions and code were frozen before this paired aggregate evaluation. No holdout text was inspected or changed. No further rule tuning used these results.",
+  "results": {
+    "before": {
+      "development": {
+        "n": 30,
+        "intent_correct": 30,
+        "accuracy": 1.0,
+        "order_correct": 30,
+        "eta_correct": 30,
+        "per_intent": {
+          "customer_unreachable": [
+            5,
+            5
+          ],
+          "address_issue": [
+            5,
+            5
+          ],
+          "item_missing": [
+            5,
+            5
+          ],
+          "delay": [
+            5,
+            5
+          ],
+          "accident_sos": [
+            5,
+            5
+          ],
+          "other": [
+            5,
+            5
+          ]
+        },
+        "confusion": [
+          [
+            5,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            5,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            5,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            5,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            5
+          ]
+        ],
+        "rules_used": 30,
+        "llm_successes": 0
+      },
+      "seen_tuning": {
+        "n": 24,
+        "intent_correct": 24,
+        "accuracy": 1.0,
+        "order_correct": 24,
+        "eta_correct": 24,
+        "per_intent": {
+          "customer_unreachable": [
+            4,
+            4
+          ],
+          "address_issue": [
+            4,
+            4
+          ],
+          "item_missing": [
+            4,
+            4
+          ],
+          "delay": [
+            4,
+            4
+          ],
+          "accident_sos": [
+            4,
+            4
+          ],
+          "other": [
+            4,
+            4
+          ]
+        },
+        "confusion": [
+          [
+            4,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            4,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            4,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            4
+          ]
+        ],
+        "rules_used": 24,
+        "llm_successes": 0
+      },
+      "locked_holdout": {
+        "n": 36,
+        "intent_correct": 7,
+        "accuracy": 0.19444444444444445,
+        "order_correct": 36,
+        "eta_correct": 35,
+        "per_intent": {
+          "customer_unreachable": [
+            1,
+            6
+          ],
+          "address_issue": [
+            0,
+            6
+          ],
+          "item_missing": [
+            0,
+            6
+          ],
+          "delay": [
+            2,
+            6
+          ],
+          "accident_sos": [
+            0,
+            6
+          ],
+          "other": [
+            4,
+            6
+          ]
+        },
+        "confusion": [
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            5
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            6
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            6
+          ],
+          [
+            0,
+            0,
+            0,
+            2,
+            0,
+            4
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            5
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            1,
+            4
+          ]
+        ],
+        "rules_used": 36,
+        "llm_successes": 0
+      }
+    },
+    "after": {
+      "development": {
+        "n": 30,
+        "intent_correct": 30,
+        "accuracy": 1.0,
+        "order_correct": 30,
+        "eta_correct": 30,
+        "per_intent": {
+          "customer_unreachable": [
+            5,
+            5
+          ],
+          "address_issue": [
+            5,
+            5
+          ],
+          "item_missing": [
+            5,
+            5
+          ],
+          "delay": [
+            5,
+            5
+          ],
+          "accident_sos": [
+            5,
+            5
+          ],
+          "other": [
+            5,
+            5
+          ]
+        },
+        "confusion": [
+          [
+            5,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            5,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            5,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            5,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            5
+          ]
+        ],
+        "rules_used": 30,
+        "llm_successes": 0
+      },
+      "seen_tuning": {
+        "n": 24,
+        "intent_correct": 24,
+        "accuracy": 1.0,
+        "order_correct": 24,
+        "eta_correct": 24,
+        "per_intent": {
+          "customer_unreachable": [
+            4,
+            4
+          ],
+          "address_issue": [
+            4,
+            4
+          ],
+          "item_missing": [
+            4,
+            4
+          ],
+          "delay": [
+            4,
+            4
+          ],
+          "accident_sos": [
+            4,
+            4
+          ],
+          "other": [
+            4,
+            4
+          ]
+        },
+        "confusion": [
+          [
+            4,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            4,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            4,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            4,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            4,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            4
+          ]
+        ],
+        "rules_used": 24,
+        "llm_successes": 0
+      },
+      "locked_holdout": {
+        "n": 36,
+        "intent_correct": 8,
+        "accuracy": 0.2222222222222222,
+        "order_correct": 36,
+        "eta_correct": 35,
+        "per_intent": {
+          "customer_unreachable": [
+            1,
+            6
+          ],
+          "address_issue": [
+            0,
+            6
+          ],
+          "item_missing": [
+            0,
+            6
+          ],
+          "delay": [
+            2,
+            6
+          ],
+          "accident_sos": [
+            0,
+            6
+          ],
+          "other": [
+            5,
+            6
+          ]
+        },
+        "confusion": [
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            5
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            6
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            6
+          ],
+          [
+            0,
+            0,
+            0,
+            2,
+            0,
+            4
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            5
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            5
+          ]
+        ],
+        "rules_used": 36,
+        "llm_successes": 0
+      }
+    }
+  },
+  "evaluated_extract_sha256": "6903f7c5ccd89339b11c559596487b675629b5a18295ce35ab70581c01e61aed",
+  "development_tests_sha256": "a3eed1a37fb2deda4378e0f2d11280972efdf5987e786d55e2665d89e8973e0a",
+  "local_freeze_note": "The evaluated code SHA is a local freeze commit. Content hashes allow verification after browser-based GitHub uploads create different commit IDs."
+}
