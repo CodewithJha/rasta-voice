@@ -60,6 +60,11 @@ Also set, for a public Space:
 A local or Vite dev origin already on `CORS_ALLOW_ORIGINS` can send
 cookies after unlock. Do not widen that list to `*`.
 
+Desk unlock uses `GET /api/dispatch/csrf` followed by the JSON POST with
+`X-Dispatch-CSRF` and the challenge cookie. Subsequent cookie-authenticated
+writes need the session-bound CSRF header. See [SECURITY.md](SECURITY.md).
+Keep trusted-proxy forwarding explicit so HTTPS cookies remain Secure.
+
 ## Public speech budget
 
 These routes reserve against the global call budget and the per-IP

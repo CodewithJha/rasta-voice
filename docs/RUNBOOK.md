@@ -121,7 +121,8 @@ local `.env`, never in browser build variables.
 The exact origin list applies to HTTP CORS and WebSocket Origin checks. Empty
 explicitly denies cross-origin requests; `*` is rejected. The image uses an
 empty list for same-origin serving. Desk cookies have CSRF tokens for protected
-writes; broader security-header/CSP hardening remains issue 27. Configuration
+writes and the signed pre-auth unlock handshake documented in SECURITY.md.
+CSP and response security headers cover errors as well as successes. Configuration
 ranges and provider defaults are authoritative in settings.py. Do not assume
 that every future setting is implemented because it appears in an issue.
 

@@ -8,10 +8,14 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 from rasta.dispatch_auth import (
+    COOKIE_UNLOCK_CSRF,
+    UNLOCK_CSRF_SECONDS,
     UnlockLimiter,
     client_address,
+    cookie_secure,
     get_unlock_limiter,
     mint_actor,
+    mint_unlock_csrf,
     require_desk_read,
     require_desk_write,
     require_dispatch_passcode,
@@ -115,6 +119,22 @@ def get_event(
     return record
 
 
+@events_router.get("/api/dispatch/csrf")
+def unlock_csrf(request: Request) -> JSONResponse:
+    token = mint_unlock_csrf(require_dispatch_passcode())
+    response = JSONResponse({"csrf_token": token}, headers={"Cache-Control": "no-store"})
+    response.set_cookie(
+        COOKIE_UNLOCK_CSRF,
+        token,
+        httponly=True,
+        secure=cookie_secure(request),
+        samesite="strict",
+        path="/",
+        max_age=UNLOCK_CSRF_SECONDS,
+    )
+    return response
+
+
 @events_router.post("/api/dispatch/unlock")
 async def unlock_desk(
     request: Request,
@@ -131,24 +151,25 @@ async def unlock_desk(
         raise HTTPException(status_code=422, detail="Invalid unlock body.")
     outcome = limiter.verify_presented(address, settings, body["passcode"], secret)
     if outcome == "locked":
-        raise HTTPException(
-            status_code=429, detail="Too many unlock attempts. Try again later."
-        )
+        raise HTTPException(status_code=429, detail="Too many unlock attempts. Try again later.")
     if outcome == "mismatch":
-        raise HTTPException(
-            status_code=401, detail="Unlock the desk to keep polling."
-        )
+        raise HTTPException(status_code=401, detail="Unlock the desk to keep polling.")
     actor = mint_actor()
-    response = JSONResponse({"ok": True})
+    response = JSONResponse({"ok": True}, headers={"Cache-Control": "no-store"})
+    response.delete_cookie(
+        COOKIE_UNLOCK_CSRF,
+        path="/",
+        secure=cookie_secure(request),
+        httponly=True,
+        samesite="strict",
+    )
     set_unlock_cookies(
         response,
         request,
         secret=secret,
         actor=actor,
-        csrf=secrets.token_urlsafe(32),
     )
     return response
-
 
 
 def _workflow_error(exc: Exception) -> HTTPException:
@@ -248,7 +269,6 @@ async def ack_event(
             request,
             secret=secret,
             actor=resolved,
-            csrf=request.cookies.get("rasta_desk_csrf") or secrets.token_urlsafe(32),
         )
     return response
 
@@ -273,7 +293,6 @@ async def escalate_event(
             request,
             secret=secret,
             actor=resolved,
-            csrf=request.cookies.get("rasta_desk_csrf") or secrets.token_urlsafe(32),
         )
     return response
 
@@ -299,7 +318,6 @@ async def resolve_event(
             request,
             secret=secret,
             actor=resolved,
-            csrf=request.cookies.get("rasta_desk_csrf") or secrets.token_urlsafe(32),
         )
     return response
 
