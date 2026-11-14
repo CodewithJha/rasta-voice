@@ -1,5 +1,28 @@
 # Rasta Voice — production readiness
 
+## Integrated candidate status, 14 November 2026
+
+The prerequisite component PRs 83 through 91 and 93 are now merged. PR 92
+contains the remaining inexpensive async request handling, explicit wipe-write
+authentication and current documentation. It still requires peer review and CI.
+The audit rows below preserve the original 12 November snapshot.
+
+| Area | Verified code evidence | Remaining gate |
+| --- | --- | --- |
+| Response policy and uploads | CSP, self-hosted assets and bounded memory-only uploads merged in 84/86 | Public-host smoke |
+| Dispatcher security | Signed unlock challenge, session CSRF and lockout merged in 87 | Deployed verification |
+| Privacy | Redaction, TTL, deletion and immediate replay cleanup merged in 83/88 | Public-host acceptance |
+| API and paid-work safety | API envelopes, pagination, atomic claims and hashed ledger merged in 85/89; both owners accepted memory-only response bodies | Public-host acceptance |
+| Quality and operations | Ten checks green on both reviewed peer heads; combined local tests and runbook | Refreshed PR 92 CI, public smoke/rollback and owner-side branch settings |
+| Extraction quality | Locked holdout 8/36 against 0.8 target | Issue 2 remains unmet |
+| Human/public evidence | Synthetic benchmark exists | Verified free host, consented field audio, timed script, video/posts and form |
+| Post-contest stretch | Documented separately | Issue 35 remains optional and unfinished |
+
+[Integration evidence](evidence/integration-2026-11-14.md) records dated checks
+and their limits. External-evidence requirements remain open.
+
+## Historical audit, 12 November 2026
+
 **Verdict (12 Nov 2026):** the repo on `main` is a well-structured skeleton, not a production app. Merging issues 01–24 as they stood would produce a strong, demo-ready contest MVP with some production-minded hardening (SQLite, a desk passcode, JSON logs, a ready probe, rate limits, a smoke script, and a docs pack). It would still not be production-ready. Missing, among other things: a dispatcher ack/resolve workflow, SOS escalation, an audit trail, privacy TTL and a deletion path, security headers and CSRF, secret and dependency scanning, retries and a circuit breaker, schema migrations, a consistent error envelope, frontend tests, type and coverage gates, a production container, and a runbook. There is also no LICENSE.
 
 This register is the honest gap list against a **single-instance, free-host, production-grade** bar: secure, private, reliable, observable, tested, operable, and complete for the delivery-driver use case, using only free tools and real Gnani APIs. It is not a multi-region, multi-tenant, or paid-APM bar. Those stretches are listed as P2 and sit on issue 35 (`day:post-contest`).

@@ -143,7 +143,7 @@ app.include_router(sim_router)
 
 
 @app.get("/api/health", tags=["ops"])
-def health() -> dict:
+async def health() -> dict:
     return {
         "ok": True,
         "gnani_key_set": bool(api_key()),

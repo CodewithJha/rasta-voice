@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 from starlette.background import BackgroundTask
 
-from rasta.dispatch_auth import require_desk_read
+from rasta.dispatch_auth import require_desk_read, require_desk_write
 from rasta.limits import attach_speech_guard
 from rasta.routes_events import get_event_store
 from rasta.settings import get_settings
@@ -40,7 +40,7 @@ def export_events(
 async def wipe_events(
     request: Request,
     store: EventStore = Depends(get_event_store),
-    _actor: str = Depends(require_desk_read),
+    _actor: str = Depends(require_desk_write),
 ):
     """Clear the desk event store. Usage counters stay."""
     try:

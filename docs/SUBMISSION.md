@@ -19,6 +19,32 @@ It requires a public working-app video, a live nominated post with the Gnani
 tag and both hashtags, and submission through its linked form. Our internal
 post target is 14 Nov, 18:00 IST. Neither target is a submission confirmation.
 
+## Candidate update, 14 November 2026 IST
+
+Component PRs 83 through 91 and 93 are merged. Both peer PRs 83 and 85
+passed all ten checks and were approved after exact-tree local verification.
+The remaining [PR 92](https://github.com/CodewithJha/rasta-voice/pull/92)
+contains a small async/authentication refinement and refreshed documentation.
+Its [dated evidence](evidence/integration-2026-11-14.md) separates historical
+candidate measurements from the refreshed verification. Neither owner merges
+their own PR. No public live smoke was performed in this pass.
+
+Before the final checklist can become all yes:
+
+- Priyanshu reviews the remaining PR 92 change after its final CI passes.
+- Priyanshu provides the verified free-host origin and deployed revision, and
+  resolves the owner-side branch-enforcement limitation. Public speech stays
+  paused until release prerequisites are verified.
+- Himanshu runs the bounded public smoke and records actual IDs/channel
+  evidence. Consented field recordings remain separate from the public host.
+- Priyanshu times the actual script, records and publishes the working-app
+  video, and confirms official submission. Himanshu verifies the playable
+  video and nominated posts with their actual public URLs.
+- The locked intent holdout remains 8/36 against a 0.8 acceptance target.
+
+The historical table below remains dated to its original audit. No provider
+success, consent, post, video, host or form receipt is inferred from tests.
+
 ## Checklist
 
 Every `no` remains open with an owner. A draft, historical README claim or

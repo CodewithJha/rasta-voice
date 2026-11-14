@@ -99,6 +99,13 @@ transitions and integration with memory-only uploads and CSRF-protected desk
 writes, is complete. Hosting, private field evidence, a real public smoke,
 owner-side branch settings and submission evidence remain separate gates.
 
+The integrated privacy implementation redacts eight-plus digit runs and
+spaced Indian mobile shapes from stored speech fields, preserving short order
+tokens. The default event TTL is 24 hours; the sweeper deletes expired events
+and audit detail. Delete and explicit-confirm wipe routes require desk write
+authentication. Consented field recordings stay off the app host. Combined local acceptance tests cover these controls; public-host verification
+remains separate.
+
 ## Reporting
 
 Open a [GitHub issue](https://github.com/CodewithJha/rasta-voice/issues) with a
