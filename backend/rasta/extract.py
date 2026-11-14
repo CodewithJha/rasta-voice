@@ -76,9 +76,44 @@ _ACTION = {
 }
 
 
+# Only these original Hindi needles intentionally end in a verb stem.
+# Other needles need whole words: "late" must not match "plate" and "sos"
+# must not match an unrelated word. Negation is local to one matched status,
+# never borrowed from a later phone failure or another clause.
+_STEM_NEEDLES = frozenset(
+    {
+        "chot lag",
+        "der ho",
+        "der lag",
+        "zyada lag",
+        "andar nahi ja",
+        "nahi jaa paa",
+        "address nahi mil",
+    }
+)
+_NEGATIVE_PREFIX = re.compile(r"\b(?:no|not|without)\s+(?:any\s+)?$")
+_NEGATIVE_SUFFIX = re.compile(
+    r"^\s+(?:(?:hai|hain|hua|hui|ho|is|was)\s+)?(?:nahi|nahin|not)\b"
+    r"(?=\s*(?:$|[,.!?;]|(?:hai|hain|hua|hui|tha|thi|hoga|hogi|hoon|hun|hu|"
+    r"hoonga|hongi|ho|hota|hoti|hue)\b))"
+)
+
+
+def _affirmed_keyword(text: str, needle: str) -> bool:
+    suffix = r"\w*" if needle in _STEM_NEEDLES else ""
+    pattern = re.compile(r"(?<!\w)" + re.escape(needle) + suffix + r"(?!\w)")
+    for match in pattern.finditer(text):
+        if _NEGATIVE_PREFIX.search(text[: match.start()]) is not None:
+            continue
+        if _NEGATIVE_SUFFIX.match(text[match.end() :]) is not None:
+            continue
+        return True
+    return False
+
+
 @dataclass(frozen=True, slots=True)
 class _Rule:
-    """A keyword rule. ``any_of`` is a substring OR; ``all_groups`` is AND-of-ORs.
+    """A keyword rule. ``any_of`` is an affirmed whole-word OR; ``all_groups`` is AND-of-ORs.
 
     ``detect`` replaces both when set. The customer-unreachable rule uses it
     so failure is bound to the phone channel instead of a bag of words.
@@ -93,10 +128,11 @@ class _Rule:
     def matches(self, haystack: str) -> bool:
         if self.detect is not None:
             return self.detect(haystack)
-        if self.any_of and any(needle in haystack for needle in self.any_of):
+        if self.any_of and any(_affirmed_keyword(haystack, needle) for needle in self.any_of):
             return True
         if self.all_groups and all(
-            any(needle in haystack for needle in group) for group in self.all_groups
+            any(_affirmed_keyword(haystack, needle) for needle in group)
+            for group in self.all_groups
         ):
             return True
         return False
@@ -224,6 +260,10 @@ def _failure_spans(text: str) -> list[tuple[int, int]]:
     spans: list[tuple[int, int]] = []
     for name, pattern in _FAILED_CONTACT:
         for match in pattern.finditer(text):
+            if _NEGATIVE_PREFIX.search(text[:match.start()]) is not None:
+                continue
+            if _NEGATIVE_SUFFIX.match(text[match.end():]) is not None:
+                continue
             if name in {"channel_busy", "busy_channel"} and _is_rider_self_busy(text, match):
                 continue
             spans.append(match.span())
@@ -295,7 +335,6 @@ _RULES: tuple[_Rule, ...] = (
         any_of=(
             "item missing",
             "missing item",
-            "ek item",
             "item nahi",
             "saman nahi",
             "saman hi nahi",
