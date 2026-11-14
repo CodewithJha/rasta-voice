@@ -21,8 +21,9 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from rasta.redact import redact_record
 from rasta.request_id import current_request_id
-from rasta.settings import get_settings
+from rasta.settings import DEFAULT_EVENT_TTL_HOURS, get_settings
 
 # One lock for installing the process-wide store onto app.state.
 _attach_lock = threading.Lock()
@@ -32,6 +33,9 @@ log = logging.getLogger("rasta")
 # Version 2 adds the schema_version table and the created_at index.
 # Version 3 adds the audit table for desk workflow (issue 25).
 CURRENT_SCHEMA_VERSION = 3
+RESOLVED_STATE = "resolved"
+ACCIDENT_SOS_INTENT = "accident_sos"
+WIPE_CONFIRM = "wipe"
 BUSY_TIMEOUT_MS = 3000
 RIDER_ID_RE = re.compile(r"^r_[A-Za-z0-9_-]{1,32}$")
 ACTOR_RE = re.compile(r"^d_[A-Za-z0-9_-]{1,32}$")
@@ -289,13 +293,19 @@ class EventStore:
         path: str,
         *,
         clock: Callable[[], datetime] | None = None,
+        ttl_hours: int | None = None,
     ) -> None:
         if capacity < 1:
             raise ValueError("capacity must be a positive integer")
         if not path:
             raise ValueError("path is required")
+        if ttl_hours is None:
+            ttl_hours = DEFAULT_EVENT_TTL_HOURS
+        if ttl_hours < 0:
+            raise ValueError("ttl_hours must be >= 0")
         self._capacity = capacity
         self._path = path
+        self._ttl_hours = ttl_hours
         if path != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
         # One lock around write + trim, fine for one demo process.
@@ -304,6 +314,9 @@ class EventStore:
         self._conn = _connect(path)
         self._closed = False
         migrate(self._conn)
+        with self._lock:
+            self._redact_existing_locked()
+            self._conn.commit()
         self._last_change = self._max_change_stamp_unlocked()
 
     @property
@@ -333,7 +346,7 @@ class EventStore:
 
     def append(self, result: dict) -> dict:
         """Stamp a copy of ``result`` with ``id`` and ``created_at``, then store it."""
-        record = copy.deepcopy(result)
+        record = redact_record(copy.deepcopy(result))
         record["id"] = str(uuid.uuid4())
         _stamp_new_envelope(record)
         with self._lock:
@@ -357,7 +370,7 @@ class EventStore:
             )
             self._trim_locked()
             self._conn.commit()
-            return copy.deepcopy(record)
+            return redact_record(copy.deepcopy(record))
 
     def list_since(self, since: str | None) -> list[dict]:
         """Return stored events strictly after ``since``, or all if ``since`` is missing."""
@@ -370,14 +383,19 @@ class EventStore:
             rows = self._conn.execute(
                 "SELECT payload FROM events ORDER BY created_at ASC, id ASC"
             ).fetchall()
-            events = [json.loads(row[0]) for row in rows]
+            now = self._clock()
+            events = []
+            for row in rows:
+                event = json.loads(row[0])
+                if not self._is_expired(event, now):
+                    events.append(event)
         if cutoff is not None:
             events = [
                 event
                 for event in events
                 if datetime.fromisoformat(event["created_at"]) > cutoff
             ]
-        return copy.deepcopy(events)
+        return [redact_record(copy.deepcopy(event)) for event in events]
 
     def list_updated_since(self, since: str | None) -> list[dict]:
         """Return rows created or updated after ``since``, in creation order."""
@@ -394,16 +412,6 @@ class EventStore:
             if when.astimezone(UTC) > cutoff:
                 changed.append(event)
         return changed
-
-    def get(self, event_id: str) -> dict | None:
-        with self._lock:
-            row = self._conn.execute(
-                "SELECT payload FROM events WHERE id = ?",
-                (event_id,),
-            ).fetchone()
-        if row is None:
-            return None
-        return copy.deepcopy(json.loads(row[0]))
 
     def list_audit(self, event_id: str) -> list[dict]:
         with self._lock:
@@ -429,8 +437,11 @@ class EventStore:
         counts = {state: 0 for state in WORKFLOW_STATES}
         with self._lock:
             rows = self._conn.execute("SELECT payload FROM events").fetchall()
+        now = self._clock()
         for row in rows:
             record = json.loads(row[0])
+            if self._is_expired(record, now):
+                continue
             state = record.get("state") or "new"
             if state not in counts:
                 counts[state] = 0
@@ -440,9 +451,12 @@ class EventStore:
     def sos_unacked(self) -> int:
         with self._lock:
             rows = self._conn.execute("SELECT payload FROM events").fetchall()
+        now = self._clock()
         total = 0
         for row in rows:
             record = json.loads(row[0])
+            if self._is_expired(record, now):
+                continue
             event = record.get("event") or {}
             state = record.get("state") or "new"
             if event.get("intent") == "accident_sos" and state in {"new", "escalated"}:
@@ -470,6 +484,10 @@ class EventStore:
             if row is None:
                 raise EventNotFound(event_id)
             record = json.loads(row[0])
+            if self._is_expired(record, now):
+                raise EventNotFound(event_id)
+            # Existing databases may predate append-time redaction.
+            record = redact_record(record)
             version = int(record.get("version") or 1)
             if if_match != version:
                 raise VersionConflict(version)
@@ -502,6 +520,8 @@ class EventStore:
             ).fetchall()
             for row in rows:
                 record = json.loads(row[2])
+                if self._is_expired(record, now):
+                    continue
                 event = record.get("event") or {}
                 state = record.get("state") or "new"
                 if event.get("intent") != "accident_sos" or state != "new":
@@ -569,9 +589,153 @@ class EventStore:
         target = sqlite3.connect(dest_path)
         try:
             with self._lock:
+                now = self._clock()
                 self._conn.backup(target)
+                self._drop_expired_from_connection(target, now)
+                self._redact_connection(target)
+                target.commit()
         finally:
             target.close()
+
+    def delete(self, event_id: str) -> bool:
+        """Remove one event. Returns False when the id is not present."""
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT id FROM events WHERE id = ?", (event_id,)
+            ).fetchone()
+            if row is None:
+                return False
+            self._conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
+            self._delete_audit_locked(event_id)
+            self._conn.commit()
+        log.info("event store deleted id=%s action=delete", event_id)
+        return True
+
+    def wipe(self) -> int:
+        """Delete every event row. Usage counters are out of band and stay."""
+        with self._lock:
+            row = self._conn.execute("SELECT COUNT(*) FROM events").fetchone()
+            count = int(row[0])
+            ids = [
+                item[0]
+                for item in self._conn.execute("SELECT id FROM events").fetchall()
+            ]
+            self._conn.execute("DELETE FROM events")
+            self._conn.execute("DELETE FROM audit")
+            self._conn.commit()
+        log.info(
+            "event store wiped count=%s action=wipe ids=%s",
+            count,
+            ",".join(ids),
+        )
+        return count
+
+    def purge_expired(self) -> list[str]:
+        """Delete rows past the TTL. Returns the removed event ids."""
+        with self._lock:
+            now = self._clock()
+            rows = self._conn.execute(
+                "SELECT id, created_at, payload FROM events"
+            ).fetchall()
+            expired: list[tuple[str, str]] = []
+            for row in rows:
+                record = json.loads(row[2])
+                if self._is_expired(record, now):
+                    expired.append((row[0], row[1]))
+            for event_id, _created in expired:
+                self._conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
+                self._delete_audit_locked(event_id)
+            if expired:
+                self._conn.commit()
+        ids = [item[0] for item in expired]
+        if ids:
+            log.info(
+                "event store ttl purged count=%s action=ttl_purge ids=%s",
+                len(ids),
+                ",".join(ids),
+            )
+        return ids
+
+    def get(self, event_id: str) -> dict | None:
+        """Return one redacted event, or None if missing or expired."""
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT payload FROM events WHERE id = ?", (event_id,)
+            ).fetchone()
+            if row is None:
+                return None
+            record = json.loads(row[0])
+            if self._is_expired(record, self._clock()):
+                return None
+        return redact_record(copy.deepcopy(record))
+
+    def _is_expired(self, record: dict, now: datetime) -> bool:
+        raw = record.get("created_at")
+        if not raw:
+            return False
+        try:
+            created = datetime.fromisoformat(str(raw))
+        except ValueError:
+            return False
+        if created.tzinfo is None or created.tzinfo.utcoffset(created) is None:
+            return False
+        created = created.astimezone(UTC)
+        if now.tzinfo is None or now.tzinfo.utcoffset(now) is None:
+            now = now.replace(tzinfo=UTC)
+        else:
+            now = now.astimezone(UTC)
+        return created + timedelta(hours=self._ttl_hours) <= now
+
+    def _is_resolved(self, record: dict) -> bool:
+        return record.get("state") == RESOLVED_STATE
+
+    def _is_live_sos(self, record: dict) -> bool:
+        event = record.get("event")
+        intent = event.get("intent") if isinstance(event, dict) else None
+        if intent != ACCIDENT_SOS_INTENT:
+            return False
+        return not self._is_resolved(record)
+
+    def _redact_existing_locked(self) -> None:
+        rows = self._conn.execute("SELECT id, payload FROM events").fetchall()
+        for row in rows:
+            record = json.loads(row[1])
+            redacted = redact_record(record)
+            if redacted != record:
+                self._conn.execute(
+                    "UPDATE events SET payload = ? WHERE id = ?",
+                    (json.dumps(redacted), row[0]),
+                )
+
+    def _delete_audit_locked(self, event_id: str) -> None:
+        self._conn.execute("DELETE FROM audit WHERE event_id = ?", (event_id,))
+
+    def _drop_expired_from_connection(
+        self, connection: sqlite3.Connection, now: datetime
+    ) -> None:
+        rows = connection.execute("SELECT id, payload FROM events").fetchall()
+        expired_ids = []
+        for row in rows:
+            if self._is_expired(json.loads(row[1]), now):
+                expired_ids.append(row[0])
+                connection.execute("DELETE FROM events WHERE id = ?", (row[0],))
+        if expired_ids:
+            connection.executemany(
+                "DELETE FROM audit WHERE event_id = ?",
+                [(event_id,) for event_id in expired_ids],
+            )
+        connection.execute(
+            "DELETE FROM audit WHERE event_id NOT IN (SELECT id FROM events)"
+        )
+
+    def _redact_connection(self, connection: sqlite3.Connection) -> None:
+        rows = connection.execute("SELECT id, payload FROM events").fetchall()
+        for row in rows:
+            record = json.loads(row[1])
+            connection.execute(
+                "UPDATE events SET payload = ? WHERE id = ?",
+                (json.dumps(redact_record(record)), row[0]),
+            )
 
     def _trim_locked(self) -> None:
         # Caller holds self._lock.
@@ -579,20 +743,35 @@ class EventStore:
         overflow = int(row[0]) - self._capacity
         if overflow <= 0:
             return
-        # Until issue 28 lands, evict the oldest rows and log only id and
-        # created_at so a live SOS is not specially protected yet, and
-        # transcripts are not written to the log.
-        stale = self._conn.execute(
-            "SELECT id, created_at FROM events ORDER BY created_at ASC, id ASC LIMIT ?",
-            (overflow,),
+        rows = self._conn.execute(
+            "SELECT id, created_at, payload FROM events"
         ).fetchall()
-        for item in stale:
-            self._conn.execute("DELETE FROM events WHERE id = ?", (item[0],))
-            log.info(
-                "event store evicted id=%s created_at=%s",
-                item[0],
-                item[1],
-            )
+        records = [
+            (item[0], item[1], json.loads(item[2])) for item in rows
+        ]
+
+        def sort_key(item: tuple[str, str, dict]) -> tuple[str, str]:
+            return (item[1], item[0])
+
+        resolved = [item for item in records if self._is_resolved(item[2])]
+        others = [item for item in records if not self._is_resolved(item[2])]
+        stale = sorted(resolved, key=sort_key) + sorted(others, key=sort_key)
+        for event_id, created_at, record in stale[:overflow]:
+            self._conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
+            self._delete_audit_locked(event_id)
+            if self._is_live_sos(record):
+                log.info(
+                    "event store evicted id=%s created_at=%s action=evicted intent=%s",
+                    event_id,
+                    created_at,
+                    ACCIDENT_SOS_INTENT,
+                )
+            else:
+                log.info(
+                    "event store evicted id=%s created_at=%s",
+                    event_id,
+                    created_at,
+                )
 
     def _max_change_stamp_unlocked(self) -> datetime | None:
         """Latest published created_at/updated_at. Caller may already hold the lock."""
@@ -668,7 +847,11 @@ def attach_event_store(app: Any, *, replace: bool = False) -> EventStore:
                 return store
         previous = getattr(app.state, "event_store", None)
         settings = get_settings()
-        store = EventStore(capacity=settings.event_store_capacity, path=settings.db_path)
+        store = EventStore(
+            capacity=settings.event_store_capacity,
+            path=settings.db_path,
+            ttl_hours=settings.event_ttl_hours,
+        )
         app.state.event_store = store
         if previous is not None and previous is not store:
             previous.close()

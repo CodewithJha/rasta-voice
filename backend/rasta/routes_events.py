@@ -1,7 +1,7 @@
 """Dispatch event list for the desk slate."""
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from rasta.dispatch_auth import (
     COOKIE_UNLOCK_CSRF,
@@ -65,6 +65,17 @@ def get_event(
     if record is None:
         raise HTTPException(status_code=404, detail="Event not found.")
     return record
+
+
+@events_router.delete("/api/events/{event_id}")
+def delete_event(
+    event_id: str,
+    store: EventStore = Depends(get_event_store),
+    _actor: str = Depends(require_desk_read),
+):
+    if not store.delete(event_id):
+        raise HTTPException(status_code=404, detail="Event not found.")
+    return Response(status_code=204)
 
 
 @events_router.get("/api/dispatch/csrf")

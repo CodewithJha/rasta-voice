@@ -41,13 +41,14 @@ from rasta.settings import get_settings
 from rasta.simulate import CONDITION_HINT, CONDITIONS, BadClip, envelope, prepare_for_ingest
 from rasta.store import attach_event_store, bind_rider_header, reset_rider_header
 from rasta.stream_runtime import attach_stream_runtime
-from rasta.tasks import start_task
+from rasta.tasks import run_until_stopped, start_task
 from rasta.upload_security import AudioUploadRoute, UploadBodyLimit
 
 # Real env vars win over .env, so a deploy secret is never shadowed.
 load_dotenv()
 configure_rasta_logging()
 log = logging.getLogger("rasta")
+
 
 
 @asynccontextmanager
@@ -60,9 +61,21 @@ async def lifespan(app: FastAPI):
     attach_speech_guard(app, replace=True)
     attach_http_counts(app, replace=True)
     attach_upstream_runtime(app, replace=True)
+    ttl_stopped = asyncio.Event()
     sweeper = start_task(_sos_sweep(app), name="sos-sweep")
     try:
-        yield
+        async with asyncio.TaskGroup() as group:
+            group.create_task(
+                run_until_stopped(
+                    attach_event_store(app).purge_expired,
+                    get_settings().event_ttl_sweep_seconds,
+                    ttl_stopped,
+                )
+            )
+            try:
+                yield
+            finally:
+                ttl_stopped.set()
     finally:
         sweeper.cancel()
         with contextlib.suppress(asyncio.CancelledError):
