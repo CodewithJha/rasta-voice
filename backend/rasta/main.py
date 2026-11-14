@@ -8,7 +8,6 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Header, HTTPException, Request, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
 
 from gnani_client.env import api_key
 from gnani_client.errors import GnaniError, MissingApiKeyError
@@ -20,7 +19,7 @@ from rasta.errors import (
     missing_key_http_exception,
 )
 from rasta.extract import extract_event
-from rasta.http_counts import HttpCountMiddleware, attach_http_counts
+from rasta.http_counts import attach_http_counts
 from rasta.limits import SpeechBudgetMiddleware, attach_speech_guard, await_held_work
 from rasta.pipeline import (
     SAMPLE_LINE,
@@ -109,26 +108,11 @@ app = ContractApp(
 install_validation_handler(app)
 
 
-def _configure_production(application: FastAPI) -> None:
-    """Fail closed on missing prod secrets and attach host / budget guards."""
-    from starlette.middleware.trustedhost import TrustedHostMiddleware
-
-    settings = get_settings()
-    settings.require_production_secrets()
-    if settings.allowed_hosts:
-        application.add_middleware(
-            TrustedHostMiddleware, allowed_hosts=list(settings.allowed_hosts)
-        )
+def _configure_production(_application: FastAPI) -> None:
+    """Validate deploy secrets; SecuredApp owns the outer host/CORS boundary."""
+    get_settings().require_production_secrets()
 
 
-app.add_middleware(HttpCountMiddleware)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=list(get_settings().cors_allow_origins),
-    allow_methods=["*"],
-    allow_headers=["*"],
-    allow_credentials=True,
-)
 app.add_middleware(SpeechBudgetMiddleware)
 _configure_production(app)
 app.include_router(events_router)

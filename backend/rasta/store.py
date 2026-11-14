@@ -8,6 +8,7 @@ keys kept. The running app always opens the file at ``RASTA_DB_PATH``.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import logging
 import re
@@ -15,6 +16,7 @@ import secrets
 import sqlite3
 import threading
 import uuid
+from collections import OrderedDict
 from collections.abc import Callable
 from contextvars import ContextVar
 from datetime import UTC, datetime, timedelta
@@ -26,6 +28,8 @@ from rasta.settings import get_settings
 
 # One lock for installing the process-wide store onto app.state.
 _attach_lock = threading.Lock()
+IDEMPOTENCY_RESPONSE_ENTRIES = 128
+IDEMPOTENCY_RESPONSE_BYTES = 8 * 1024 * 1024
 log = logging.getLogger("rasta")
 
 # Current schema. Version 1 is an events table only (id, created_at, payload).
@@ -99,6 +103,7 @@ def parse_if_match(raw: str | None) -> int | None:
         return None
     return int(text)
 
+
 def _stamp_new_envelope(record: dict) -> None:
     """Fill default desk-lifecycle fields without overwriting caller values."""
     record.setdefault("state", "new")
@@ -148,7 +153,6 @@ def _apply_transition(
     else:
         raise IllegalTransition(state, action)
     record["version"] = int(record.get("version") or 1) + 1
-
 
 
 # ISO 8601 instants with a numeric offset are well under this length.
@@ -215,9 +219,7 @@ def migrate(connection: sqlite3.Connection) -> None:
     )
     version = _schema_version(connection)
     if version < 2:
-        connection.execute(
-            "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)"
-        )
+        connection.execute("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)")
         connection.execute(
             "CREATE INDEX IF NOT EXISTS events_created_at_idx ON events (created_at)"
         )
@@ -261,9 +263,7 @@ def migrate(connection: sqlite3.Connection) -> None:
 
 
 def _write_schema_version(connection: sqlite3.Connection, version: int) -> None:
-    connection.execute(
-        "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)"
-    )
+    connection.execute("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)")
     connection.execute("DELETE FROM schema_version")
     connection.execute(
         "INSERT INTO schema_version (version) VALUES (?)",
@@ -280,9 +280,7 @@ def _schema_version(connection: sqlite3.Connection) -> int:
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'events'"
         ).fetchall()
         return 1 if events else 0
-    row = connection.execute(
-        "SELECT version FROM schema_version LIMIT 1"
-    ).fetchone()
+    row = connection.execute("SELECT version FROM schema_version LIMIT 1").fetchone()
     if row is None:
         return 1
     return int(row[0])
@@ -318,6 +316,10 @@ class EventStore:
         # One lock around write + trim, fine for one demo process.
         self._lock = threading.Lock()
         self._clock = clock or (lambda: datetime.now(UTC))
+        self._idempotency_responses: OrderedDict[
+            tuple[str, str], tuple[datetime, int, bytes, str | None]
+        ] = OrderedDict()
+        self._idempotency_response_bytes = 0
         self._conn = _connect(path)
         self._closed = False
         migrate(self._conn)
@@ -340,6 +342,8 @@ class EventStore:
             if self._closed:
                 return
             self._closed = True
+            self._idempotency_responses.clear()
+            self._idempotency_response_bytes = 0
             self._conn.close()
 
     def __del__(self) -> None:
@@ -390,9 +394,7 @@ class EventStore:
             events = [json.loads(row[0]) for row in rows]
         if cutoff is not None:
             events = [
-                event
-                for event in events
-                if datetime.fromisoformat(event["created_at"]) > cutoff
+                event for event in events if datetime.fromisoformat(event["created_at"]) > cutoff
             ]
         return copy.deepcopy(events)
 
@@ -442,27 +444,62 @@ class EventStore:
             events.append(item)
         return events
 
+    def _forget_idempotency_response_locked(self, key: tuple[str, str]) -> None:
+        entry = self._idempotency_responses.pop(key, None)
+        if entry is not None:
+            self._idempotency_response_bytes -= len(entry[2])
+
+    def _trim_idempotency_responses_locked(self, now: datetime) -> None:
+        for key, entry in list(self._idempotency_responses.items()):
+            if entry[0] <= now:
+                self._forget_idempotency_response_locked(key)
+        while (
+            len(self._idempotency_responses) > IDEMPOTENCY_RESPONSE_ENTRIES
+            or self._idempotency_response_bytes > IDEMPOTENCY_RESPONSE_BYTES
+        ):
+            self._forget_idempotency_response_locked(next(iter(self._idempotency_responses)))
+
+    def _idempotency_event_live_locked(self, event_id: str | None, now: datetime) -> bool:
+        if event_id is None:
+            return True
+        row = self._conn.execute("SELECT payload FROM events WHERE id = ?", (event_id,)).fetchone()
+        if row is None:
+            return False
+        # Privacy's TTL implementation owns expiry. Its merge must not allow a
+        # still-cached pre-expiry response to outlive the referenced event.
+        expired = getattr(self, "_is_expired", None)
+        return not (callable(expired) and expired(json.loads(row[0]), now))
+
     def lookup_idempotency(
         self, key_hash: str, route: str, body_hash: str
     ) -> tuple[int, bytes] | str | None:
-        """Return ``(status, body)``, ``"conflict"``, or ``None`` if unseen."""
+        """Read metadata plus bounded memory response; never restart a lost replay."""
         from rasta.idempotency import IDEMPOTENCY_TTL_SECONDS
 
-        now = self._clock()
-        cutoff = (now - timedelta(seconds=IDEMPOTENCY_TTL_SECONDS)).astimezone(UTC).isoformat()
+        now = self._clock().astimezone(UTC)
+        cutoff = (now - timedelta(seconds=IDEMPOTENCY_TTL_SECONDS)).isoformat()
+        key = (key_hash, route)
         with self._lock:
+            self._trim_idempotency_responses_locked(now)
             self._conn.execute("DELETE FROM idempotency WHERE stored_at <= ?", (cutoff,))
             row = self._conn.execute(
-                "SELECT body_hash, status, response FROM idempotency "
-                "WHERE key_hash = ? AND route = ?",
-                (key_hash, route),
+                "SELECT body_hash FROM idempotency WHERE key_hash = ? AND route = ?",
+                (key_hash, hashlib.sha256(route.encode()).hexdigest()),
             ).fetchone()
             self._conn.commit()
-        if row is None:
-            return None
-        if str(row[0]) != body_hash:
-            return "conflict"
-        return int(row[1]), str(row[2]).encode("utf-8")
+            if row is None:
+                self._forget_idempotency_response_locked(key)
+                return None
+            if str(row[0]) != body_hash:
+                return "conflict"
+            cached = self._idempotency_responses.get(key)
+            if cached is None:
+                return "unavailable"
+            if not self._idempotency_event_live_locked(cached[3], now):
+                self._forget_idempotency_response_locked(key)
+                return "unavailable"
+            self._idempotency_responses.move_to_end(key)
+            return cached[1], cached[2]
 
     def remember_idempotency(
         self,
@@ -474,23 +511,47 @@ class EventStore:
     ) -> None:
         from rasta.idempotency import IDEMPOTENCY_TTL_SECONDS
 
-        now = self._clock()
-        if now.tzinfo is None or now.tzinfo.utcoffset(now) is None:
-            now = now.replace(tzinfo=UTC)
-        else:
-            now = now.astimezone(UTC)
+        now = self._clock().astimezone(UTC)
         cutoff = (now - timedelta(seconds=IDEMPOTENCY_TTL_SECONDS)).isoformat()
-        stamp = now.isoformat()
-        payload = response.decode("utf-8")
+        event_id = (
+            route.rsplit("/", 1)[-1] if status < 400 and route.startswith("/api/reply/") else None
+        )
+        try:
+            payload = json.loads(response)
+            if status < 400 and isinstance(payload, dict):
+                ingest = payload.get("ingest", payload)
+                if isinstance(ingest, dict) and isinstance(ingest.get("id"), str):
+                    event_id = ingest["id"]
+        except (ValueError, UnicodeDecodeError):
+            pass
+        key = (key_hash, route)
         with self._lock:
             self._conn.execute("DELETE FROM idempotency WHERE stored_at <= ?", (cutoff,))
+            # Speech text and base64 audio never enter the persistent replay table.
+            # An empty body is a retained claim, not permission to run work again.
             self._conn.execute(
                 "INSERT OR REPLACE INTO idempotency "
                 "(key_hash, route, body_hash, status, response, stored_at) "
                 "VALUES (?, ?, ?, ?, ?, ?)",
-                (key_hash, route, body_hash, int(status), payload, stamp),
+                (
+                    key_hash,
+                    hashlib.sha256(route.encode()).hexdigest(),
+                    body_hash,
+                    int(status),
+                    "",
+                    now.isoformat(),
+                ),
             )
             self._conn.commit()
+            self._forget_idempotency_response_locked(key)
+            self._idempotency_responses[key] = (
+                now + timedelta(seconds=IDEMPOTENCY_TTL_SECONDS),
+                int(status),
+                response,
+                event_id,
+            )
+            self._idempotency_response_bytes += len(response)
+            self._trim_idempotency_responses_locked(now)
 
     def counts_by_state(self) -> dict[str, int]:
         counts = {state: 0 for state in WORKFLOW_STATES}
@@ -564,9 +625,7 @@ class EventStore:
         now = now.astimezone(UTC)
         updated = 0
         with self._lock:
-            rows = self._conn.execute(
-                "SELECT id, created_at, payload FROM events"
-            ).fetchall()
+            rows = self._conn.execute("SELECT id, created_at, payload FROM events").fetchall()
             for row in rows:
                 record = json.loads(row[2])
                 event = record.get("event") or {}
