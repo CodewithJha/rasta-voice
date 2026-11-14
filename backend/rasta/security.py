@@ -1,8 +1,11 @@
 """Response policy outside the error stack, including unhandled HTTP errors."""
 
 from starlette.datastructures import MutableHeaders
+from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from rasta.http_counts import HttpCountMiddleware
 from rasta.origins import request_http_scheme
 from rasta.request_id import RequestIdApp
 from rasta.settings import get_settings
@@ -64,4 +67,25 @@ class SecuredApp(RequestIdApp):
     """Request IDs enclose headers, which enclose FastAPI's full error stack."""
 
     def build_middleware_stack(self) -> ASGIApp:
-        return SecurityHeaders(super().build_middleware_stack())
+        return SecurityHeaders(HttpCountMiddleware(self.build_response_stack()))
+
+    def build_response_stack(self) -> ASGIApp:
+        return self.build_perimeter(self.build_application_stack())
+
+    def build_perimeter(self, app: ASGIApp) -> ASGIApp:
+        """Host and CORS checks must run before any replay or charged work."""
+        settings = get_settings()
+        app = CORSMiddleware(
+            app,
+            allow_origins=list(settings.cors_allow_origins),
+            allow_methods=["*"],
+            allow_headers=["*"],
+            allow_credentials=True,
+        )
+        if settings.allowed_hosts:
+            app = TrustedHostMiddleware(app, allowed_hosts=list(settings.allowed_hosts))
+        return app
+
+    def build_application_stack(self) -> ASGIApp:
+        """Build FastAPI handlers and inner admission limits."""
+        return super().build_middleware_stack()

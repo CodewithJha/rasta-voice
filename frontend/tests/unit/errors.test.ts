@@ -17,6 +17,14 @@ describe("named speech errors", () => {
     ).toBe("The key is not set on the server.");
     expect(describeError(503, "")).toBe("The key is not set on the server.");
     expect(describeError(429, "{}")).toBe("The demo is busy, try in a minute.");
+    expect(
+      describeError(
+        503,
+        JSON.stringify({
+          error: { code: "budget_exhausted", message: "The public speech budget is exhausted.", request_id: "req-1" },
+        }),
+      ),
+    ).toBe("The public speech budget is exhausted.");
     setLocale("hi-en");
     expect(
       describeError(503, JSON.stringify({ detail: "The public speech budget is exhausted." })),

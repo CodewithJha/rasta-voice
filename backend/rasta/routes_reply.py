@@ -32,7 +32,7 @@ from rasta.resilience import (
 from rasta.schema import RiderEvent
 from rasta.store import attach_event_store
 
-reply_router = APIRouter()
+reply_router = APIRouter(tags=["rider"])
 REPLY_TTL_SECONDS = 600
 REPLY_CACHE_ENTRIES = 128
 REPLY_CACHE_BYTES = 8_000_000
