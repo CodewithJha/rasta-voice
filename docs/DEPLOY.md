@@ -2,7 +2,53 @@
 
 Public URL: https://rasta-voice-himanshu748.onrender.com
 
-## Verified paused deployment, 14 November 2026
+
+## Current configured key and measured live limitation
+
+The user-provided Gnani testing key is now configured privately in Render.
+Live verification used deploy `dep-dbsah3t6e07s739ab7qg` at reviewed source revision
+`5facb5569b7aee0f29c06c19d01231aa7a785376`. The service remains on the
+free Singapore plan, with automatic deployment off and `LLM_PROVIDER=rules`.
+Provider retries are disabled. During the bounded verification, the global
+speech cap was six call units per 86,400-second process window, with two
+speech requests per IP per minute and speech concurrency one. These counters
+are process-local and reset on restart; they are not a provider balance or a
+guaranteed calendar-day billing cap. Public speech is paused again
+with `RASTA_DEMO_SPEECH_BUDGET=0` because strict live acceptance failed.
+Pause deploy `dep-dbsaljc9v7es73c68f80` is live; health confirms the key
+is set and readiness confirms zero speech budget.
+The verified key remains configured privately in Render.
+
+The [live smoke record](evidence/render-live-smoke-2026-11-14.json) contains
+actual results, including the failure. One synthetic noisy sample completed
+real Timbre synthesis and Prisma recognition with provider request ID
+`01a1db54-66bd-7643-b9bc-21c9fd35498d`. Intent was correctly
+`customer_unreachable`, but Prisma transcribed “eighteen” as “a teen” and the
+extractor returned `order_id: null`. The strict smoke **failed** its expected
+order `18` check. No extraction result or acceptance threshold was changed to
+hide that failure. A subsequent real Timbre confirmation returned HTTP 200
+and a valid 5.04-second WAV. This verifies returned audio, not manual browser
+playback or microphone capture.
+
+The first reply verifier used the standard WAV header length, which is wrong
+for Timbre's streaming headers. After correcting the verifier to use the
+repository's WAV helper, one cached reply was retrieved without repeating
+synthesis. The recorded usage guard shows four reserved call units and two
+remaining at that snapshot; three outbound `gnani_call` entries were observed.
+Neither figure is a billing statement. Original synthetic audio remains outside
+git; its hash and duration are recorded. No real field recordings were used.
+
+Three real outbound provider calls completed successfully. The strict smoke
+remains failed; public speech will stay paused until the order-number check
+is addressed and an operator deliberately authorizes further live checks.
+
+Issues 13, 24 and 32 remain open for complete strict live acceptance and
+microphone/browser verification. Field validation, independent intent accuracy
+and rollback remain incomplete. The earlier paused/zero-call checkpoint below
+is historical and does not describe the current configuration.
+
+
+## Historical paused deployment, 14 November 2026
 
 The Render backup is live on the **free** plan in Singapore, in Himanshu
 Kumar's Workspace. Deployed revision:
@@ -37,10 +83,9 @@ does not expose that setting. This is an optional remaining operator step.
 Manage this service in the [Render dashboard](https://dashboard.render.com/web/srv-dbsa8sbrjlhs73dkv8o0).
 The generated private desk passcode is stored only in Render's environment
 configuration. An owner can view or rotate it there; do not paste it into
-git, chat, URLs or screenshots. To enable real speech later, set the real
-`GNANI_API_KEY` in Render's Environment settings, choose an authorized
-bounded speech budget, deploy the configuration, then run the public live
-smoke once. Keep the budget at zero until that operator step is intended.
+git, chat, URLs or screenshots. The current live settings are recorded above. To pause speech, set
+`RASTA_DEMO_SPEECH_BUDGET=0` and deploy that configuration. Keep the key
+private and preserve the bounded budget before any further live verification.
 
 The hosting instructions below remain the general setup procedure.
 
