@@ -215,7 +215,7 @@ def test_oversized_request_is_counted_and_rejected_before_parsing():
     from rasta.http_counts import attach_http_counts
 
     app = probe_app()
-    # SecuredApp owns the outer counter, including early-limit responses.
+    # SecuredApp already wraps HttpCountMiddleware around the body limiter.
     counts = attach_http_counts(app)
     response = TestClient(app).post(
         "/api/ingest",

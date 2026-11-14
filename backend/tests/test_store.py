@@ -221,9 +221,7 @@ def test_append_keeps_the_full_payload():
     # PR #37 adds envelope fields such as extractor_source. The store must
     # copy the ingest dict as-is, not a hand-picked key list.
     store = EventStore(path=":memory:", capacity=10)
-    payload = _payload(
-        1, extractor_source="rules", fallback_reason="missing_api_key"
-    )
+    payload = _payload(1, extractor_source="rules", fallback_reason="missing_api_key")
     out = store.append(payload)
     assert out["extractor_source"] == "rules"
     assert out["fallback_reason"] == "missing_api_key"
@@ -275,9 +273,7 @@ def test_concurrent_appends_keep_every_record():
         for n in range(per_thread):
             store.append(_payload(offset + n))
 
-    threads = [
-        threading.Thread(target=worker, args=(i * per_thread,)) for i in range(n_threads)
-    ]
+    threads = [threading.Thread(target=worker, args=(i * per_thread,)) for i in range(n_threads)]
     for thread in threads:
         thread.start()
     for thread in threads:
@@ -489,7 +485,6 @@ def test_missing_key_is_not_stored(monkeypatch: pytest.MonkeyPatch, make_wav):
         assert client.get("/api/events").json() == {"events": [], "next_page_token": None}
 
 
-
 # --- sqlite persistence, migration, export ---
 
 
@@ -548,7 +543,11 @@ def test_migrates_a_v1_file(tmp_path):
     connection.commit()
     connection.close()
 
-    store = EventStore(capacity=10, path=path)
+    store = EventStore(
+        capacity=10,
+        path=path,
+        clock=lambda: datetime.fromisoformat(payload["created_at"]),
+    )
     try:
         assert store.schema_version() == 4
         events = store.list_since(None)

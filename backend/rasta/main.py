@@ -131,7 +131,8 @@ def _configure_production(_application: FastAPI) -> None:
 
 app.add_middleware(SpeechBudgetMiddleware)
 _configure_production(app)
-# Limit bytes before parsing; SecuredApp counts all replay and denial responses.
+# Count body-limit rejections as well as inner route responses.
+# HttpCount already wraps this stack in SecuredApp.
 app.add_middleware(UploadBodyLimit)
 app.include_router(events_router)
 app.include_router(admin_router)
