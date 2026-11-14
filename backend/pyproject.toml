@@ -14,6 +14,8 @@ dependencies = [
   "python-multipart>=0.0.9",
   "python-dotenv>=1.0",
   "uvicorn>=0.32",
+  "mutagen>=1.48.1,<2",
+  "starlette>=1.10,<2",
 ]
 
 [tool.setuptools.packages.find]
