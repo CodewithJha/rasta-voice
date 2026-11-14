@@ -201,7 +201,8 @@ def test_402_is_not_retried(monkeypatch: pytest.MonkeyPatch, make_wav):
         "/api/ingest",
         files={"audio_file": ("clip.wav", make_wav(seconds=1.0), "audio/wav")},
     )
-    assert response.status_code == 502
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "upstream_out_of_credit"
     assert seen == ["/stt/v3"]
 
 
@@ -222,7 +223,7 @@ def test_retries_stop_when_the_budget_would_be_exceeded(
         files={"audio_file": ("clip.wav", make_wav(seconds=1.0), "audio/wav")},
     )
     assert response.status_code == 429
-    assert response.json()["detail"]["code"] == "budget_exhausted"
+    assert response.json()["error"]["code"] == "budget_exhausted"
     assert seen == ["/stt/v3"]
 
 

@@ -15,7 +15,7 @@ from rasta.routes_events import get_event_store
 from rasta.settings import get_settings
 from rasta.store import EventStore
 
-admin_router = APIRouter()
+admin_router = APIRouter(tags=["admin"])
 
 
 @admin_router.get("/api/admin/export")
