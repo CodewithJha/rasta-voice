@@ -484,6 +484,10 @@ class EventStore:
             if row is None:
                 raise EventNotFound(event_id)
             record = json.loads(row[0])
+            if self._is_expired(record, now):
+                raise EventNotFound(event_id)
+            # Existing databases may predate append-time redaction.
+            record = redact_record(record)
             version = int(record.get("version") or 1)
             if if_match != version:
                 raise VersionConflict(version)
