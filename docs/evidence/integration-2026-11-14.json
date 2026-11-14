@@ -239,5 +239,19 @@
     "node_tests_passed": 4,
     "frontend_unit_tests_passed": 23,
     "frontend_source_and_test_types_clean": true
+  },
+  "refreshed_after_component_merges": {
+    "base_main": "53aba17e2f7ff1cbc0a9dea325aa87da400a2cf0",
+    "pytest": {
+      "passed": 1859,
+      "skipped": 1,
+      "xfailed": 1,
+      "coverage_percent": 90.93
+    },
+    "ruff": "pass",
+    "mypy_source_files": 57,
+    "live_provider_calls": 0,
+    "remote_ci": "required on final refreshed head",
+    "historical_records_preserved": true
   }
 }

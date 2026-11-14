@@ -6,14 +6,23 @@ byte-for-byte; its SHA-256 and critical source hashes are in the adjacent JSON.
 Local commit IDs identify the freeze before browser uploads create different
 GitHub commit IDs. Content hashes allow comparison after upload.
 
-The candidate combines Priyanshu's privacy/API work from PRs 83 and 85, the
-response policy already merged in 84, the bounded upload and CSRF slices in
-86/87, and the focused privacy/API review repairs in 88/89. It also includes
-labelled rule-context development regressions and a real keyless desk-workflow
-browser test. These components still need their required owner reviews and
-merged-state verification. Issue ownership and labels are unchanged.
+## Refreshed after component merges
 
-## Local verification
+PRs 83 through 91 and 93 are merged. API PR 85 was approved on
+`fcd518e6316d7f88eb170ca0406bb48e5617209b`; privacy PR 83 was approved on
+`b82f9b467e75d80426ae66b9f679f367d8f21d3e`. Both had ten green checks.
+The combined privacy/API tree passed 1,859 tests (1 skipped, 1 expected failure),
+90.93% coverage and mypy on 57 production files. The v1 migration fixture now
+uses its creation timestamp as the test clock, preserving the 24-hour TTL.
+
+The refreshed PR 92 builds on main `53aba17e2f7ff1cbc0a9dea325aa87da400a2cf0`.
+Its remaining code changes make inexpensive CSRF and health handlers async
+and explicitly require desk write authentication on wipe. The benchmark block
+is unchanged. Issue labels and owners are unchanged. Refreshed results are
+1,859 passed, 1 skipped and 1 expected failure at 90.93% coverage. Ruff passes
+and mypy checks 57 source files. All subsequent candidate tables are historical.
+
+## Historical local verification
 
 | Check | Measured result |
 | --- | --- |
@@ -42,8 +51,8 @@ Definite budget/rate/concurrency denials release their claim without filling
 the SQLite replay ledger; admitted uncertain work retains its no-repeat outcome. Interrupted or uncertain outcomes cannot
 silently repeat paid work. Replay bodies are memory-only and bounded; their
 SQLite ledger contains hashes and status, not transcripts or base64 audio.
-The revised storage contract and restart/eviction failure behavior require
-owner review in PR 89.
+Both owners accepted the revised storage contract and restart/eviction failure
+behavior during review of PRs 85 and 89.
 
 Replays cross Trusted Host, CORS, error-normalization, response-header and
 usage-counting boundaries. Cached errors carry the current HTTP request ID.
@@ -80,7 +89,7 @@ public-host SLO guarantee or a live speech latency benchmark.
 
 ## Remaining acceptance
 
-- Required peer/code-owner reviews, prerequisite merges and final combined CI.
+- Peer review and final CI for the remaining refreshed PR 92.
 - A verified free-host origin and deployed SHA, followed by bounded public
   smoke and a real rollback check; no hosting workspace was selected.
 - Owner-side enforcement of the documented branch settings.
