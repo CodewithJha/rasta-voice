@@ -15,8 +15,9 @@ recordings, timed demo read-through, playable public video/posts and final form
 submission require verification. Rules accuracy is also below the issue 2
 holdout target. Read [production readiness](docs/PRODUCTION_READINESS.md) and
 [the submission checklist](docs/SUBMISSION.md) before making release claims.
-The [public Render deployment](docs/DEPLOY.md) is verified with speech paused
-and no Gnani key.
+The [public Render deployment](docs/DEPLOY.md) now uses the real Gnani APIs
+under a six-call daily cap. Its strict noisy-sample smoke still fails the order
+number check; the recorded evidence preserves that failure.
 
 Built for Gnani AI's Great Indian AI Internship Challenge, targeting Noise
 Canceller. The committed speech benchmark is synthetic. It is not evidence
