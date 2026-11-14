@@ -213,7 +213,17 @@ class SmokeCheck:
         ):
             raise SmokeFailure("unauthorized error envelope differs from issue 26")
 
-        unlock = self.request("POST", "api/dispatch/unlock", json={"passcode": self.passcode})
+        challenge = self.request("GET", "api/dispatch/csrf")
+        self.status(challenge, 200)
+        token = self.body(challenge).get("csrf_token")
+        if not isinstance(token, str) or not token:
+            raise SmokeFailure("desk CSRF challenge missing")
+        unlock = self.request(
+            "POST",
+            "api/dispatch/unlock",
+            json={"passcode": self.passcode},
+            headers={"X-Dispatch-CSRF": token},
+        )
         if unlock.status_code not in {200, 204}:
             raise SmokeFailure(f"desk unlock failed with HTTP {unlock.status_code}")
         self.request_id(unlock)

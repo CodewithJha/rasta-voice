@@ -18,15 +18,21 @@ from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, Request, Response
+from starlette.requests import HTTPConnection
 
+from rasta.origins import request_host, request_http_scheme
 from rasta.settings import Settings, get_settings
 
 COOKIE_SESSION = "rasta_desk"
 COOKIE_CSRF = "rasta_desk_csrf"
 HEADER_PASSCODE = "X-Dispatch-Passcode"
 HEADER_CSRF = "X-Dispatch-CSRF"
+COOKIE_UNLOCK_CSRF = "rasta_unlock_csrf"
+UNLOCK_CSRF_SECONDS = 300
 
 _ACTOR_RE = re.compile(r"^d_[0-9a-f]{16}$")
+
+
 class UnlockLimiter:
     """In-process sliding window of failed unlocks, keyed by client address."""
 
@@ -140,12 +146,11 @@ def actor_from_session(secret: str, value: str) -> str | None:
 
 
 def cookie_secure(request: Request) -> bool:
-    return request.url.scheme == "https"
+    settings = get_settings()
+    return settings.is_production or request_http_scheme(request.scope, settings) == "https"
 
 
-def set_unlock_cookies(
-    response: Response, request: Request, *, secret: str, actor: str, csrf: str
-) -> None:
+def set_unlock_cookies(response: Response, request: Request, *, secret: str, actor: str) -> None:
     secure = cookie_secure(request)
     response.set_cookie(
         COOKIE_SESSION,
@@ -157,7 +162,7 @@ def set_unlock_cookies(
     )
     response.set_cookie(
         COOKIE_CSRF,
-        csrf,
+        session_csrf(secret, actor),
         httponly=False,
         path="/",
         samesite="lax",
@@ -179,12 +184,94 @@ def actor_from_cookie(request: Request, secret: str) -> str | None:
     return actor_from_session(secret, cookie)
 
 
+def _tokens_match(left: str, right: str) -> bool:
+    return hmac.compare_digest(_digest(left), _digest(right))
+
+
+def session_csrf(secret: str, actor: str) -> str:
+    """Purpose-separated CSRF MAC tied to this signed session actor."""
+    return hmac.new(_digest(secret), f"desk-csrf:{actor}".encode(), hashlib.sha256).hexdigest()
+
+
 def csrf_ok(request: Request) -> bool:
+    secret = require_dispatch_passcode()
+    actor = actor_from_cookie(request, secret)
     header = request.headers.get(HEADER_CSRF, "")
     cookie = request.cookies.get(COOKIE_CSRF, "")
-    if not header or not cookie:
+    if actor is None or not header or not cookie:
         return False
-    return hmac.compare_digest(_digest(header), _digest(cookie))
+    expected = session_csrf(secret, actor)
+    return _tokens_match(header, cookie) and _tokens_match(header, expected)
+
+
+def _browser_origin_ok(request: Request) -> bool:
+    # A valid token remains required when non-browser clients omit these headers.
+    origin = request.headers.get("origin")
+    expected = (
+        f"{request_http_scheme(request.scope, get_settings())}://{request_host(request.scope)}"
+    )
+    if origin is not None and origin != expected:
+        return False
+    return request.headers.get("sec-fetch-site", "same-origin") in {"same-origin", "none"}
+
+
+def mint_unlock_csrf(secret: str, *, now: float | None = None) -> str:
+    stamp = int(time.time() if now is None else now)
+    value = f"{stamp}.{secrets.token_urlsafe(32)}"
+    mac = hmac.new(_digest(secret), f"unlock-csrf:{value}".encode(), hashlib.sha256).hexdigest()
+    return f"{value}.{mac}"
+
+
+def unlock_csrf_ok(request: Request, secret: str, *, now: float | None = None) -> bool:
+    header = request.headers.get(HEADER_CSRF, "")
+    cookie = request.cookies.get(COOKIE_UNLOCK_CSRF, "")
+    if not header or len(header) > 160 or not _tokens_match(header, cookie):
+        return False
+    parts = header.split(".")
+    if len(parts) != 3:
+        return False
+    stamp, nonce, mac = parts
+    try:
+        age = (time.time() if now is None else now) - int(stamp)
+    except ValueError:
+        return False
+    if not 0 <= age <= UNLOCK_CSRF_SECONDS or len(nonce) != 43:
+        return False
+    expected = hmac.new(
+        _digest(secret), f"unlock-csrf:{stamp}.{nonce}".encode(), hashlib.sha256
+    ).hexdigest()
+    return _tokens_match(mac, expected)
+
+
+def enforce_desk_csrf(connection: HTTPConnection) -> None:
+    """Guard unsafe dispatcher HTTP routes; WebSockets retain their own Origin gate."""
+    if connection.scope["type"] != "http":
+        return
+    request = Request(connection.scope)
+    path = request.url.path
+    if path.startswith("/api/v1/"):
+        path = "/api/" + path[len("/api/v1/") :]
+    protected = any(
+        path == prefix or path.startswith(prefix + "/")
+        for prefix in ("/api/events", "/api/admin", "/api/dispatch")
+    )
+    if request.method in {"GET", "HEAD", "OPTIONS"} or not protected:
+        return
+    secret = require_dispatch_passcode()
+    if not _browser_origin_ok(request):
+        raise HTTPException(status_code=403, detail="Desk write origin is not allowed.")
+    header = request.headers.get(HEADER_PASSCODE, "").strip()
+    if header:
+        # A custom passcode header is an explicit credential, never a presence-only bypass.
+        require_desk_read(request, secret, get_unlock_limiter(request), header)
+        return
+    if path == "/api/dispatch/unlock":
+        if not unlock_csrf_ok(request, secret):
+            raise HTTPException(status_code=403, detail="Desk unlock needs a CSRF token.")
+    elif actor_from_cookie(request, secret) is None:
+        raise HTTPException(status_code=401, detail="Unlock the desk to keep polling.")
+    elif not csrf_ok(request):
+        raise HTTPException(status_code=403, detail="Desk write needs a CSRF token.")
 
 
 def require_desk_read(
@@ -203,15 +290,11 @@ def require_desk_read(
                 status_code=429, detail="Too many unlock attempts. Try again later."
             )
         if outcome == "mismatch":
-            raise HTTPException(
-                status_code=401, detail="Unlock the desk to keep polling."
-            )
+            raise HTTPException(status_code=401, detail="Unlock the desk to keep polling.")
         return "d_header"
     actor = actor_from_cookie(request, secret)
     if actor is None:
-        raise HTTPException(
-            status_code=401, detail="Unlock the desk to keep polling."
-        )
+        raise HTTPException(status_code=401, detail="Unlock the desk to keep polling.")
     return actor
 
 
@@ -221,10 +304,8 @@ def require_desk_write(
     x_dispatch_passcode: Annotated[str | None, Header(alias=HEADER_PASSCODE)] = None,
 ) -> str:
     """Cookie sessions need a CSRF token; a passcode header is sufficient."""
-    if x_dispatch_passcode:
+    if actor == "d_header":
         return actor
     if not csrf_ok(request):
-        raise HTTPException(
-            status_code=403, detail="Desk write needs a CSRF token."
-        )
+        raise HTTPException(status_code=403, detail="Desk write needs a CSRF token.")
     return actor
