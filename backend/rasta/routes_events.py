@@ -2,7 +2,6 @@
 
 import base64
 import json
-import secrets
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
