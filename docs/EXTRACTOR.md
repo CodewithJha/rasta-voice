@@ -6,11 +6,11 @@ live on the ingest envelope, not inside `event`.
 
 ## Headline result
 
-Rules intent accuracy on the **blind holdout** is **8/36 = 0.222** after
-the channel-bound contact-failure fix. That is still below the issue's
-0.8 target. This pull request delivers the extractor infrastructure and
-the evaluation harness; it does not close issue 2. The 0.8 acceptance
-bar remains open.
+Rules intent accuracy on the **blind holdout** is still **8/36 = 0.222**,
+below the issue's 0.8 target. A new live Gemini run on 14 Nov 2026 scored
+**26/36 = 0.722** end-to-end on that same frozen set (24/26 = 0.923 on
+validated LLM answers). A rules fallback is never counted as an LLM
+success. Issue 2 stays open until the 0.8 holdout target is actually met.
 
 Two checks are kept distinct, with constants in
 `backend/rasta/intent_eval.py`:
@@ -26,7 +26,10 @@ Two checks are kept distinct, with constants in
 `python scripts/eval_intent.py` always prints `TARGET MET` or
 `TARGET NOT MET` for the blind rules score and exits 0. Pass
 `--enforce-target` to exit 1 when the target is unmet. CI does not pass
-that flag until the issue 2 accuracy work lands. Do not treat the 24/24
+that flag until the issue 2 accuracy work lands. `--sets` limits which
+splits are scored; `--write-evidence` writes a JSON record of the last
+scored split of the selected provider (ids, labels, sources and
+latencies only; no keys or transcripts). Do not treat the 24/24
 tuning-holdout score as an independent result.
 
 ## Providers
@@ -37,12 +40,12 @@ tuning-holdout score as an independent result.
   `backend/rasta/extract.py`.
 - `groq` — OpenAI-compatible `POST {GROQ_BASE_URL}/chat/completions` with
   `GROQ_API_KEY`. Default model `openai/gpt-oss-20b`, checked 12 Nov 2026
-  against Groq's deprecations (`llama-3.1-8b-instant` left the free and
-  developer tiers on 16 Aug 2026).
+  and re-checked 14 Nov 2026 against Groq's deprecations
+  (`llama-3.1-8b-instant` left the free and developer tiers on 16 Aug 2026).
 - `gemini` — `POST {GEMINI_BASE_URL}/models/{model}:generateContent` with
   the key in the `x-goog-api-key` header. Default model
-  `gemini-3.5-flash-lite`, checked 12 Nov 2026 against Google's Gemini
-  docs (recommended Flash-Lite for new work).
+  `gemini-3.5-flash-lite`, checked 12 Nov 2026 and re-checked 14 Nov 2026
+  against Google's Gemini docs (recommended Flash-Lite for new work).
 
 There is no vendor SDK and no mock mode in application code. Tests swap
 `httpx.MockTransport`. The HTTP client is process-wide, created with
@@ -140,11 +143,28 @@ set, twice:
    production timeout was not raised to improve the score. End-to-end
    0.639 is still below the 0.8 issue target.
 
+3. **14 Nov 2026, 9:30 PM IST** (official refresh; same frozen holdout,
+   same 4 s timeout, `gemini-3.5-flash-lite`). 26/36 calls returned a
+   validated LLM event. 10/36 returned HTTP 429 after the one allowed
+   retry and fell back to rules. One HTTP 503 was retried once and then
+   succeeded; there were no timeouts. End-to-end accuracy, counting
+   fallbacks as rules and not as LLM successes, was 26/36 = 0.722.
+   LLM-validated accuracy was 24/26 = 0.923; the two LLM misses were
+   `b31` and `b32` (both gold `other`, predicted `delay`). Latency over
+   all 36 calls: mean 886 ms, p50 833 ms, min 522 ms, max 1928 ms.
+   LLM-only latency: mean 1003 ms, p50 905 ms, min 721 ms, max 1928 ms.
+   The evidence file is `docs/evidence/gemini-holdout-2026-11-14.json`.
+   The production timeout was not raised. End-to-end 0.722 is still
+   below the 0.8 issue target.
+
 A rules fallback is never counted as an LLM success. CI has no LLM key;
-`pytest -k live` skips.
+`pytest -k live` skips. A Groq key was still not present on 14 Nov 2026,
+so Groq was not scored.
 
 ```bash
 pytest backend/tests/test_extract.py backend/tests/test_llm.py backend/tests/test_intent_eval.py -q
 python scripts/eval_intent.py
+python scripts/eval_intent.py --provider gemini --sets blind \
+  --write-evidence docs/evidence/gemini-holdout-2026-11-14.json
 python scripts/eval_intent.py --enforce-target  # exits 1 until the 0.8 target is met
 ```
