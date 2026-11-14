@@ -292,9 +292,19 @@ def test_unhandled_500_echoes_the_request_id():
     def boom() -> None:
         raise RuntimeError("review-boom")
 
-    app.add_api_route(path, boom, methods=["GET"])
+    # Use a fresh app so a previously built UI's terminal '/' mount cannot
+    # consume this test-only route before it reaches the error middleware.
+    from rasta.security import SecuredApp
+
+    probe = SecuredApp()
+    probe.add_api_route(path, boom, methods=["GET"])
+
+    @probe.get("/api/health")
+    def health() -> dict:
+        return {"ok": True}
+
     try:
-        with TestClient(app, raise_server_exceptions=False) as client:
+        with TestClient(probe, raise_server_exceptions=False) as client:
             ok = client.get("/api/health", headers={REQUEST_ID_HEADER: "review-ok"})
             assert ok.status_code == 200
             assert _header(ok) == "review-ok"
@@ -302,6 +312,4 @@ def test_unhandled_500_echoes_the_request_id():
             assert response.status_code == 500
             assert _header(response) == "review-fail"
     finally:
-        app.router.routes = [
-            route for route in app.router.routes if getattr(route, "path", None) != path
-        ]
+        probe.router.routes.clear()
