@@ -1,25 +1,34 @@
 # Rasta Voice — production readiness
 
-## Integrated candidate status, 14 November 2026
+## Integrated candidate status, 15 November 2026 IST
 
-The prerequisite component PRs 83 through 91 and 93 are now merged. PR 92
-contains the remaining inexpensive async request handling, explicit wipe-write
-authentication and current documentation. It still requires peer review and CI.
-The audit rows below preserve the original 12 November snapshot.
+Component PRs 83 through 94, including integrated request handling and explicit
+wipe-write authentication in PR 92, are merged. The free Render host serves
+reviewed main `5facb5569b7aee0f29c06c19d01231aa7a785376`. Public speech is
+paused after a real noisy-sample order-number failure. This is not a
+release-ready or successful live-smoke claim. [Deployment evidence](DEPLOY.md)
+separates actual HTTP/provider results from unverified acceptance. The audit
+rows below preserve the original 12 November snapshot, not today's missing-code list.
 
 | Area | Verified code evidence | Remaining gate |
 | --- | --- | --- |
-| Response policy and uploads | CSP, self-hosted assets and bounded memory-only uploads merged in 84/86 | Public-host smoke |
-| Dispatcher security | Signed unlock challenge, session CSRF and lockout merged in 87 | Deployed verification |
-| Privacy | Redaction, TTL, deletion and immediate replay cleanup merged in 83/88 | Public-host acceptance |
-| API and paid-work safety | API envelopes, pagination, atomic claims and hashed ledger merged in 85/89; both owners accepted memory-only response bodies | Public-host acceptance |
-| Quality and operations | Ten checks green on both reviewed peer heads; combined local tests and runbook | Refreshed PR 92 CI, public smoke/rollback and owner-side branch settings |
-| Extraction quality | Locked holdout 8/36 against 0.8 target | Issue 2 remains unmet |
-| Human/public evidence | Synthetic benchmark exists | Verified free host, consented field audio, timed script, video/posts and form |
+| Response policy and uploads | CSP, self-hosted assets and bounded memory-only uploads merged in 84/86; public response headers checked | Complete live/browser acceptance |
+| Dispatcher security | Signed unlock challenge, session CSRF and lockout merged in 87; public authenticated reads and CSRF rejection checked | Remaining full public workflow/microphone verification |
+| Privacy | Redaction, TTL, deletion and immediate replay cleanup merged in 83/88 | Public retention/deletion and recovery acceptance |
+| API and paid-work safety | Envelopes, pagination and atomic claims merged in 85/89; actual host is paused with retries disabled | Strict order-18 live sample failed; do not relax it |
+| Quality and operations | PRs 95-99 each passed ten checks; combined local candidate: 1,920 tests, 91.01% coverage | Peer review/merge, deployed rollback and owner-side branch settings |
+| Extraction quality | Locked rules holdout 8/36; recorded Gemini end-to-end 26/36 | Both remain below the independent 0.8 target; issue 2 stays open |
+| Human/public evidence | Free public host and three successful real provider calls recorded; valid confirmation WAV returned | Consented field audio, microphone/playback, timed demo and verified public submission evidence |
 | Post-contest stretch | Documented separately | Issue 35 remains optional and unfinished |
 
-[Integration evidence](evidence/integration-2026-11-14.md) records dated checks
-and their limits. External-evidence requirements remain open.
+[Integration evidence](evidence/integration-2026-11-14.md) preserves dated checks
+and their limits. Pending work is split into field-evidence validation (#95),
+static-path isolation (#96), evaluation preflight (#97), deployment evidence
+(#98) and missing-order clarification (#99). These PRs are not deployed or
+merged. Their green checks do not establish independent accuracy, consent,
+playback, rollback, publication or form submission. Code-owner approval remains
+required; the administrator-enforcement limitation in [governance](GOVERNANCE.md)
+has not been accepted or changed on either owner's behalf.
 
 ## Historical audit, 12 November 2026
 
