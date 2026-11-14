@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from gnani_client.env import api_key
 from rasta import readiness
 
-health_router = APIRouter()
+health_router = APIRouter(tags=["ops"])
 
 
 @health_router.get("/api/ready")

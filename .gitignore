@@ -5,7 +5,7 @@ __pycache__/
 .ruff_cache/
 *.egg-info/
 .env
-node_modules/
+node_modules
 frontend/dist/
 benchmark/data/audio/
 

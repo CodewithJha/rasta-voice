@@ -110,7 +110,7 @@ def test_ack_resolve_escalate_and_illegal_transitions(client: TestClient):
         json={"actor": "d_anju"},
     )
     assert stale.status_code == 409
-    assert stale.json()["detail"]["code"] == "version_conflict"
+    assert stale.json()["error"]["code"] == "version_conflict"
 
     again = client.post(
         f"/api/events/{event_id}/ack",
@@ -118,7 +118,7 @@ def test_ack_resolve_escalate_and_illegal_transitions(client: TestClient):
         json={"actor": "d_anju"},
     )
     assert again.status_code == 409
-    assert again.json()["detail"]["code"] == "illegal_transition"
+    assert again.json()["error"]["code"] == "illegal_transition"
 
     resolved = client.post(
         f"/api/events/{event_id}/resolve",
@@ -147,7 +147,7 @@ def test_resolve_from_escalated_requires_ack(client: TestClient):
         json={"actor": "d_anju"},
     )
     assert blocked.status_code == 409
-    assert blocked.json()["detail"]["code"] == "illegal_transition"
+    assert blocked.json()["error"]["code"] == "illegal_transition"
 
     resolved = client.post(
         f"/api/events/{row['id']}/resolve",

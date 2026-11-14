@@ -387,7 +387,7 @@ def test_events_since_returns_only_newer(client: TestClient, make_wav):
     events = later.json()["events"]
     assert [event["id"] for event in events] == [second["id"]]
     empty = client.get("/api/events", params={"since": second["created_at"]})
-    assert empty.json() == {"events": []}
+    assert empty.json() == {"events": [], "next_page_token": None}
 
 
 @pytest.mark.parametrize(
@@ -407,8 +407,8 @@ def test_events_since_invalid_is_422(client: TestClient, since: str):
     # raise_server_exceptions stays on: a leaked OverflowError would fail the test.
     response = client.get("/api/events", params={"since": since})
     assert response.status_code == 422
-    assert "timezone-aware" in response.json()["detail"] or "ISO 8601" in str(
-        response.json()["detail"]
+    assert "timezone-aware" in response.json()["error"]["message"] or "ISO 8601" in str(
+        response.json()["error"]
     )
 
 
@@ -452,7 +452,7 @@ def test_failed_ingest_is_not_stored(client: TestClient, make_wav):
         files={"audio_file": ("clip.wav", b"", "audio/wav")},
     )
     assert empty.status_code == 400
-    assert client.get("/api/events").json() == {"events": []}
+    assert client.get("/api/events").json() == {"events": [], "next_page_token": None}
 
     _upload(client, make_wav)
     assert len(client.get("/api/events").json()["events"]) == 1
@@ -474,8 +474,8 @@ def test_upstream_error_is_not_stored(monkeypatch: pytest.MonkeyPatch, make_wav)
         response = client.post(
             "/api/ingest", files={"audio_file": ("clip.wav", make_wav(), "audio/wav")}
         )
-        assert response.status_code == 502
-        assert client.get("/api/events").json() == {"events": []}
+        assert response.status_code == 503
+        assert client.get("/api/events").json() == {"events": [], "next_page_token": None}
 
 
 def test_missing_key_is_not_stored(monkeypatch: pytest.MonkeyPatch, make_wav):
@@ -486,7 +486,7 @@ def test_missing_key_is_not_stored(monkeypatch: pytest.MonkeyPatch, make_wav):
             "/api/ingest", files={"audio_file": ("clip.wav", make_wav(), "audio/wav")}
         )
         assert response.status_code == 503
-        assert client.get("/api/events").json() == {"events": []}
+        assert client.get("/api/events").json() == {"events": [], "next_page_token": None}
 
 
 
@@ -550,7 +550,7 @@ def test_migrates_a_v1_file(tmp_path):
 
     store = EventStore(capacity=10, path=path)
     try:
-        assert store.schema_version() == 3
+        assert store.schema_version() == 4
         events = store.list_since(None)
         assert [event["id"] for event in events] == ["legacy-id"]
         assert events[0]["transcript"] == "line 1"

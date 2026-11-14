@@ -33,7 +33,7 @@ from rasta.stream_session import (
 
 log = logging.getLogger("rasta.stream")
 
-stream_router = APIRouter()
+stream_router = APIRouter(tags=["rider"])
 
 
 @stream_router.websocket("/api/stream")

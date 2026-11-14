@@ -645,6 +645,14 @@ function connectStream(
   return socket;
 }
 
+function idempotencyHeaders(init: RequestInit = {}): Headers {
+  const headers = new Headers(init.headers);
+  if (!headers.has("Idempotency-Key")) {
+    headers.set("Idempotency-Key", crypto.randomUUID());
+  }
+  return headers;
+}
+
 async function post(
   url: string,
   init: RequestInit,
@@ -654,7 +662,7 @@ async function post(
   out.dataset.mode = "pending";
   out.textContent = t("rider.onTheLine");
   try {
-    const { response, text } = await fetchWithTimeout(url, init);
+    const { response, text } = await fetchWithTimeout(url, { ...init, headers: idempotencyHeaders(init) });
     if (!response.ok) {
       showError(out, response.status, text);
       return;
@@ -685,7 +693,7 @@ async function postReply(
   textEl: HTMLElement,
 ): Promise<void> {
   try {
-    const { response, text } = await fetchWithTimeout(url, { method: "POST" });
+    const { response, text } = await fetchWithTimeout(url, { method: "POST", headers: idempotencyHeaders() });
     if (!response.ok) {
       showError(out, response.status, text);
       return;
