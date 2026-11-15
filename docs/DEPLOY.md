@@ -2,8 +2,38 @@
 
 Public URL: https://rasta-voice-himanshu748.onrender.com
 
+## Current merged deployment, 15 November 2026 IST
 
-## Current configured key and measured live limitation
+CodewithJha reviewed and merged PRs 95-99. Their integrated main revision
+`3707b40b7af2d58c982f1959fda41e9bf2e1547c` is now live on the same free
+Singapore service, deploy `dep-dbsiq5e1egvs73dvvmrg`. Main's CI, load and
+container runs passed before deployment. The exact checkout passed 1,920
+Python tests, with one live-provider skip, one expected accuracy failure and
+91.01% coverage; Ruff, mypy and schema synchronization also passed.
+
+The [merged-deployment record](evidence/render-merged-deploy-2026-11-15.json)
+contains 15 new public HTTP checks and built-asset hashes. The page, health,
+readiness and JS/CSS return 200; the database is writable at schema 4; desk,
+usage and export require authentication; production docs are hidden; missing
+CSRF and a foreign-origin unlock return 403. A sample POST returns 503
+`budget_exhausted` after a verified zero budget. The real public browser also
+shows the paused state after keyboard sample activation and switches language.
+No horizontal overflow was measured at its 1363-pixel desktop viewport.
+
+Speech remains paused with the key configured, provider retries zero and
+automatic deployments off. No provider call was admitted by these checks;
+the queried deployment log window contains no `gnani_call` entries. This is
+not a provider balance or invoice. The private desk passcode was unavailable
+in this execution, so authenticated reads were not repeated; earlier signed
+unlock/authenticated-read evidence below remains dated to its original deploy.
+
+The missing-order clarification fix is deployed, but it does not recover order
+18 from ambiguous recognition. The previous strict speech failure is neither
+rerun nor waived. Field consent/capture, live microphone/playback, rollback,
+independent intent accuracy and owner-side branch enforcement remain open.
+
+
+## Earlier configured-key verification and measured live limitation
 
 The user-provided Gnani testing key is now configured privately in Render.
 Live verification used deploy `dep-dbsah3t6e07s739ab7qg` at reviewed source revision

@@ -3,10 +3,14 @@
 ## Current verification checkpoint, 15 November 2026 IST
 
 The free Render origin is https://rasta-voice-himanshu748.onrender.com and
-serves merged main `5facb5569b7aee0f29c06c19d01231aa7a785376`.
+serves reviewed, merged main `3707b40b7af2d58c982f1959fda41e9bf2e1547c`.
 [DEPLOY.md](DEPLOY.md) and its linked sanitized records are the current host
 evidence. The public page, health/readiness, authenticated desk reads, signed
 unlock, CSRF rejection and security headers passed their recorded checks.
+The [new merged-deploy check](evidence/render-merged-deploy-2026-11-15.json)
+repeats public/unauthenticated checks with zero speech admissions. Authenticated
+desk reads were not repeated without the private passcode; the earlier
+successful unlock remains evidence for its original revision only.
 Three real provider calls returned 200, including Prisma request
 `01a1db54-66bd-7643-b9bc-21c9fd35498d` and a valid 5.04-second Timbre
 confirmation WAV. This confirms returned audio, not browser listening.
@@ -19,8 +23,8 @@ without a deliberately bounded allowance or change the expected order to pass.
 Rules holdout accuracy is 8/36 and the recorded live Gemini end-to-end result
 is 26/36, both below the independent 0.8 target.
 
-PRs 95-99 have green CI and await code-owner review. They are not merged or
-deployed. The combined local candidate passed 1,920 Python tests with 91.01%
+PRs 95-99 have green CI, were approved by CodewithJha, and are merged and
+deployed. The exact integrated main passed 1,920 local Python tests with 91.01%
 coverage; its live-provider test skipped and its strict accuracy target is an
 expected failure. The separate CI Playwright path is keyless. Field consent,
 real microphone capture, browser playback, rollback, timed demo, public video

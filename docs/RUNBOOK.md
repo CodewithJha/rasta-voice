@@ -1,13 +1,14 @@
 # Operator runbook
 
-Checked against deployed main `5facb5569b7aee0f29c06c19d01231aa7a785376`
+Checked against deployed main `3707b40b7af2d58c982f1959fda41e9bf2e1547c`
 on 15 November 2026 IST. The non-root image, dispatcher lifecycle, API envelope,
 privacy controls, security headers, SQLite store and upstream resilience are
 merged. The actual free Render origin and sanitized public checks are recorded
 in [DEPLOY.md](DEPLOY.md). Real Prisma/Timbre calls succeeded, but strict noisy
 sample acceptance failed because the order number was unresolved. Public
 speech is paused with the key retained and a zero admission budget. PRs 95-99
-are pending peer review and are not deployed. Rollback, microphone capture and
+are peer-reviewed, merged and deployed. The [new paused-host checks](evidence/render-merged-deploy-2026-11-15.json)
+are distinct from the earlier real speech run. Rollback, microphone capture and
 browser audio playback remain unverified; a valid returned WAV is not playback
 evidence. See the [live record](evidence/render-live-smoke-2026-11-14.json).
 See [architecture](ARCHITECTURE.md), [security](SECURITY.md) and

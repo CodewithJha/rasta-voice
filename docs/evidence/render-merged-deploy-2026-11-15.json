@@ -1,0 +1,253 @@
+{
+  "checked_at": "2026-11-15T03:57:07.282102+00:00",
+  "origin": "https://rasta-voice-himanshu748.onrender.com",
+  "service_id": "srv-dbsa8sbrjlhs73dkv8o0",
+  "deploy_id": "dep-dbsiq5e1egvs73dvvmrg",
+  "deployed_sha": "3707b40b7af2d58c982f1959fda41e9bf2e1547c",
+  "plan": "free",
+  "region": "singapore",
+  "auto_deploy": false,
+  "checks": [
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "status": 200,
+      "request_id": "db314b96-9fc8-44a6-aa12-fb936f89c51e",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "status": 200,
+      "request_id": "6b316113-6410-4e6c-af74-6015172f8313",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "status": 200,
+      "request_id": "393389d6-21fa-4730-b407-987fce6722e0",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/assets/index-BPXVoHPY.js",
+      "status": 200,
+      "request_id": "3482ece6-a8b2-4ee3-af4d-801def8de3d6",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/assets/index-C-zzOa1k.css",
+      "status": 200,
+      "request_id": "db32d269-6b45-4650-a5e2-ed2f01ac5d88",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/docs",
+      "status": 404,
+      "request_id": "b3a3ef9c-0dea-4365-bfaf-0de2498e1c76",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/openapi.json",
+      "status": 404,
+      "request_id": "ab13d9e3-e00f-4e39-b2d0-105470489ae5",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/events",
+      "status": 401,
+      "request_id": "86eb62bb-796e-4bd2-8e52-d26f6344b5f0",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/usage",
+      "status": 401,
+      "request_id": "4aa6651b-0508-45cb-9743-de0e44a86afc",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/export",
+      "status": 401,
+      "request_id": "8aaac80b-56c5-4b83-a6d5-3188003f8024",
+      "security_headers": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/ingest/sample",
+      "status": 503,
+      "request_id": "336864ea-8f16-46ac-8af7-1a588a3d910c",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/dispatch/csrf",
+      "status": 200,
+      "request_id": "5eb60b90-e444-42f2-94d9-0f1092df37de",
+      "security_headers": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/dispatch/unlock",
+      "status": 403,
+      "request_id": "dc9eca31-ce7e-4b46-bbff-98d182f21b01",
+      "security_headers": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/dispatch/unlock",
+      "status": 403,
+      "request_id": "091f2f20-f4fd-471e-9fe2-8d32b9729d90",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "status": 200,
+      "request_id": "d0e02bf2-8cd2-4df1-8ad2-05281f072b7c",
+      "security_headers": true
+    }
+  ],
+  "assets": [
+    {
+      "path": "/assets/index-BPXVoHPY.js",
+      "sha256": "25e34253529e2ebef6b14c00047fda4e2fd6796eeacfb6d3c00ba7e2c7c90f68"
+    },
+    {
+      "path": "/assets/index-C-zzOa1k.css",
+      "sha256": "af55164d4da31aa7985c63cce4825b95169327c7427d527f272e25755e357d15"
+    }
+  ],
+  "health": {
+    "ok": true,
+    "gnani_key_set": true,
+    "llm_provider": "rules"
+  },
+  "readiness": {
+    "ok": true,
+    "gnani_key_set": true,
+    "db_writable": true,
+    "rate_limit": {
+      "ok": true,
+      "per_ip_requests_per_minute": 2
+    },
+    "demo_credits_remaining": 0,
+    "demo_credits_exhausted": true,
+    "schema_version": 4,
+    "circuit_breaker": {
+      "gnani_stt": "closed",
+      "gnani_tts": "closed",
+      "llm": "closed"
+    },
+    "events_in_store": 0
+  },
+  "speech_admissions": 0,
+  "sample_post": "503 budget_exhausted after verified zero budget",
+  "authenticated_desk_reads": "not repeated: private passcode unavailable in this execution",
+  "prior_live_acceptance": "failed expected order 18; not rerun or waived",
+  "microphone_and_playback": "not verified",
+  "rollback": "not rehearsed",
+  "field_recordings": "not collected",
+  "provider_log_check": {
+    "filter": "gnani_call",
+    "start": "2026-11-15T03:55:02Z",
+    "end": "2026-11-15T03:59:55.077535022Z",
+    "entries": 0,
+    "has_more": false
+  },
+  "main_ci": [
+    {
+      "id": 43674076756,
+      "name": "container",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/CodewithJha/rasta-voice/actions/runs/43674076756"
+    },
+    {
+      "id": 43674076722,
+      "name": "ci",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/CodewithJha/rasta-voice/actions/runs/43674076722"
+    },
+    {
+      "id": 43674076719,
+      "name": "load",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/CodewithJha/rasta-voice/actions/runs/43674076719"
+    }
+  ],
+  "local_verification": {
+    "python": {
+      "passed": 1920,
+      "skipped": 1,
+      "xfailed": 1,
+      "coverage_percent": 91.01
+    },
+    "ruff": "passed",
+    "mypy": {
+      "status": "passed",
+      "production_files": 58
+    },
+    "schema_sync": "passed"
+  },
+  "browser": {
+    "observed_at": "2026-11-15T04:00:59.957Z",
+    "sample_activation": "Enter on sample button",
+    "paused_message": "Public speech is paused.",
+    "locale_switch": "English to Hinglish observed",
+    "viewport_width": 1363,
+    "document_scroll_width": 1363,
+    "microphone_capture": "not attempted",
+    "audio_playback": "not attempted"
+  },
+  "merged_pull_requests": [
+    {
+      "number": 95,
+      "url": "https://github.com/CodewithJha/rasta-voice/pull/95",
+      "merged_at": "2026-11-15T03:49:37Z"
+    },
+    {
+      "number": 96,
+      "url": "https://github.com/CodewithJha/rasta-voice/pull/96",
+      "merged_at": "2026-11-15T03:39:39Z"
+    },
+    {
+      "number": 97,
+      "url": "https://github.com/CodewithJha/rasta-voice/pull/97",
+      "merged_at": "2026-11-15T03:42:30Z"
+    },
+    {
+      "number": 98,
+      "url": "https://github.com/CodewithJha/rasta-voice/pull/98",
+      "merged_at": "2026-11-15T03:45:08Z"
+    },
+    {
+      "number": 99,
+      "url": "https://github.com/CodewithJha/rasta-voice/pull/99",
+      "merged_at": "2026-11-15T03:47:28Z"
+    }
+  ],
+  "offline_acceptance_gates": {
+    "field": {
+      "exit_code": 1,
+      "summary": [
+        "{\"mic\": 0, \"n\": 0, \"phone\": 0, \"status\": \"not_collected\"}",
+        "field audio still not measured; award claim is not verified"
+      ]
+    },
+    "intent": {
+      "exit_code": 1,
+      "summary": [
+        "TARGET NOT MET: blind rules 8/36 = 0.222 < 0.8 (regression floor 6/36)"
+      ]
+    }
+  }
+}

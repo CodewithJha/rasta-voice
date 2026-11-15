@@ -2,9 +2,9 @@
 
 ## Integrated candidate status, 15 November 2026 IST
 
-Component PRs 83 through 94, including integrated request handling and explicit
+Component PRs 83 through 99, including integrated request handling and explicit
 wipe-write authentication in PR 92, are merged. The free Render host serves
-reviewed main `5facb5569b7aee0f29c06c19d01231aa7a785376`. Public speech is
+reviewed main `3707b40b7af2d58c982f1959fda41e9bf2e1547c`. Public speech is
 paused after a real noisy-sample order-number failure. This is not a
 release-ready or successful live-smoke claim. [Deployment evidence](DEPLOY.md)
 separates actual HTTP/provider results from unverified acceptance. The audit
@@ -16,16 +16,17 @@ rows below preserve the original 12 November snapshot, not today's missing-code 
 | Dispatcher security | Signed unlock challenge, session CSRF and lockout merged in 87; public authenticated reads and CSRF rejection checked | Remaining full public workflow/microphone verification |
 | Privacy | Redaction, TTL, deletion and immediate replay cleanup merged in 83/88 | Public retention/deletion and recovery acceptance |
 | API and paid-work safety | Envelopes, pagination and atomic claims merged in 85/89; actual host is paused with retries disabled | Strict order-18 live sample failed; do not relax it |
-| Quality and operations | PRs 95-99 each passed ten checks; combined local candidate: 1,920 tests, 91.01% coverage | Peer review/merge, deployed rollback and owner-side branch settings |
+| Quality and operations | PRs 95-99 reviewed and merged; integrated main has green CI/load/container runs and 1,920 local tests, 91.01% coverage | Deployed rollback and owner-side branch settings |
 | Extraction quality | Locked rules holdout 8/36; recorded Gemini end-to-end 26/36 | Both remain below the independent 0.8 target; issue 2 stays open |
 | Human/public evidence | Free public host and three successful real provider calls recorded; valid confirmation WAV returned | Consented field audio, microphone/playback, timed demo and verified public submission evidence |
 | Post-contest stretch | Documented separately | Issue 35 remains optional and unfinished |
 
 [Integration evidence](evidence/integration-2026-11-14.md) preserves dated checks
-and their limits. Pending work is split into field-evidence validation (#95),
+and their limits. Merged follow-ups provide field-evidence validation (#95),
 static-path isolation (#96), evaluation preflight (#97), deployment evidence
-(#98) and missing-order clarification (#99). These PRs are not deployed or
-merged. Their green checks do not establish independent accuracy, consent,
+(#98) and missing-order clarification (#99). Their integrated code is deployed;
+[fresh public checks](evidence/render-merged-deploy-2026-11-15.json) verify the
+paused host. Green checks do not establish independent accuracy, consent,
 playback, rollback, publication or form submission. Code-owner approval remains
 required; the administrator-enforcement limitation in [governance](GOVERNANCE.md)
 has not been accepted or changed on either owner's behalf.
