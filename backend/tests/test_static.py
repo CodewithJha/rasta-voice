@@ -32,6 +32,11 @@ def test_health_json_wins_over_the_built_index(tmp_path: Path, monkeypatch):
 
 
 def test_missing_dist_does_not_mount_a_shadow_route(tmp_path: Path, monkeypatch):
+    # Exercise the configuration after a frontend build, as release operators do.
+    monkeypatch.chdir(tmp_path)
+    fallback = tmp_path / "frontend" / "dist"
+    fallback.mkdir(parents=True)
+    (fallback / "index.html").write_text("unconfigured build", encoding="utf-8")
     monkeypatch.setenv("RASTA_STATIC_DIR", str(tmp_path / "missing"))
     clear_settings_cache()
     probe = FastAPI()
@@ -44,4 +49,18 @@ def test_missing_dist_does_not_mount_a_shadow_route(tmp_path: Path, monkeypatch)
     with TestClient(probe) as client:
         assert client.get("/api/health").json() == {"ok": True}
         assert client.get("/").status_code == 404
+    clear_settings_cache()
+
+
+def test_default_dist_is_discovered_without_an_override(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("RASTA_STATIC_DIR", raising=False)
+    clear_settings_cache()
+    dist = tmp_path / "frontend" / "dist"
+    dist.mkdir(parents=True)
+    (dist / "index.html").write_text("default build", encoding="utf-8")
+    probe = FastAPI()
+    _mount_static(probe)
+    with TestClient(probe) as client:
+        assert client.get("/").text == "default build"
     clear_settings_cache()
