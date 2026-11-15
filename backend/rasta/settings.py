@@ -28,6 +28,8 @@ ENV_LLM_MODEL = "LLM_MODEL"
 ENV_LLM_TIMEOUT_SECONDS = "LLM_TIMEOUT_SECONDS"
 ENV_LLM_MAX_RETRIES = "LLM_MAX_RETRIES"
 ENV_LLM_RETRY_BACKOFF_SECONDS = "LLM_RETRY_BACKOFF_SECONDS"
+ENV_LLM_MIN_REQUEST_INTERVAL_SECONDS = "LLM_MIN_REQUEST_INTERVAL_SECONDS"
+ENV_LLM_RETRY_AFTER_CAP_SECONDS = "LLM_RETRY_AFTER_CAP_SECONDS"
 ENV_GROQ_API_KEY = "GROQ_API_KEY"
 ENV_GEMINI_API_KEY = "GEMINI_API_KEY"
 ENV_GROQ_MODEL = "GROQ_MODEL"
@@ -95,6 +97,13 @@ DEFAULT_LLM_TIMEOUT_SECONDS = 4.0
 # more than once".
 DEFAULT_LLM_MAX_RETRIES = 1
 DEFAULT_LLM_RETRY_BACKOFF_SECONDS = 0.25
+# Minimum gap between LLM HTTP attempts. Empty selects 4 seconds so a
+# free-tier burst (for example a 36-row eval) stays inside typical RPM.
+DEFAULT_LLM_MIN_REQUEST_INTERVAL_SECONDS = 4.0
+MAX_LLM_MIN_REQUEST_INTERVAL_SECONDS = 60.0
+# Cap for a provider Retry-After header on the single allowed retry.
+DEFAULT_LLM_RETRY_AFTER_CAP_SECONDS = 8.0
+MAX_LLM_RETRY_AFTER_CAP_SECONDS = 60.0
 
 # The issue 04 cap is 200. EventStore receives the validated value; it
 # does not read the environment itself.
@@ -280,6 +289,17 @@ def _positive_int(name: str, default: int, maximum: int) -> int:
     return value
 
 
+
+def _non_negative_bounded_float(name: str, default: float, maximum: float) -> float:
+    """Parse a finite float in ``0..maximum``. Zero disables the feature."""
+    value = _non_negative_float(name, default)
+    if value > maximum:
+        raise SettingsError(
+            f"{name} must be between 0 and {maximum}, got {value!r}"
+        )
+    return value
+
+
 def _bounded_float(name: str, default: float, maximum: float) -> float:
     """Parse a positive finite float no greater than ``maximum``."""
     value = _positive_float(name, default)
@@ -412,6 +432,8 @@ class Settings:
     llm_timeout_seconds: float
     llm_max_retries: int
     llm_retry_backoff_seconds: float
+    llm_min_request_interval_seconds: float
+    llm_retry_after_cap_seconds: float
     groq_model: str
     gemini_model: str
     groq_base_url: str
@@ -520,6 +542,16 @@ class Settings:
             llm_max_retries=_retry_count(ENV_LLM_MAX_RETRIES, DEFAULT_LLM_MAX_RETRIES),
             llm_retry_backoff_seconds=_non_negative_float(
                 ENV_LLM_RETRY_BACKOFF_SECONDS, DEFAULT_LLM_RETRY_BACKOFF_SECONDS
+            ),
+            llm_min_request_interval_seconds=_non_negative_bounded_float(
+                ENV_LLM_MIN_REQUEST_INTERVAL_SECONDS,
+                DEFAULT_LLM_MIN_REQUEST_INTERVAL_SECONDS,
+                MAX_LLM_MIN_REQUEST_INTERVAL_SECONDS,
+            ),
+            llm_retry_after_cap_seconds=_bounded_float(
+                ENV_LLM_RETRY_AFTER_CAP_SECONDS,
+                DEFAULT_LLM_RETRY_AFTER_CAP_SECONDS,
+                MAX_LLM_RETRY_AFTER_CAP_SECONDS,
             ),
             groq_model=groq_model or DEFAULT_GROQ_MODEL,
             gemini_model=gemini_model or DEFAULT_GEMINI_MODEL,

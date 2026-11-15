@@ -68,6 +68,7 @@ def test_valid_rules_evidence_is_still_reproducible(tmp_path):
     assert cli.main(["--sets", "blind", "--write-evidence", str(path)]) == 0
     payload = json.loads(path.read_text())
     assert payload["provider"] == payload["model"] == "rules"
-    assert payload["n"] == 36 and payload["intent_correct"] == 8
+    assert payload["n"] == 36
+    assert payload["intent_correct"] / payload["n"] >= 0.8
     assert payload["llm_attempts"] == 0
     assert all(row["source"] == "rules" for row in payload["rows"])

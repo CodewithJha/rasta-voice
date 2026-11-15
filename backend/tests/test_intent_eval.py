@@ -126,16 +126,8 @@ def test_rules_accuracy_on_gold_tuning_and_blind():
         assert total >= 1
 
 
-@pytest.mark.xfail(
-    reason=(
-        "Issue 2 accuracy acceptance is still open: rules must reach "
-        f"{HOLDOUT_ACCURACY_TARGET:.1f} on the blind holdout. The measured "
-        "regression floor is 6/36. Do not retune against this set. When "
-        "the target is met this strict xfail becomes a hard error so the "
-        "marker is removed."
-    ),
-    strict=True,
-)
+# The 0.8 acceptance target is now a hard check. The regression floor
+# remains 6/36 and is not raised here.
 def test_blind_rules_meet_the_issue_accuracy_target():
     blind = evaluate_rows(
         load_gold_rows(BLIND_HOLDOUT_PATH), name="blind", provider="rules"

@@ -138,6 +138,8 @@ Also set, for a public Space:
 - `RASTA_MAX_CONCURRENT_SPEECH` — production default 2; development default 32 so local and test suites can run concurrent uploads.
 - `RASTA_MAX_SPEECH_SECONDS` — default 30 for ingest and simulate.
 - `LLM_PROVIDER` and, if not `rules`, `GROQ_API_KEY` or `GEMINI_API_KEY`.
+  For Groq as the first hop set `LLM_PROVIDER=groq`. Gemini is then the
+  retryable fallback when its key is present.
 - `RASTA_DB_PATH` — SQLite file for the dispatch event store. The
   default is `data/rasta-events.sqlite` relative to the process
   working directory (in the image, `/app/data/rasta-events.sqlite`).
@@ -190,11 +192,15 @@ the `Dockerfile` in this repository.
 4. In the Space **Settings → Secrets**, add at least:
    - `GNANI_API_KEY`
    - `DISPATCH_PASSCODE`
-   - `LLM_PROVIDER` (`rules`, or `groq` / `gemini` plus the matching key)
+   - `LLM_PROVIDER` (`rules` by default, or `groq` / `gemini` plus the matching key)
 5. Optional secrets, if you need to override image defaults:
    `RASTA_ALLOWED_HOSTS`, `RASTA_DEMO_SPEECH_BUDGET`,
    `RASTA_PER_IP_REQUESTS_PER_MINUTE`, `RASTA_TRUST_PROXY_HEADERS`,
-   `RASTA_DB_PATH`, `GROQ_API_KEY`, `GEMINI_API_KEY`.
+   `RASTA_DB_PATH`, `GROQ_API_KEY`, `GEMINI_API_KEY`,
+   `LLM_MIN_REQUEST_INTERVAL_SECONDS`, `LLM_RETRY_AFTER_CAP_SECONDS`.
+   To make Groq the first LLM hop, set `LLM_PROVIDER=groq` and `GROQ_API_KEY`.
+   On 429, 5xx or timeout, Gemini is tried next if `GEMINI_API_KEY` is set,
+   then rules. Do not put key values in the repo or in this file.
 6. Wait for the build. Open the Space URL. Check `GET /api/health`
    and `GET /api/ready` return JSON, `GET /` returns the desk HTML, and a missing key yields
    503 on `/api/ingest/sample`. With the key set, a noisy sample should

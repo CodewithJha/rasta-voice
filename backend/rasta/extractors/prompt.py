@@ -14,13 +14,17 @@ from rasta.schema import Intent
 TRANSCRIPT_START = "<transcript>"
 TRANSCRIPT_END = "</transcript>"
 
-# Two shots from the issue: the stacked gate/phone line, and the missing-item
-# line. Both are invented; no real personal data.
+# Shots: the issue's stacked gate/phone line and missing-item line, plus an
+# invented short-break line that is other rather than delay. No real personal data.
 _SHOT_UNREACHABLE = (
     "Bhaiya, gate band hai aur customer phone nahi utha raha. "
     "Order eighteen pe main das minute se khada hoon."
 )
 _SHOT_MISSING = "order 4 mein ek item missing"
+_SHOT_OTHER_BREAK = (
+    "Main paanch minute ruk ke paani pi raha hoon, koi late drop nahi hai, "
+    "phir route continue karta hoon."
+)
 
 _INTENT_LIST = ", ".join(intent.value for intent in Intent)
 
@@ -40,6 +44,15 @@ _EXAMPLE_MISSING = {
     "urgency": "medium",
     "dispatch_action": "Hold the drop. Ask the hub to check the bag before the rider moves.",
     "transcript": _SHOT_MISSING,
+    "confidence": 0.9,
+}
+_EXAMPLE_OTHER_BREAK = {
+    "intent": "other",
+    "order_id": None,
+    "eta_minutes": None,
+    "urgency": "low",
+    "dispatch_action": "Read the transcript. No rule matched, so a person should.",
+    "transcript": _SHOT_OTHER_BREAK,
     "confidence": 0.9,
 }
 
@@ -65,6 +78,11 @@ _STACKED = (
     "answered both appear, customer_unreachable wins. If an accident and "
     "anything else appear, accident_sos wins."
 )
+_OTHER_VS_DELAY = (
+    "A short personal break, rest, or pause is intent other even when the "
+    "rider mentions a few minutes. delay is only for a late drop, traffic, "
+    "or slow progress toward the customer."
+)
 
 SYSTEM_PROMPT = "\n".join(
     [
@@ -85,11 +103,15 @@ SYSTEM_PROMPT = "\n".join(
         "",
         _STACKED,
         "",
+        _OTHER_VS_DELAY,
+        "",
         "Examples of the JSON you must return:",
         "",
         json.dumps(_EXAMPLE_UNREACHABLE, ensure_ascii=False, indent=2),
         "",
         json.dumps(_EXAMPLE_MISSING, ensure_ascii=False, indent=2),
+        "",
+        json.dumps(_EXAMPLE_OTHER_BREAK, ensure_ascii=False, indent=2),
     ]
 )
 

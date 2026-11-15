@@ -15,7 +15,7 @@ import pytest
 
 from rasta.extract import extract_event, extract_event_with_source
 from rasta.extractors.breaker import set_breaker
-from rasta.extractors.http import build_client, close_shared_client
+from rasta.extractors.http import build_client, close_shared_client, retry_delay_seconds
 from rasta.extractors.prompt import SYSTEM_PROMPT, TRANSCRIPT_END, TRANSCRIPT_START
 from rasta.llm import GEMINI_MODEL, GROQ_MODEL, groq_request_body
 from rasta.resilience import set_upstream_runtime
@@ -82,6 +82,7 @@ def _isolate(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest):
         monkeypatch.delenv(ENV_GROQ_API_KEY, raising=False)
         monkeypatch.delenv(ENV_GEMINI_API_KEY, raising=False)
         monkeypatch.setenv("LLM_PROVIDER", "rules")
+        monkeypatch.setenv("LLM_MIN_REQUEST_INTERVAL_SECONDS", "0")
         clear_settings_cache()
     yield
     set_breaker(None)
@@ -429,3 +430,60 @@ def test_live_provider_when_key_is_present():
     assert result.event.intent.value == "item_missing", (
         f"live {provider} intent={result.event.intent.value} latency_ms={elapsed_ms:.0f}"
     )
+
+
+def test_groq_retryable_failure_uses_gemini_when_key_is_set(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv(ENV_GROQ_API_KEY, "groq-test-key")
+    monkeypatch.setenv(ENV_GEMINI_API_KEY, "gemini-test-key")
+    monkeypatch.setenv("LLM_RETRY_BACKOFF_SECONDS", "0")
+    clear_settings_cache()
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        host = request.url.host
+        seen.append(host)
+        if "groq" in host:
+            return httpx.Response(429, json={"error": "rate limited"})
+        return _gemini_response(_event_payload())
+
+    result = extract_event_with_source(LINE, provider="groq", client=_client_for(handler))
+    assert seen[0].endswith("groq.com") or "groq" in seen[0]
+    assert any("googleapis" in host or "generativelanguage" in host for host in seen)
+    assert result.source == "llm"
+    assert result.fallback_reason is None
+    assert result.event.intent.value == "item_missing"
+
+
+def test_missing_groq_key_does_not_silently_use_gemini(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv(ENV_GROQ_API_KEY, raising=False)
+    monkeypatch.setenv(ENV_GEMINI_API_KEY, "gemini-test-key")
+    clear_settings_cache()
+    seen: list[int] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(1)
+        return _gemini_response(_event_payload())
+
+    result = extract_event_with_source(LINE, provider="groq", client=_client_for(handler))
+    assert seen == []
+    assert result.source == "rules"
+    assert result.fallback_reason == "missing_api_key"
+
+
+def test_retry_after_header_is_capped_by_settings(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("LLM_RETRY_AFTER_CAP_SECONDS", "3")
+    monkeypatch.setenv("LLM_RETRY_BACKOFF_SECONDS", "0.25")
+    clear_settings_cache()
+    settings = get_settings()
+    long_wait = httpx.Response(429, headers={"Retry-After": "30"})
+    assert retry_delay_seconds(long_wait, settings, 0) == 3
+    short_wait = httpx.Response(429, headers={"Retry-After": "1"})
+    assert retry_delay_seconds(short_wait, settings, 0) == 1
+    missing = httpx.Response(429)
+    assert retry_delay_seconds(missing, settings, 0) == 0.25
+
+
+def test_system_prompt_separates_a_short_break_from_delay():
+    assert "koi late drop nahi hai" in SYSTEM_PROMPT
+    assert "short personal break" in SYSTEM_PROMPT.lower()
+    assert "delay is only for a late drop" in SYSTEM_PROMPT

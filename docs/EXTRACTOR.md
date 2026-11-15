@@ -6,11 +6,19 @@ live on the ingest envelope, not inside `event`.
 
 ## Headline result
 
-Rules intent accuracy on the **blind holdout** is still **8/36 = 0.222**,
-below the issue's 0.8 target. A new live Gemini run on 14 Nov 2026 scored
-**26/36 = 0.722** end-to-end on that same frozen set (24/26 = 0.923 on
-validated LLM answers). A rules fallback is never counted as an LLM
-success. Issue 2 stays open until the 0.8 holdout target is actually met.
+Rules intent accuracy on the **blind holdout** is **29/36 = 0.806**,
+which meets the issue's 0.8 target. That figure is the one-shot official
+score after a rules-v2 freeze on 15 Nov 2026. Earlier official runs on
+the same frozen labels were 6/36 and 8/36; those numbers stay in the
+table below as history. The 6/36 regression floor was not raised. Gold
+and the tuning holdout remain 30/30 and 24/24.
+
+The same morning, paced live runs on that holdout scored **35/36 = 0.972**
+end-to-end for both Groq (`openai/gpt-oss-20b`) and Gemini
+(`gemini-3.5-flash-lite`). Groq validated accuracy was 33/34 (two HTTP
+429 fallbacks, counted as rules, never as LLM successes). Gemini
+validated accuracy was 35/36, with no fallbacks. A rules fallback is
+never counted as an LLM success.
 
 Two checks are kept distinct, with constants in
 `backend/rasta/intent_eval.py`:
@@ -18,10 +26,9 @@ Two checks are kept distinct, with constants in
 - A regression floor `BLIND_RULES_BASELINE = 6/36`, asserted as a
   normal test. This floor is not raised when a later review fix moves
   the score, and it is not raised by retuning or relabelling.
-- An acceptance check against `HOLDOUT_ACCURACY_TARGET = 0.8`, marked
-  `pytest.mark.xfail(strict=True)`. It is an expected failure today and
-  becomes a hard error (XPASS) when the target is met, so the marker
-  has to be removed.
+- An acceptance check against `HOLDOUT_ACCURACY_TARGET = 0.8`. The
+  strict `pytest.mark.xfail` was removed on 15 Nov 2026 after the one-shot
+  official rules score reached 0.806, so the check is now a hard test.
 
 `python scripts/eval_intent.py` always prints `TARGET MET` or
 `TARGET NOT MET` for the blind rules score and exits 0. Pass
@@ -52,13 +59,22 @@ There is no vendor SDK and no mock mode in application code. Tests swap
 `timeout=LLM_TIMEOUT_SECONDS` (default 4). Issue 29 will take that client
 over; this issue already closes it in the FastAPI lifespan.
 
-On a missing key, timeout, connection error, 401/403, a second 429/5xx
-(one retry, backoff, never after 401/403), invalid JSON, or a JSON object
-that fails `RiderEvent` validation, the call falls back to rules and the
-envelope records `extractor_source: "rules"` plus a short
+When the selected provider is `groq` or `gemini`, a retryable failure
+(timeout, connection error, HTTP 429, or HTTP 5xx) after the one allowed
+retry hops to the other free provider if that provider's key is set, then
+to rules. A missing key for the selected provider still raises from the
+helper; `extract_event` catches it and returns the rules event. It does
+not silently start on the other vendor. Non-retryable reasons (401/403,
+invalid JSON, a JSON object that fails `RiderEvent` validation, or an
+open circuit breaker) do not cascade.
+
+Request pacing and Retry-After handling are configured on Settings, with
+no hard-coded intervals in the request path:
+`LLM_MIN_REQUEST_INTERVAL_SECONDS` (default 4.0; 0 disables) and
+`LLM_RETRY_AFTER_CAP_SECONDS` (default 8.0). At most one retry, never
+after 401/403. The envelope records `extractor_source` and a short
 `fallback_reason`. Logs include the reason only: no transcript, no prompt,
-no model text, no key. An open circuit breaker (hook for issue 29) is the
-same fallback, with reason `circuit_open`.
+no model text, no key.
 
 ## Evaluation splits
 
@@ -86,8 +102,8 @@ runs were **6/36 = 0.167**. After the channel-bound contact fix
 (`a97476c`) a third rules run was **8/36 = 0.222**. The two new hits
 were `b05` ("uthata nahi", the same verb family as "nahi utha" /
 "uthaya nahi") and `b06` ("number continuously busy", a channel-bound
-busy phrase). They were not added by targeting those lines. The 0.8
-target is still unmet. Those numbers are left as measured.
+busy phrase). They were not added by targeting those lines. Those numbers are left
+as measured. The 0.8 target was still unmet at that point.
 
 ## Measured rules accuracy (intent only, 12 Nov 2026)
 
@@ -98,6 +114,7 @@ target is still unmet. Those numbers are left as measured.
 | Blind holdout, first run (before `be41004`) | 6/36 = 0.167 |
 | Blind holdout, second run (after `be41004`) | 6/36 = 0.167 |
 | Blind holdout, third run (after `a97476c`, official) | 8/36 = 0.222 |
+| Blind holdout, fourth run (rules v2, 15 Nov 2026, official one-shot) | 29/36 = 0.806 |
 | Benchmark corpus (reference) | 41/48 = 0.854 (was 40/48 = 0.833 before expansion) |
 
 Blind per-intent accuracy, third run: `customer_unreachable` 2/6,
@@ -161,10 +178,63 @@ A rules fallback is never counted as an LLM success. CI has no LLM key;
 `pytest -k live` skips. A Groq key was still not present on 14 Nov 2026,
 so Groq was not scored.
 
+## Rules v2 and live LLM measurement (15 Nov 2026)
+
+Rules v2 widened the existing keyword extractor from the taxonomy plus
+the gold and tuning sets only: channel-bound contact grammar with
+adverb and case-marker fillers, engaged and call-cut patterns, address
+mismatch groups (including tower/sector/block/plot and road-closed
+cues), implicit item counts and empty-pack / left-behind phrasing,
+rain and bumper-to-bumper delay, SOS morphology with a hospital+cue
+guard, and a training-or-video context guard so a mention of an
+accident in that setting is not treated as SOS. Patterns were not
+copied from the frozen holdout. Invented unit examples cover each new
+rule. After those tests and the gold/tuning scores stayed at 54/54,
+the rules were frozen and the holdout was scored once.
+
+Official one-shot rules result, 15 Nov 2026: **29/36 = 0.806**.
+Per-intent: `customer_unreachable` 5/6, `address_issue` 4/6,
+`item_missing` 4/6, `delay` 5/6, `accident_sos` 5/6, `other` 6/6.
+The seven remaining misses are `b03`, `b08`, `b09`, `b16`, `b17`,
+`b22` and `b27`. Rules were not changed after seeing those ids.
+Order id exact-match is still 36/36. ETA exact-match is still 35/36
+(`b31`). Evidence: `docs/evidence/rules-holdout-2026-11-15.json`.
+
+The 0.8 acceptance check is now a hard test. `--enforce-target` exits 0
+on this score.
+
+Paced live runs used the default 4.0 s minimum request interval and the
+4.0 s timeout (not raised). The sibling vendor key was unset in each
+process so a 429 would fall back to rules, not to the other LLM. Wall
+times below include that pacing, so they are not comparable to the
+unpaced 14 Nov Gemini latencies.
+
+1. **Groq, 9:45 AM IST**, `openai/gpt-oss-20b`. 34/36 calls returned a
+   validated LLM event. 2/36 returned HTTP 429 after the one allowed
+   retry (`b26`, `b29`) and fell back to rules; both of those rules
+   events were correct. End-to-end accuracy was 35/36 = 0.972.
+   LLM-validated accuracy was 33/34 = 0.971. The one LLM miss was
+   `b27` (gold `accident_sos`, predicted `delay`). There were no
+   timeouts. Latency over all 36 rows (including pacing): mean
+   5435.5 ms, p50 4120.7 ms, min 685.8 ms, max 9745.0 ms. Evidence:
+   `docs/evidence/groq-holdout-2026-11-15.json`.
+
+2. **Gemini, 9:48 AM IST**, `gemini-3.5-flash-lite`. 36/36 calls
+   returned a validated LLM event; there were no 429s and no timeouts.
+   End-to-end and validated accuracy were both 35/36 = 0.972. The one
+   LLM miss was `b21` (gold `delay`, predicted `address_issue`).
+   Latency over all 36 rows (including pacing): mean 3916.0 ms, p50
+   4002.2 ms, min 1315.4 ms, max 4446.2 ms. Evidence:
+   `docs/evidence/gemini-holdout-2026-11-15.json`. The unpaced 14 Nov
+   Gemini run on the same labels was 26/36 end-to-end because of ten
+   HTTP 429 fallbacks; pacing removed those 429s on this run.
+
 ```bash
 pytest backend/tests/test_extract.py backend/tests/test_llm.py backend/tests/test_intent_eval.py -q
 python scripts/eval_intent.py
+python scripts/eval_intent.py --provider groq --sets blind \
+  --write-evidence docs/evidence/groq-holdout-2026-11-15.json
 python scripts/eval_intent.py --provider gemini --sets blind \
-  --write-evidence docs/evidence/gemini-holdout-2026-11-14.json
-python scripts/eval_intent.py --enforce-target  # exits 1 until the 0.8 target is met
+  --write-evidence docs/evidence/gemini-holdout-2026-11-15.json
+python scripts/eval_intent.py --enforce-target
 ```

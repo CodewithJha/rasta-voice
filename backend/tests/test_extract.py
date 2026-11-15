@@ -581,3 +581,93 @@ def test_contact_adversarial_variants(text, intent, urgency):
     event = extract_event(text, provider="rules")
     assert event.intent.value == intent
     assert event.urgency.value == urgency
+
+
+@pytest.mark.parametrize(
+    "text,intent",
+    [
+        (
+            "customer ka mobile engaged aa raha hai, order 9",
+            "customer_unreachable",
+        ),
+        (
+            "customer ke phone pe baar baar busy tone aa rahi hai, order 9",
+            "customer_unreachable",
+        ),
+        (
+            "teen rings ke baad call disconnect ho jaati hai, order 9",
+            "customer_unreachable",
+        ),
+        (
+            "main bell baja chuka hoon, koi jawab nahi aa raha, order 9",
+            "customer_unreachable",
+        ),
+        (
+            "customer ne whatsapp pe reply nahi kiya, order 9",
+            "customer_unreachable",
+        ),
+        (
+            "yeh rasta close hai aaj subah se, order 9",
+            "address_issue",
+        ),
+        (
+            "flat number match nahi kar raha, yeh dusra society hai, order 9",
+            "address_issue",
+        ),
+        (
+            "customer ne wing C bola, app mujhe wing A pe le aaya, order 9",
+            "address_issue",
+        ),
+        (
+            "bill pe char items likhe hain, bag mein sirf teen nikle, order 9",
+            "item_missing",
+        ),
+        (
+            "dip chhoot gaya packing se, kitchen se confirm karo, order 9",
+            "item_missing",
+        ),
+        (
+            "outer pack sealed hai lekin andar ka box khali pack hai, order 9",
+            "item_missing",
+        ),
+        (
+            "road pe bumper to bumper jam hai, bees minute lagenge, order 9",
+            "delay",
+        ),
+        (
+            "tez barish mein dheere chal raha hoon, order 9",
+            "delay",
+        ),
+        (
+            "checkpost pe lamba process hai, bees minute lag rahe hain, order 9",
+            "delay",
+        ),
+        (
+            "scooter takrai divider se, pair se khoon aa raha hai, order 9 rok do",
+            "accident_sos",
+        ),
+        (
+            "helmet toot ke sir pe chot aayi, madad bhejo, order 9",
+            "accident_sos",
+        ),
+        (
+            "bike skid hoke slide hui, jaldi ambulance bhejo, order 9",
+            "accident_sos",
+        ),
+        (
+            "pair mein dard hai, hospital le jaana padega, order 9",
+            "accident_sos",
+        ),
+        (
+            "training video mein accident wala part dekh raha hoon, phir nikalta hoon",
+            "other",
+        ),
+        (
+            "main paanch minute ruk ke paani pi raha hoon, phir route continue karta hoon",
+            "other",
+        ),
+    ],
+)
+def test_rules_v2_generalisable_phrases(text, intent):
+    event = extract_event(text, provider="rules")
+    assert event.intent.value == intent
