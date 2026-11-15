@@ -1,0 +1,126 @@
+{
+  "checked_at": "2026-11-14T18:31:27.501648+00:00",
+  "origin": "https://rasta-voice-himanshu748.onrender.com",
+  "deploy_id": "dep-dbsah3t6e07s739ab7qg",
+  "deployed_sha": "5facb5569b7aee0f29c06c19d01231aa7a785376",
+  "retries": 0,
+  "field_recordings": "not collected",
+  "usage_before": {
+    "gnani_calls": 0,
+    "demo_credits_remaining": 6
+  },
+  "sample_smoke": "failed",
+  "failure": "unexpected sample event: intent=customer_unreachable; expected order 18",
+  "sample_attempt_upper_bound": 2,
+  "samples": [
+    {
+      "status": 200,
+      "request_id": "0b77a77a-be3b-426a-a965-7d36d3e05dc7",
+      "condition": "noisy",
+      "event_id": "349150a1-94b8-4029-bea5-923af7d93d96",
+      "created_at": "2026-11-14T18:31:44.366599+00:00",
+      "intent": "customer_unreachable",
+      "order_id": null,
+      "extractor_source": "rules",
+      "gnani_request_id": "01a1db54-66bd-7643-b9bc-21c9fd35498d",
+      "stt_model": "prisma-v3.0",
+      "transcript_nonempty": true,
+      "error_code": null
+    }
+  ],
+  "logs": [
+    "base_url=https://rasta-voice-himanshu748.onrender.com/",
+    "GET api/health status=200 request_id=b2819271-edd3-4e04-a45b-9fed44e8c101",
+    "GET  status=200 request_id=9101d1f3-0496-4079-88eb-6297264a679d",
+    "GET api/ready status=200 request_id=cd5e2070-03f5-416c-a932-625f00a581b9",
+    "GET api/events status=401 request_id=85bd81df-11c2-4299-b899-aaa8b08b8c35",
+    "GET api/dispatch/csrf status=200 request_id=2091f7a2-3020-402f-9788-a83869294fbc",
+    "POST api/dispatch/unlock status=200 request_id=80ea62aa-8659-4554-bd60-7f0f3eea4cd3",
+    "GET api/events status=200 request_id=dd9b396a-5efe-4901-abe4-a1977b3b583b",
+    "POST api/ingest/sample status=200 request_id=0b77a77a-be3b-426a-a965-7d36d3e05dc7"
+  ],
+  "usage_after": {
+    "gnani_calls": 2,
+    "demo_credits_remaining": 4
+  },
+  "reply": {
+    "checked_at": "2026-11-14T18:35:20.476469+00:00",
+    "status": 200,
+    "request_id": "d235b943-75d3-46b3-b568-dfe3896d108e",
+    "retries": 0,
+    "cache_retrieval_after_verifier_correction": true,
+    "content_type": "audio/wav",
+    "bytes": 161324,
+    "audio_seconds": 5.04,
+    "sha256": "ffd304d37f4e1bde1bb2313dea0ed6446ac14b1b07f1a8ea3074b3bd26faec11",
+    "text": "Gate ke paas rukiye; <pauses> dispatch se customer ko ek baar call karne ko kahiye.",
+    "provider_request_id": null,
+    "provider_request_id_unavailable_reason": "Reply API does not expose one.",
+    "usage_after": {
+      "gnani_calls": 4,
+      "demo_credits_remaining": 2
+    }
+  },
+  "sample_reference": "Bhaiya, gate band hai aur customer phone nahi utha raha. Order eighteen pe main das minute se khada hoon.",
+  "observed_sample_transcript": "bhaiya, gate band hai aur customer phone nahi utha raha, order a teen pe main das minute se khada hoon.",
+  "interpretation": "Provider transcribed eighteen as a teen. Order remains null; the strict smoke is failed and has not been waived.",
+  "provider_log_observations": [
+    {
+      "at": "2026-11-14T18:31:42.209575666Z",
+      "endpoint": "tts_inference",
+      "status": 200,
+      "latency_ms": 4862,
+      "audio_seconds": 6.16
+    },
+    {
+      "at": "2026-11-14T18:31:44.364131599Z",
+      "endpoint": "stt_rest",
+      "status": 200,
+      "latency_ms": 353,
+      "audio_seconds": 6.16,
+      "gnani_request_id": "01a1db54-66bd-7643-b9bc-21c9fd35498d"
+    },
+    {
+      "at": "2026-11-14T18:33:38.708369367Z",
+      "endpoint": "tts_inference",
+      "status": 200,
+      "latency_ms": 3557,
+      "audio_seconds": 5.04
+    }
+  ],
+  "verification_limitation": "The first reply verifier trusted streaming WAV header sizes and failed after HTTP 200. The cached response was fetched once and validated using gnani_client.wav.wav_duration_seconds. The usage guard reports four reserved call units; three outbound gnani_call log entries were observed. These counters are not a provider balance or invoice.",
+  "microphone": "not tested",
+  "rollback": "not rehearsed",
+  "runtime_window_call_cap": 6,
+  "window_seconds": 86400,
+  "limit_is_process_local": true,
+  "pause_requested_after_failed_acceptance": true,
+  "final_configuration": {
+    "deploy_id": "dep-dbsaljc9v7es73c68f80",
+    "health": {
+      "ok": true,
+      "gnani_key_set": true,
+      "llm_provider": "rules"
+    },
+    "readiness": {
+      "ok": true,
+      "gnani_key_set": true,
+      "db_writable": true,
+      "rate_limit": {
+        "ok": true,
+        "per_ip_requests_per_minute": 2
+      },
+      "demo_credits_remaining": 0,
+      "demo_credits_exhausted": true,
+      "schema_version": 4,
+      "circuit_breaker": {
+        "gnani_stt": "closed",
+        "gnani_tts": "closed",
+        "llm": "closed"
+      },
+      "events_in_store": 0
+    },
+    "public_speech": "paused after failed strict acceptance",
+    "key_retained": true
+  }
+}

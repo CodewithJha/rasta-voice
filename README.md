@@ -10,11 +10,14 @@ acknowledgement and resolution, a SQLite event store, and bounded public speech
 controls. Every speech request uses the real Gnani APIs. Without
 `GNANI_API_KEY`, speech routes return a clear `503` error.
 
-**Release evidence is still incomplete:** the public host, consented field
+**Release evidence is still incomplete:** live public speech, consented field
 recordings, timed demo read-through, playable public video/posts and final form
 submission require verification. Rules accuracy is also below the issue 2
 holdout target. Read [production readiness](docs/PRODUCTION_READINESS.md) and
 [the submission checklist](docs/SUBMISSION.md) before making release claims.
+The [public Render deployment](docs/DEPLOY.md) has a privately configured Gnani
+key and recorded real STT/TTS results. Its strict noisy-sample smoke failed the
+order-number check, so public speech is paused pending that acceptance check.
 
 Built for Gnani AI's Great Indian AI Internship Challenge, targeting Noise
 Canceller. The committed speech benchmark is synthetic. It is not evidence

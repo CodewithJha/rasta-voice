@@ -1,5 +1,39 @@
 # Submission evidence
 
+## Current verification checkpoint, 15 November 2026 IST
+
+The free Render origin is https://rasta-voice-himanshu748.onrender.com and
+serves merged main `5facb5569b7aee0f29c06c19d01231aa7a785376`.
+[DEPLOY.md](DEPLOY.md) and its linked sanitized records are the current host
+evidence. The public page, health/readiness, authenticated desk reads, signed
+unlock, CSRF rejection and security headers passed their recorded checks.
+Three real provider calls returned 200, including Prisma request
+`01a1db54-66bd-7643-b9bc-21c9fd35498d` and a valid 5.04-second Timbre
+confirmation WAV. This confirms returned audio, not browser listening.
+
+The strict noisy sample **failed**: `customer_unreachable` was recognized,
+but the hypothesis contained `order a teen` and the extracted order was null
+instead of `18`. Speech is paused with the valid key retained, budget zero,
+retries disabled and automatic deployments off. Do not rerun a paid sample
+without a deliberately bounded allowance or change the expected order to pass.
+Rules holdout accuracy is 8/36 and the recorded live Gemini end-to-end result
+is 26/36, both below the independent 0.8 target.
+
+PRs 95-99 have green CI and await code-owner review. They are not merged or
+deployed. The combined local candidate passed 1,920 Python tests with 91.01%
+coverage; its live-provider test skipped and its strict accuracy target is an
+expected failure. The separate CI Playwright path is keyless. Field consent,
+real microphone capture, browser playback, rollback, timed demo, public video
+and nominated posts still need their own verified evidence. No form receipt
+was observed in this work. Do not treat green CI or a draft as submission proof.
+
+## Historical audit and checklist, 13-14 November 2026
+
+The checkpoint below is retained as recorded. Its host, PR 92, API smoke and
+old test-count rows are historical and are superseded by the current checkpoint
+above where later evidence exists. Untested human/public requirements remain
+open; no historical `no` is silently converted into a successful live result.
+
 **Status: not submitted.** Audited 13 Nov 2026 at 14:46 IST against
 `af11363324ee81fc2e053f99036941a667e10034` (merged passcode and logging work).
 This is a dated checkpoint. Re-run the checks against the final submission
