@@ -135,15 +135,39 @@ update or release creation. A successful job proves this revision built,
 passed the keyless image checks and passed the configured vulnerability
 scan; it does not prove a working public host or live provider path.
 
-Issue 32's [quality gates](QUALITY.md) still run independently. The live browser
-path remains opt-in. Public smoke (24), a real release/host rollback exercise
-and owner configuration of required branch checks remain outstanding; issue
-33 stays open until those remaining acceptance checks are verified.
+Issue 32's [quality gates](QUALITY.md) run independently, including the keyless
+browser suite. The live browser path remains opt-in. Public live smoke (13/24),
+consented field recordings (17), live browser acceptance (32) and an actual host
+rollback exercise remain separate, unverified release gates. A green CI/CD
+implementation does not establish those results or production readiness.
 
-The added job names, including `container`, must be added to required branch checks by the repository
-owner after this workflow passes on a PR. A workflow file alone cannot change
-branch settings. Existing required check names are preserved. Both owners must
-agree to this `.github/` contract before merge; do not self-merge it.
+## CI/CD completion record, 15 November 2026
+
+The implementation acceptance criteria on issue 33 are met:
+
+- Actions use full commit SHAs, checkout credentials are not persisted, and
+  workflow concurrency cancels superseded runs.
+- Pull requests run Gitleaks, Python/npm audits, Bandit, the actual production
+  Docker build and unfiltered HIGH/CRITICAL Trivy scan.
+- Python coverage/types, frontend checks/tests/build, contract checks, keyless
+  Playwright and load checks run as ten named jobs.
+- Weekly Dependabot, the PR template and both CODEOWNERS are merged.
+- The container workflow supports version tags and manual dispatch from main;
+  it builds/scans and prints the documented deployment/rollback handoff.
+  Automatic host publication is not claimed.
+- All ten checks passed on reviewed main `3eb0859`, which includes PR 103.
+
+After PR 103, the repository owner applied and re-read all ten required checks,
+up-to-date branches, required peer/code-owner review and administrator
+enforcement. Force pushes and deletion remain disabled. The
+[owner's verification](https://github.com/CodewithJha/rasta-voice/issues/34#issuecomment-6889687411)
+and [governance policy](GOVERNANCE.md) distinguish that settings action from a
+workflow file. Neither owner merges their own PR.
+
+Issue 33 requires documented, manually dispatchable CD and a rollback paragraph;
+those are implemented. The actual live speech and rollback rehearsal remain
+on the deployment/release checklist. Closing the CI/CD implementation issue
+does not waive them or turn the failed order-18 live result into a pass.
 
 ## Verified source-digest false positive, 14 November 2026
 
