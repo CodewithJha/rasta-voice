@@ -33,10 +33,16 @@ _ONES = {
     "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12,
     "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16,
     "seventeen": 17, "eighteen": 18, "nineteen": 19,
-    # Romanised Hindi, the way riders say minutes.
+    # Romanised Hindi literals, including the words used by spoken replies.
+    "shoonya": 0, "shunya": 0,
     "ek": 1, "do": 2, "teen": 3, "char": 4, "chaar": 4, "paanch": 5, "panch": 5,
-    "chhe": 6, "che": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10,
-    "pandrah": 15, "pandra": 15, "bees": 20, "pachchis": 25, "pachees": 25,
+    "chhe": 6, "che": 6, "chhah": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10,
+    "gyarah": 11, "gyaarah": 11, "barah": 12, "baarah": 12, "terah": 13,
+    "chaudah": 14, "pandrah": 15, "pandra": 15, "solah": 16, "satrah": 17,
+    "atharah": 18, "athara": 18, "attharah": 18, "unnees": 19, "unnis": 19,
+    "bees": 20, "ikkees": 21, "baees": 22, "baais": 22, "teis": 23,
+    "chaubees": 24, "pachchees": 25, "pachchis": 25, "pachees": 25,
+    "chhabbees": 26, "sattais": 27, "atthais": 28, "untees": 29,
     "tees": 30, "chalis": 40, "chaalis": 40, "paintalis": 45, "pachas": 50,
     "pachaas": 50, "saath": 60,
 }
@@ -44,11 +50,16 @@ _TENS = {
     "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
     "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
 }
-_NUMBER_WORD = "(?:" + "|".join(sorted([*_ONES, *_TENS], key=len, reverse=True)) + ")"
-_NUMBER = rf"(\d{{1,6}}|(?:{_NUMBER_WORD})(?:[\s-]+(?:{_NUMBER_WORD}))?)"
+_NUMBER_WORD = "(?:" + "|".join(
+    sorted([*_ONES, *_TENS, "hundred", "thousand", "million", "billion", "point"],
+           key=len, reverse=True)
+) + ")"
+# Consume the whole contiguous phrase, so a long spoken identifier cannot
+# become a short prefix. "and" joins only when another number word follows.
+_NUMBER = rf"(\d{{1,6}}|{_NUMBER_WORD}(?:[\s-]+(?:and\s+)?{_NUMBER_WORD})*)"
 _ORDER = re.compile(rf"\border\s*(?:no\.?|number|#)?\s*{_NUMBER}\b", re.IGNORECASE)
 _ETA = re.compile(
-    rf"\b{_NUMBER}\s*(?:min|mins|minute|minutes|mint|minat)\b", re.IGNORECASE
+    rf"(?<!\d[.,])\b{_NUMBER}\s*(?:min|mins|minute|minutes|mint|minat)\b", re.IGNORECASE
 )
 _LONG_DIGITS = re.compile(r"\d{8,}")
 
@@ -485,10 +496,15 @@ def _order_id(transcript: str) -> str | None:
     match = _ORDER.search(transcript)
     if not match:
         return None
+    continuation = transcript[match.end():]
+    if re.match(r"\s*[.,]\s*\d", continuation) or re.match(
+        rf"\s+(?:or|ya|to)\s+(?:\d+|{_NUMBER_WORD})\b", continuation, re.IGNORECASE
+    ):
+        return None
     token = match.group(1)
     if _LONG_DIGITS.fullmatch(token):
         return None
-    value = _to_int(token)
+    value = _to_int(token, allow_digit_sequence=True)
     return None if value is None else str(value)
 
 
@@ -499,15 +515,53 @@ def _eta(transcript: str) -> int | None:
     return _to_int(match.group(1))
 
 
-def _to_int(token: str) -> int | None:
+def _under_hundred(words: list[str]) -> int | None:
+    if len(words) == 1:
+        return _ONES.get(words[0], _TENS.get(words[0]))
+    if len(words) == 2 and words[0] in _TENS and 1 <= _ONES.get(words[1], -1) <= 9:
+        return _TENS[words[0]] + _ONES[words[1]]
+    return None
+
+
+def _under_thousand(words: list[str]) -> int | None:
+    if "hundred" not in words:
+        return _under_hundred(words)
+    if words.count("hundred") != 1 or len(words) < 2 or words[1] != "hundred":
+        return None
+    multiplier = _ONES.get(words[0], -1)
+    if not 1 <= multiplier <= 9:
+        return None
+    tail = words[2:]
+    if tail and tail[0] == "and":
+        tail = tail[1:]
+        if not tail:
+            return None
+    remainder = _under_hundred(tail) if tail else 0
+    return None if remainder is None else multiplier * 100 + remainder
+
+
+def _to_int(token: str, *, allow_digit_sequence: bool = False) -> int | None:
     if token.isdigit():
         return int(token)
-    total = 0
-    for word in re.split(r"[\s-]+", token.lower()):
-        if word in _TENS:
-            total += _TENS[word]
-        elif word in _ONES:
-            total += _ONES[word]
-        else:
+    words = re.split(r"[\s-]+", token.lower())
+    if len(words) > 1 and all(0 <= _ONES.get(word, -1) <= 9 for word in words):
+        # Orders are often dictated digit by digit. Consecutive units in an
+        # ETA can instead be a range, so do not guess an ETA from that form.
+        if not allow_digit_sequence or len(words) > 6:
             return None
-    return total
+        return int("".join(str(_ONES[word]) for word in words))
+    if "thousand" not in words:
+        return _under_thousand(words)
+    if words.count("thousand") != 1:
+        return None
+    split = words.index("thousand")
+    thousands = _under_thousand(words[:split])
+    tail = words[split + 1:]
+    if tail and tail[0] == "and":
+        tail = tail[1:]
+        if not tail:
+            return None
+    remainder = _under_thousand(tail) if tail else 0
+    if thousands is None or not 1 <= thousands <= 999 or remainder is None:
+        return None
+    return thousands * 1000 + remainder
