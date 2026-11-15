@@ -193,6 +193,8 @@ Synthetic rider speech mixed with traffic / horn / wind / crowd / crosstalk, the
 
 <!-- benchmark:start -->
 
+Controlled synthetic audio; these scores do not establish real customer-call accuracy.
+
 | System | Raw WER | Raw CER | Normalized WER | Normalized CER | Intent accuracy | n |
 | --- | --- | --- | --- | --- | --- | --- |
 | v25 | 0.8429 | 0.8123 | 0.8012 | 0.8107 | 0.0000 | 80 |
