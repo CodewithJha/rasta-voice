@@ -671,3 +671,43 @@ def test_contact_adversarial_variants(text, intent, urgency):
 def test_rules_v2_generalisable_phrases(text, intent):
     event = extract_event(text, provider="rules")
     assert event.intent.value == intent
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "bill mein only three items hain, order 9, sab mil gaya",
+        "invoice pe only three items hain, order 9 complete hai",
+        "package mein only three items hain, sab sahi mila, order nine",
+        "bag mein char items hain aur teen extra chutney sachets bhi hain, "
+        "sab complete hai, order 9",
+    ],
+)
+def test_item_count_does_not_fire_without_a_shortage_or_on_order_ids(text):
+    event = extract_event(text, provider="rules")
+    assert event.intent.value != "item_missing"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "training centre ke paas accident hua hai, order 9",
+        "training campus ke bahar hadsa ho gaya, jaldi aao, order 9",
+    ],
+)
+def test_real_accident_near_a_training_place_is_sos(text):
+    event = extract_event(text, provider="rules")
+    assert event.intent.value == "accident_sos"
+    assert event.urgency.value == "high"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "training video mein accident wala part dekh raha hoon, phir nikalta hoon",
+        "safety module ke chapter mein accident ka example dekh raha hoon, order 9",
+    ],
+)
+def test_accident_in_training_media_is_not_sos(text):
+    event = extract_event(text, provider="rules")
+    assert event.intent.value == "other"

@@ -112,16 +112,22 @@ _NEGATIVE_SUFFIX = re.compile(
 )
 
 
-def _affirmed_keyword(text: str, needle: str) -> bool:
+def _affirmed_spans(text: str, needle: str) -> list[tuple[int, int]]:
+    """Return spans of ``needle`` that are not locally negated."""
     suffix = r"\w*" if needle in _STEM_NEEDLES else ""
     pattern = re.compile(r"(?<!\w)" + re.escape(needle) + suffix + r"(?!\w)")
+    spans: list[tuple[int, int]] = []
     for match in pattern.finditer(text):
         if _NEGATIVE_PREFIX.search(text[: match.start()]) is not None:
             continue
         if _NEGATIVE_SUFFIX.match(text[match.end() :]) is not None:
             continue
-        return True
-    return False
+        spans.append(match.span())
+    return spans
+
+
+def _affirmed_keyword(text: str, needle: str) -> bool:
+    return bool(_affirmed_spans(text, needle))
 
 
 @dataclass(frozen=True, slots=True)
@@ -348,9 +354,12 @@ def _is_failed_contact(haystack: str) -> bool:
 
 
 
-_TRAINING_CONTEXT = re.compile(
-    r"\b(?:video|training|tutorial|chapter|course|clip|movie|lecture|module)\b"
+# Media or lesson content, not a place such as a training centre.
+_TRAINING_CONTENT = re.compile(
+    r"\b(?:(?:training|safety)\s+)?"
+    r"(?:video|tutorial|chapter|course|clip|movie|lecture|module)s?\b"
 )
+_CLAUSE_SPLIT = re.compile(r"[,.!?]")
 _SOS_MENTION = (
     "accident",
     "hadsa",
@@ -403,19 +412,52 @@ def _normalize_rules_text(text: str) -> str:
     return re.sub(r"\bnahin\b", "nahi", lowered)
 
 
+def _clause_around(text: str, span: tuple[int, int]) -> str:
+    """Return the comma- or sentence-bounded clause that contains ``span``."""
+    start, end = span
+    left = 0
+    right = len(text)
+    for match in _CLAUSE_SPLIT.finditer(text):
+        if match.end() <= start:
+            left = match.end()
+        elif match.start() >= end:
+            right = match.start()
+            break
+    return text[left:right]
+
+
+def _is_training_content_mention(haystack: str, span: tuple[int, int]) -> bool:
+    """True when this accident mention refers to training or safety media."""
+    return _TRAINING_CONTENT.search(_clause_around(haystack, span)) is not None
+
+
 def _is_accident(haystack: str) -> bool:
     """True for rider harm or an unqualified accident mention.
 
-    A mention of accident, hadsa, or sos inside a video/training context is
-    not enough; a harm keyword still wins.
+    A mention of accident, hadsa, or sos inside a training or safety video,
+    module, or chapter is not enough; a harm keyword still wins. A real
+    accident near a training place is still SOS.
     """
     if any(_affirmed_keyword(haystack, needle) for needle in _SOS_HARM):
         return True
     if _HOSPITAL.search(haystack) and _HOSPITAL_CUE.search(haystack):
         return True
-    if not any(_affirmed_keyword(haystack, needle) for needle in _SOS_MENTION):
+    mentions: list[tuple[int, int]] = []
+    for needle in _SOS_MENTION:
+        mentions.extend(_affirmed_spans(haystack, needle))
+    if not mentions:
         return False
-    return _TRAINING_CONTEXT.search(haystack) is None
+    return any(
+        not _is_training_content_mention(haystack, span) for span in mentions
+    )
+
+
+def _order_id_span(text: str) -> tuple[int, int] | None:
+    """Span of the existing order-id match, when `_order_id` accepts it."""
+    match = _ORDER.search(text)
+    if match is None or _order_id(text) is None:
+        return None
+    return match.span()
 
 
 def _is_item_count_short(haystack: str) -> bool:
@@ -423,14 +465,17 @@ def _is_item_count_short(haystack: str) -> bool:
     if _ITEM_CONTEXT.search(haystack) is None:
         return False
     if re.search(
-        r"\b(?:bill|invoice|sirf|only|honi thi|hone the|nikle|nikla)\b"
+        r"\b(?:sirf|only|honi thi|hone the|nikle|nikla)\b"
         r"|\bhi\s+(?:hain|hai|mil|nikle)\b",
         haystack,
     ) is None:
         return False
+    excluded = _order_id_span(haystack)
     values: set[int] = set()
-    for token in _COUNT_TOKEN.findall(haystack):
-        parsed = _to_int(token)
+    for token in _COUNT_TOKEN.finditer(haystack):
+        if excluded is not None and _spans_overlap(token.span(), excluded):
+            continue
+        parsed = _to_int(token.group(0))
         if parsed is not None:
             values.add(parsed)
     return len(values) >= 2
