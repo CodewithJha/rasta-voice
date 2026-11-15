@@ -34,6 +34,10 @@ for (const width of [1280, 360, 400]) {
     expect(speechRequests).toEqual([]);
     // The actual service still fails closed, independently of the new preflight UI.
     expect((await request.post("/api/ingest/sample")).status()).toBe(503);
+    await disclosure.click();
+    const riderWidth = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
+    expect(riderWidth.document).toBeLessThanOrEqual(riderWidth.viewport);
+    await page.screenshot({ path: test.info().outputPath(`keyless-rider-${width}.png`), fullPage: true });
     await page.getByRole("button", { name: "Hinglish", exact: true }).click();
     await unlockDesk(page);
     const desk = page.getByRole("region", { name: "Delivery updates", exact: true });

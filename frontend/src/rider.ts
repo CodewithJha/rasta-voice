@@ -175,7 +175,10 @@ export function initRider(root: HTMLElement): { isBusy: () => boolean } {
   const replyAudio = document.createElement("audio");
   replyAudio.controls = true;
   replyAudio.hidden = true;
-  replyPlayer.append(hear, replyCaption, replyText, replyAudio);
+  const replyStatus = document.createElement("p");
+  replyStatus.className = "rider-reply-status";
+  replyStatus.setAttribute("role", "status");
+  replyPlayer.append(hear, replyCaption, replyStatus, replyText, replyAudio);
 
   players.append(clipPlayer, replyPlayer);
 
@@ -285,6 +288,22 @@ export function initRider(root: HTMLElement): { isBusy: () => boolean } {
     hear.disabled = value || speechBlocked || checking || !lastEventId;
     checkAgain.disabled = value;
     chit.setAttribute("aria-busy", String(value));
+  };
+
+  const resetForUpdate = (): void => {
+    lastEventId = undefined;
+    lastShown = undefined;
+    hear.disabled = true;
+    players.hidden = true;
+    sent.hidden = true;
+    deskLink.hidden = true;
+    replyText.hidden = true;
+    replyStatus.textContent = "";
+    for (const player of [clipAudio, replyAudio]) {
+      if (player.src.startsWith("blob:")) URL.revokeObjectURL(player.src);
+      player.removeAttribute("src");
+      player.hidden = true;
+    }
   };
 
   function rememberIngest(ingest: IngestResult): void {
@@ -417,6 +436,7 @@ export function initRider(root: HTMLElement): { isBusy: () => boolean } {
       out.textContent = t("rider.pickFirst");
       return;
     }
+    resetForUpdate();
     const body = new FormData();
     body.append("audio_file", picked, picked.name);
     void withBusy(send, () =>
@@ -429,6 +449,7 @@ export function initRider(root: HTMLElement): { isBusy: () => boolean } {
 
   restSample.addEventListener("click", () => {
     if (busy || mic.recording || speechBlocked || checking) return;
+    resetForUpdate();
     void withBusy(restSample, () =>
       post(`/api/ingest/sample?condition=${condition}`, { method: "POST" }, out, {
         onIngest: rememberIngest,
@@ -443,6 +464,7 @@ export function initRider(root: HTMLElement): { isBusy: () => boolean } {
       return;
     }
     if (busy || speechBlocked || checking) return;
+    resetForUpdate();
     setBusy(true);
     void mic.start().catch((error: unknown) => {
       out.dataset.mode = "error";
@@ -454,6 +476,7 @@ export function initRider(root: HTMLElement): { isBusy: () => boolean } {
 
   streamSample.addEventListener("click", () => {
     if (busy || mic.recording || speechBlocked || checking) return;
+    resetForUpdate();
     setBusy(true);
     live.dataset.state = "live";
     out.dataset.mode = "pending";
@@ -463,12 +486,13 @@ export function initRider(root: HTMLElement): { isBusy: () => boolean } {
     void openStream(out, { type: "sample" }, rememberIngest).finally(() => {
       delete live.dataset.state;
       setBusy(false);
+      void refreshAvailability();
     });
   });
 
   hear.addEventListener("click", () => {
     if (busy || speechBlocked || checking || !lastEventId) return;
-    void withBusy(hear, () => postReply(`/api/reply/${lastEventId}`, out, replyAudio, replyText));
+    void withBusy(hear, () => postReply(`/api/reply/${lastEventId}`, replyStatus, replyAudio, replyText));
   });
 
   async function withBusy(button: HTMLButtonElement, work: () => Promise<void>): Promise<void> {
@@ -823,6 +847,7 @@ async function postReply(
       return;
     }
     renderReplyConfirmation(JSON.parse(text) as ReplyPayload, player, textEl);
+    out.textContent = "";
   } catch (err) {
     out.dataset.mode = "error";
     out.textContent = describeNetworkError(err);
