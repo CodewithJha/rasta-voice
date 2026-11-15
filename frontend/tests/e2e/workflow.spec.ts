@@ -40,17 +40,17 @@ finally:
     await expect(row.locator(".desk-state")).toHaveText("new");
     const acknowledgement = page.waitForResponse((response) =>
       response.url().endsWith(`/api/events/${id}/ack`) && response.request().method() === "POST");
-    await row.getByRole("button", { name: "Ack", exact: true }).click();
+    await row.getByRole("button", { name: "Zimmedari lo", exact: true }).click();
     const ack = await acknowledgement;
     expect(ack.status()).toBe(200);
     expect(ack.request().headers()["if-match"]).toBe('"1"');
     expect(ack.request().headers()["x-dispatch-csrf"]).toBeTruthy();
     expect((await ack.json()).version).toBe(2);
     await expect(row.locator(".desk-state")).toHaveText("acked");
-    await expect(row.getByRole("button", { name: "Ack", exact: true })).toHaveCount(0);
+    await expect(row.getByRole("button", { name: "Zimmedari lo", exact: true })).toHaveCount(0);
     const resolution = page.waitForResponse((response) =>
       response.url().endsWith(`/api/events/${id}/resolve`) && response.request().method() === "POST");
-    await row.getByRole("button", { name: "Resolve", exact: true }).click();
+    await row.getByRole("button", { name: "Hal ho gaya", exact: true }).click();
     const resolved = await resolution;
     expect(resolved.status()).toBe(200);
     expect(resolved.request().headers()["if-match"]).toBe('"2"');

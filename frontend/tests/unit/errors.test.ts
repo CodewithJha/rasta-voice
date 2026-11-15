@@ -8,14 +8,14 @@ describe("named speech errors", () => {
     setLocale("en");
     expect(
       describeError(503, JSON.stringify({ detail: "The public speech budget is exhausted." })),
-    ).toBe("The public speech budget is exhausted.");
+    ).toBe("The speech allowance has been used. Ask the operator to enable more testing.");
     expect(
       describeError(503, JSON.stringify({ detail: "Public speech is paused." })),
-    ).toBe("Public speech is paused.");
+    ).toBe("Speech is paused. Ask the operator to enable testing.");
     expect(
       describeError(503, JSON.stringify({ detail: "GNANI_API_KEY is not set" })),
-    ).toBe("The key is not set on the server.");
-    expect(describeError(503, "")).toBe("The key is not set on the server.");
+    ).toBe("Speech is unavailable. The operator needs to configure the speech service.");
+    expect(describeError(503, "")).toBe("Speech is unavailable. The operator needs to configure the speech service.");
     expect(describeError(429, "{}")).toBe("The demo is busy, try in a minute.");
     expect(
       describeError(
@@ -24,11 +24,11 @@ describe("named speech errors", () => {
           error: { code: "budget_exhausted", message: "The public speech budget is exhausted.", request_id: "req-1" },
         }),
       ),
-    ).toBe("The public speech budget is exhausted.");
+    ).toBe("The speech allowance has been used. Ask the operator to enable more testing.");
     setLocale("hi-en");
     expect(
       describeError(503, JSON.stringify({ detail: "The public speech budget is exhausted." })),
-    ).toBe("Public speech budget khatam ho gaya hai.");
+    ).toBe("Speech ki allowance khatam hai. Operator se aur testing chalu karwao.");
     setLocale("hi-en");
   });
 
