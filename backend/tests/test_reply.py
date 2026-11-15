@@ -13,9 +13,16 @@ from fastapi.testclient import TestClient
 from gnani_client.stt import PrismaSTT
 from gnani_client.tts import AUDIO_TAGS, TimbreTTS
 from rasta import routes_reply
+from rasta.extract import extract_event
 from rasta.main import app
 from rasta.pipeline import SAMPLE_LINE
-from rasta.reply import ACCIDENT_ACKED_REPLY, ACCIDENT_REPLY, UNCERTAIN_REPLY, reply_text
+from rasta.reply import (
+    ACCIDENT_ACKED_REPLY,
+    ACCIDENT_REPLY,
+    MISSING_ORDER_REPLY,
+    UNCERTAIN_REPLY,
+    reply_text,
+)
 from rasta.schema import Intent, RiderEvent
 from rasta.settings import clear_settings_cache
 from rasta.store import attach_event_store
@@ -51,6 +58,47 @@ def test_emergency_and_uncertain_replies_do_not_promise_assistance():
     assert reply_text(event(Intent.other)) == UNCERTAIN_REPLY
     assert reply_text(event(confidence=0.49)) == UNCERTAIN_REPLY
     assert "aage badho" not in UNCERTAIN_REPLY
+
+
+@pytest.mark.parametrize("intent", [
+    Intent.customer_unreachable, Intent.address_issue, Intent.item_missing, Intent.delay,
+])
+def test_missing_order_requests_clarification_instead_of_normal_confirmation(intent):
+    text = reply_text(event(intent, order_id=None))
+    assert text == MISSING_ORDER_REPLY
+    assert "order ki pushti" in text and "surakshit" in text.lower()
+    assert "malicious" not in text and not re.search(r"\d", text)
+
+
+@pytest.mark.parametrize("state,acked,expected", [
+    (None, False, ACCIDENT_REPLY),
+    ("escalated", False, ACCIDENT_REPLY),
+    ("acked", False, ACCIDENT_ACKED_REPLY),
+    ("resolved", False, ACCIDENT_ACKED_REPLY),
+    (None, True, ACCIDENT_ACKED_REPLY),
+])
+def test_missing_order_does_not_override_emergency_reply(state, acked, expected):
+    assert reply_text(
+        event(Intent.accident_sos, order_id=None, confidence=0.1), state, acked=acked,
+    ) == expected
+
+
+@pytest.mark.parametrize("intent,confidence", [
+    (Intent.other, 0.9), (Intent.customer_unreachable, 0.49),
+])
+def test_uncertain_event_with_missing_order_keeps_general_clarification(intent, confidence):
+    assert reply_text(event(intent, order_id=None, confidence=confidence)) == UNCERTAIN_REPLY
+
+
+def test_live_ambiguous_order_transcript_requests_clarification_without_guessing():
+    observed = (
+        "bhaiya, gate band hai aur customer phone nahi utha raha, "
+        "order a teen pe main das minute se khada hoon."
+    )
+    extracted = extract_event(observed, provider="rules")
+    assert extracted.intent == Intent.customer_unreachable
+    assert extracted.order_id is None
+    assert reply_text(extracted) == MISSING_ORDER_REPLY
 
 
 @pytest.mark.parametrize("eta,words", [(0, "shoonya"), (18, "atharah"), (20, "bees"),
@@ -108,6 +156,17 @@ def test_reply_uses_stored_event_and_client_defaults(speech):
         "timbre-v3.0", "Shivani", "hi-en")
     assert body["audio_config"]["sample_rate"] == 16000
     assert request.headers["X-API-Key-ID"] == "test-key"
+
+
+def test_reply_synthesizes_missing_order_clarification_from_stored_event(speech):
+    client, _, seen, _ = speech
+    row = attach_event_store(app).append({
+        "event": event(order_id=None).model_dump(mode="json"),
+    })
+    response = client.post(f"/api/reply/{row['id']}", json={"text": "Order eighteen"})
+    assert response.status_code == 200
+    assert response.json()["text"] == MISSING_ORDER_REPLY
+    assert json.loads(seen[0].content)["text"] == MISSING_ORDER_REPLY
 
 
 def test_sample_ingest_then_reply(speech, monkeypatch):
