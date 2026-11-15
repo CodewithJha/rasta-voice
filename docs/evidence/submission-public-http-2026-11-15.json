@@ -1,0 +1,159 @@
+{
+  "checked_at": "2026-11-15T06:40:28.150313+00:00",
+  "origin": "https://rasta-voice-himanshu748.onrender.com",
+  "deploy_id": "dep-dbsknsuk1f9s739is77g",
+  "deployed_sha": "be7fffb2db4f7b59dcab1f9dc236627dfbcbb708",
+  "checks": [
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "status": 200,
+      "request_id": "38d49e9f-290e-4f56-8ace-55c4ede0b9dc",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "status": 200,
+      "request_id": "0a43ca24-927c-462b-a5d3-5e8dbaf7fdce",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "status": 200,
+      "request_id": "63c80e01-b099-4405-8d81-ed805f48377f",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/assets/index-BPXVoHPY.js",
+      "status": 200,
+      "request_id": "d555f14f-9d36-4ddf-8c55-24a81cb07d5e",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/assets/index-C-zzOa1k.css",
+      "status": 200,
+      "request_id": "44662372-f4b0-45f4-bb15-468ff15425a4",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/docs",
+      "status": 404,
+      "request_id": "9af6bacf-c315-4122-bcc0-81775557b0cc",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/openapi.json",
+      "status": 404,
+      "request_id": "176c728d-bfa7-4a36-b5e1-97d2a15e8026",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/events",
+      "status": 401,
+      "request_id": "d00b0962-c7f7-4d4c-b54b-9b2e322093a3",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/usage",
+      "status": 401,
+      "request_id": "41e1106e-c802-42e4-82d7-6424f700cdd3",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/export",
+      "status": 401,
+      "request_id": "e8dadfac-f7e6-4f81-ac8a-f9b9a39f90b2",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/dispatch/csrf",
+      "status": 200,
+      "request_id": "77ca0801-ab20-4626-a040-43e9f593f9db",
+      "security_headers": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/dispatch/unlock",
+      "status": 403,
+      "request_id": "dcbc5e54-f2b1-427b-94d2-33c17d8c0220",
+      "security_headers": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/dispatch/unlock",
+      "status": 403,
+      "request_id": "3d16d429-5adf-4f97-93a1-44dd6b63ffd0",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "status": 200,
+      "request_id": "f67e1712-da29-43c8-afe3-0ce39540e633",
+      "security_headers": true
+    }
+  ],
+  "assets": [
+    {
+      "path": "/assets/index-BPXVoHPY.js",
+      "sha256": "25e34253529e2ebef6b14c00047fda4e2fd6796eeacfb6d3c00ba7e2c7c90f68"
+    },
+    {
+      "path": "/assets/index-C-zzOa1k.css",
+      "sha256": "af55164d4da31aa7985c63cce4825b95169327c7427d527f272e25755e357d15"
+    }
+  ],
+  "health": {
+    "ok": true,
+    "gnani_key_set": true,
+    "llm_provider": "rules"
+  },
+  "readiness_before": {
+    "ok": true,
+    "gnani_key_set": true,
+    "db_writable": true,
+    "rate_limit": {
+      "ok": true,
+      "per_ip_requests_per_minute": 2
+    },
+    "demo_credits_remaining": 7,
+    "demo_credits_exhausted": false,
+    "schema_version": 4,
+    "circuit_breaker": {
+      "gnani_stt": "closed",
+      "gnani_tts": "closed",
+      "llm": "closed"
+    },
+    "events_in_store": 2
+  },
+  "readiness_after": {
+    "ok": true,
+    "gnani_key_set": true,
+    "db_writable": true,
+    "rate_limit": {
+      "ok": true,
+      "per_ip_requests_per_minute": 2
+    },
+    "demo_credits_remaining": 7,
+    "demo_credits_exhausted": false,
+    "schema_version": 4,
+    "circuit_breaker": {
+      "gnani_stt": "closed",
+      "gnani_tts": "closed",
+      "llm": "closed"
+    },
+    "events_in_store": 2
+  },
+  "speech_admissions_by_this_probe": 0,
+  "authenticated_desk": "not verified: private passcode unavailable"
+}

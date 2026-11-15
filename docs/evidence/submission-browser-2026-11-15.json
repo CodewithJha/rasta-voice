@@ -1,0 +1,53 @@
+{
+  "checked_at": "2026-11-15T06:48:10.235Z",
+  "origin": "https://rasta-voice-himanshu748.onrender.com/",
+  "deployed_sha": "be7fffb2db4f7b59dcab1f9dc236627dfbcbb708",
+  "deploy_id": "dep-dbsknsuk1f9s739is77g",
+  "trigger": "Real UI Noisy line, Speak a sample line, native sample Play, Hear dispatch, native reply Play; no retry.",
+  "sample": {
+    "event_id": "9af450e5-cf7e-436b-8cb6-43c1b04fee9d",
+    "created_at": "2026-11-15T06:44:35.906296+00:00",
+    "stt": {
+      "model": "prisma-v3.0",
+      "request_id": "01a1ddf3-5a42-780d-a70f-6ba9c0b6d699",
+      "detected_language_code": null,
+      "processing_time": 0.20675969123840332,
+      "audio_seconds": 6
+    },
+    "event": {
+      "intent": "customer_unreachable",
+      "order_id": null,
+      "eta_minutes": 10,
+      "urgency": "high",
+      "dispatch_action": "Call the customer once from dispatch, then log the attempt.",
+      "transcript": "bhaiya, gate band hai aur customer phone nahi utha raha. order a teen pe main das minute se khada hoon.",
+      "confidence": 0.5
+    },
+    "extractor_source": "rules"
+  },
+  "strict_order_18_status": "failed",
+  "reply_text": "Order number saaf nahi hua. Surakshit jagah rukiye aur dispatch se order ki pushti kijiye.",
+  "media": [
+    {
+      "currentTime": 6,
+      "duration": 6,
+      "ended": true,
+      "error": null,
+      "hidden": false,
+      "paused": true
+    },
+    {
+      "currentTime": 5.52,
+      "duration": 5.52,
+      "ended": true,
+      "error": null,
+      "hidden": false,
+      "paused": true
+    }
+  ],
+  "logical_speech_operations": 3,
+  "authenticated_desk": "not verified: passcode unavailable",
+  "microphone": "not tested",
+  "human_listening": "not claimed; media element playback state observed",
+  "public_video": "not recorded"
+}

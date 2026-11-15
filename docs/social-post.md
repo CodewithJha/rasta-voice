@@ -1,47 +1,26 @@
-# Social-post drafts
+# Published product demonstration
 
-Drafts only. Priyanshu should review the app claims and supply issue 18's public
-working-application video before publication. Attach the video to each nominated
-post or add its verified public link and recheck the compose counter. A photo
-alone does not satisfy the video requirement. No deployed URL exists yet;
-add a verified live desk URL only after issue 13 lands. Do not claim final scores.
+Published by Himanshu Kumar on LinkedIn:
 
-## X
+https://www.linkedin.com/feed/update/urn:li:activity:7527676685782159360/
 
-```
-Rasta Voice: Hinglish help for riders in traffic, powered by Gnani Prisma + Timbre. Target: Noise Canceller.
-Synthetic audio; no real customer calls.
-https://github.com/CodewithJha/rasta-voice
-@GnaniAi #GnaniAI #GreatIndianAIInternshipChallenge
-```
+Publication was verified in the signed-in browser, including the attached 122-second native video and working playback. The company mention resolves to https://www.linkedin.com/company/gnani-ai/.
 
-Character count: **244**, computed with Python `len(post.strip())`, including
-spaces and newlines. X's compose counter is authoritative; check again when
-attaching/linking the video or adding a live URL. Select the real @GnaniAi account.
+## Published copy
 
-## LinkedIn
+A delivery rider reaches a closed gate. The customer is not answering. Dispatch needs the order number, the delay and a clear next step.
 
-```
-Riders in traffic need to make themselves understood. Rasta Voice explores that problem for Hinglish speech using Gnani Prisma for transcription and Timbre for spoken confirmations.
+Priyanshu Jha and I built Rasta Voice for that moment.
 
-Our rider demo compares clean audio with controlled synthetic traffic noise and shows an intent, order token, ETA and suggested dispatch action. We are aiming for Noise Canceller. These controlled examples do not establish field accuracy; the complete live benchmark is still pending.
+Speak a Hinglish update → see the delivery details → hear what to do next.
 
-The audio is synthetic; there are no real customer calls.
+Gnani Prisma v3.0 turns the update into text. Rasta Voice extracts the delivery issue, order, ETA and urgency, then Gnani Timbre v3.0 speaks the response back to the rider. Unclear order numbers prompt confirmation.
 
-Built with Gnani AI: https://www.linkedin.com/company/gnani-ai
+The 2-minute walkthrough uses an illustrative synthetic rider message and real Gnani responses.
+
+Try it: https://rasta-voice-himanshu748.onrender.com/
 Code: https://github.com/CodewithJha/rasta-voice
 
+Built with Gnani AI
+
 #GnaniAI #GreatIndianAIInternshipChallenge
-```
-
-Word count: **88**. In the composer, select the Gnani AI company
-mention at the company URL above; plain text alone is not a company tag. Attach
-or link the verified public working-app video. Keep the synthetic-data statement.
-
-Publishing remains pending. Add actual public links here and pass the video and
-nominated post links to issues 18 and 16. This draft does not complete issue 15.
-
-- [ ] Priyanshu reviewed the app claims and provided a public working-app video.
-- [ ] Video attached/linked to each nominated post; both hashtags and real Gnani tags checked.
-- [ ] Posted on X by 14 Nov 2026, 18:00 IST. Link:
-- [ ] Posted on LinkedIn by the same deadline. Link:

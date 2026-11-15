@@ -1,6 +1,42 @@
 # Rasta Voice — production readiness
 
-## Integrated candidate status, 15 November 2026 IST
+## Latest verified assets, 15 November 2026
+
+- [One-page product pitch](PITCH.pdf).
+- [Public 122-second product video](https://github.com/user-attachments/assets/c9136446-2a79-42f0-90ba-6dbdc7293b03), using the existing deployed UI, real Gnani responses and an illustrative synthetic rider message.
+- [Published LinkedIn post](https://www.linkedin.com/feed/update/urn:li:activity:7527676685782159360/), with the actual Gnani AI company mention and both required hashtags; native video playback was verified.
+- [Final team handoff](FINAL_SUBMISSION_HANDOFF.md). Priyanshu will fill the official form. No submission receipt has been verified.
+- The free Render service was redeployed at application commit `be7fffb2db4f7b59dcab1f9dc236627dfbcbb708`, deploy `dep-dbso1egn74is73ae55dg`, with the approved process-local allowance of 20. Readiness showed 20 remaining immediately after restart. This is not a provider balance or a hard billing cap.
+- PR #107 remains unmerged and is not deployed at the user's request. The current UI is retained.
+- Live microphone/WebSocket acceptance, authenticated desk acceptance, consented field recordings and rollback evidence remain open. The synthetic video does not close these gates.
+
+The dated checkpoints below are historical wherever this update supplies newer evidence.
+
+## Current checkpoint, 15 November 2026 at 06:38 UTC
+
+The free Render app at https://rasta-voice-himanshu748.onrender.com/ serves
+reviewed main `be7fffb2db4f7b59dcab1f9dc236627dfbcbb708`, deploy
+`dep-dbsknsuk1f9s739is77g`. Speech was enabled at the user's request with
+12 call units per 86,400-second process window, retries zero, two requests
+per IP per minute and concurrency one. Automatic deployment remains off.
+These counters reset on restart and are not a provider balance/billing cap.
+
+A fresh noisy synthetic sample passed the unchanged expected intent/order-18
+checks, with Prisma request ID `01a1dded-6a57-7833-b8cd-688768beca3e`.
+It consumed two local units, leaving seven at 06:38 UTC. A later browser
+sample failed order 18 (`order a teen`, order null); its sample and spoken
+clarification played in the browser. Reliable strict live acceptance,
+authenticated desk, microphone, live Playwright, field recordings and rollback
+remain separate unverified gates. [SUBMISSION.md](SUBMISSION.md) is the current
+judge-facing packet and links the sanitized evidence and prior failure.
+
+PRs 101/104 meet the strict 29/36 rules target; #2 is closed. PRs 105/106 close
+#34/#33. The owner verified all ten required checks and administrator
+protection enforcement. PR 107's redesigned UX passes all ten CI checks but
+still needs independent code-owner review and is not deployed. Its isolated
+keyless browser screenshots are not live-provider evidence.
+
+## Historical integrated checkpoint, 15 November 2026 IST (superseded)
 
 Component PRs 83 through 99, including integrated request handling and explicit
 wipe-write authentication in PR 92, are merged. The free Render host serves
