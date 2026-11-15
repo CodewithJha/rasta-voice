@@ -1,5 +1,17 @@
 # Deploy
 
+## Latest verified assets, 15 November 2026
+
+- [One-page product pitch](PITCH.pdf).
+- [Public 122-second product video](https://github.com/user-attachments/assets/c9136446-2a79-42f0-90ba-6dbdc7293b03), using the existing deployed UI, real Gnani responses and an illustrative synthetic rider message.
+- [Published LinkedIn post](https://www.linkedin.com/feed/update/urn:li:activity:7527676685782159360/), with the actual Gnani AI company mention and both required hashtags; native video playback was verified.
+- [Final team handoff](FINAL_SUBMISSION_HANDOFF.md). Priyanshu will fill the official form. No submission receipt has been verified.
+- The free Render service was redeployed at application commit `be7fffb2db4f7b59dcab1f9dc236627dfbcbb708`, deploy `dep-dbso1egn74is73ae55dg`, with the approved process-local allowance of 20. Readiness showed 20 remaining immediately after restart. This is not a provider balance or a hard billing cap.
+- PR #107 remains unmerged and is not deployed at the user's request. The current UI is retained.
+- Live microphone/WebSocket acceptance, authenticated desk acceptance, consented field recordings and rollback evidence remain open. The synthetic video does not close these gates.
+
+The dated checkpoints below are historical wherever this update supplies newer evidence.
+
 Public URL: https://rasta-voice-himanshu748.onrender.com
 
 ## Current checkpoint, 15 November 2026 at 06:38 UTC

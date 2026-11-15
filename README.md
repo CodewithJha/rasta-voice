@@ -1,109 +1,138 @@
-# Rasta Voice
+<p align="center">
+  <img src="docs/assets/readme/logo.svg" alt="Rasta Voice" width="420"/>
+</p>
 
-A voice copilot for delivery riders speaking Hinglish in noisy conditions.
-Gnani Prisma transcribes the audio, the extractor produces a validated dispatch
-event, and Gnani Timbre speaks a confirmation that respects the dispatcher's
-acknowledgement state.
+<p align="center">
+  <strong>Hinglish voice copilot for delivery riders in noisy streets.</strong><br/>
+  Speak once → validated dispatch ticket → desk ack → spoken confirmation.
+</p>
 
-The app includes a rider chit, microphone streaming, a dispatch slate with
-acknowledgement and resolution, a SQLite event store, and bounded public speech
-controls. Every speech request uses the real Gnani APIs. Without
-`GNANI_API_KEY`, speech routes return a clear `503` error.
+<p align="center">
+  <a href="https://rasta-voice-himanshu748.onrender.com"><img src="https://img.shields.io/badge/live-Render-c45c26?style=flat-square" alt="Live on Render"/></a>
+  <a href="docs/EXTRACTOR.md"><img src="https://img.shields.io/badge/rules%20holdout-29%2F36%20%3D%200.806-1c1917?style=flat-square" alt="Rules holdout"/></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-57534e?style=flat-square" alt="MIT"/></a>
+  <a href=".github/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-10%20required%20checks-1d4ed8?style=flat-square" alt="CI"/></a>
+</p>
 
-**Current verification:** the free [public app](https://rasta-voice-himanshu748.onrender.com/)
-serves reviewed main `be7fffb`. Speech is enabled with a small process-local
-allowance. A fresh noisy sample passed `customer_unreachable`, order `18`
-and ETA 10 with a real Prisma request ID, but the subsequent browser sample
-left the order unresolved. Browser sample/reply playback completed; reliable
-order-18 live acceptance remains open. Rules blind-holdout accuracy is
-29/36 (0.806), meeting the 0.8 target. The [proposed clearer rider/dispatch UX](https://github.com/CodewithJha/rasta-voice/pull/107)
-has green CI and viewport evidence but still needs peer approval/deployment.
+<p align="center">
+  <a href="#what-it-is">Product</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#live-deployment">Live</a> ·
+  <a href="#verify">Verify</a> ·
+  <a href="#docs-map">Docs</a>
+</p>
 
-**Submission is not complete:** final authenticated live workflow,
-microphone/playback, consented field validation, a playable public demo video,
-a nominated post and the form receipt remain unverified. Read the current
-[submission packet](docs/SUBMISSION.md) and [readiness register](docs/PRODUCTION_READINESS.md).
-Earlier failed samples and dated audits remain in the evidence history.
+---
 
-Built for Gnani AI's Great Indian AI Internship Challenge, targeting Noise
-Canceller. The committed speech benchmark is synthetic. It is not evidence
-from real customer calls or a carrier telephone network.
+## Product demonstration
 
-## Team
+[Watch the 2:02 walkthrough](https://github.com/user-attachments/assets/c9136446-2a79-42f0-90ba-6dbdc7293b03) · [One-page pitch](docs/PITCH.pdf) · [Published LinkedIn post](https://www.linkedin.com/feed/update/urn:li:activity:7527676685782159360/)
 
-The two project owners are:
+The walkthrough uses an illustrative synthetic rider message and real Gnani responses.
+[Final submission handoff](docs/FINAL_SUBMISSION_HANDOFF.md) contains the actual links; Priyanshu will complete the official team form.
 
-- Member A, benchmark and audio: [Himanshu](https://github.com/himanshu748) (`@himanshu748`)
-- Member B, app, realtime and UI: [Priyanshu Jha](https://github.com/CodewithJha) (`@CodewithJha`)
+## What it is
 
-Ownership and the review workflow remain in [CONTRIBUTING.md](CONTRIBUTING.md).
+**Rasta Voice** turns a noisy Hinglish rider utterance into a frozen `RiderEvent` for a human dispatcher, then speaks a Timbre confirmation that respects desk acknowledgement state.
 
-## Runtime
+Built for [Gnani AI's Great Indian AI Internship Challenge](https://github.com/CodewithJha/rasta-voice) (Noise Canceller track). Speech always goes through real Gnani APIs — no fake STT/TTS path in the app.
 
-```mermaid
-sequenceDiagram
-  participant Rider
-  participant API
-  participant Prisma
-  participant Desk
-  participant Timbre
-  Rider->>API: Audio upload or WebSocket
-  API->>Prisma: Speech recognition
-  Prisma-->>API: Transcript and request metadata
-  API->>API: Extract, validate, redact and store
-  Desk->>API: Authenticated event polling
-  API-->>Desk: Dispatch record
-  Desk->>API: Ack or resolve with CSRF and version
-  Rider->>API: Hear dispatch
-  API->>Timbre: State-aware confirmation
-  Timbre-->>API: Audio
-  API-->>Rider: Playable confirmation
-```
+| Role | Surface |
+| --- | --- |
+| Rider | Public chit: upload, mic stream, sample speech, hear confirmation |
+| Dispatcher | Authenticated slate: poll, ack, resolve (CSRF + optimistic versions) |
+| Operator | Budgets, passcode, retention, Render env — never keys in the browser |
 
-The API runs as **one worker** with SQLite and process-local admission limits.
-The rider stays public under configured budgets; desk reads require a session
-or passcode header, and cookie-authenticated writes also require CSRF.
-[Architecture](docs/ARCHITECTURE.md), [API contract](docs/API.md),
-[security](docs/SECURITY.md) and [upload limits](docs/UPLOADS.md) describe the
-boundaries. Secrets stay on the server.
+**Owners**
+
+- Benchmark & audio — [Himanshu](https://github.com/himanshu748) (`@himanshu748`)
+- App, realtime & UI — [Priyanshu Jha](https://github.com/CodewithJha) (`@CodewithJha`)
+
+---
+
+## How it works
+
+<p align="center">
+  <img src="docs/assets/readme/architecture.svg" alt="Runtime architecture: rider to FastAPI to Prisma to extractor to SQLite to desk to Timbre" width="920"/>
+</p>
+
+1. **Rider audio** hits FastAPI (REST upload, sample, or WebSocket stream) under speech budgets.
+2. **Gnani Prisma** transcribes (v3, Hindi/English hints, Latin transliteration).
+3. **Extractor** (`rules` by default; optional `groq` / `gemini`) validates a `RiderEvent` and falls back to rules on provider failure.
+4. **SQLite** stores a redacted, stamped ingest record.
+5. **Dispatch slate** polls authenticated events; ack/resolve need CSRF.
+6. **Gnani Timbre** speaks a state-aware Hinglish confirmation for the stored event.
+
+<p align="center">
+  <a href="docs/assets/readme/anatomy/dispatch-desk.html"><img src="docs/assets/readme/dispatch-desk.png" alt="Interactive dispatch desk instrument: microphone, intent magazine, confidence dial, Timbre horn" width="720"/></a><br/>
+  <sub>Fig 1 · <a href="docs/assets/readme/anatomy/dispatch-desk.html">Open the live dispatch desk</a> — hover or use arrow keys to slide intents. Light theme: <a href="docs/assets/readme/anatomy/dispatch-desk-light.html">dispatch-desk-light.html</a>.</sub>
+</p>
+
+### Intent contract
+
+Frozen schema: [`shared/rider_event.schema.json`](shared/rider_event.schema.json) (mirrored in Python + TypeScript).
+
+| Field | Meaning |
+| --- | --- |
+| `intent` | `customer_unreachable` · `address_issue` · `item_missing` · `delay` · `accident_sos` · `other` |
+| `order_id` | Short token or `null` (phone-shaped digit runs rejected) |
+| `eta_minutes` | Quoted minutes or `null` |
+| `urgency` | `low` · `medium` · `high` |
+| `dispatch_action` | One instruction for the desk |
+| `transcript` | Speech text after privacy redaction |
+| `confidence` | Rules hit `0.5` / miss `0.0`; LLM values are not calibrated safety evidence |
+
+### Extractor accuracy (issue 2)
+
+| Path | Blind holdout (36 rows) |
+| --- | --- |
+| Rules (official, one-shot after freeze) | **29/36 = 0.806** |
+| Groq end-to-end (paced) | 35/36 = 0.972 |
+| Gemini end-to-end (paced) | 35/36 = 0.972 |
+
+Gold and tuning stay 54/54. Labels and the 0.8 threshold were not changed after scoring. Evidence: [EXTRACTOR.md](docs/EXTRACTOR.md), [rules holdout](docs/evidence/rules-holdout-2026-11-15.md).
+
+---
+
+## Repository map
 
 | Tree | Responsibility | Owner |
 | --- | --- | --- |
-| `gnani_client/` | Prisma STT/batch and Timbre TTS clients | Shared, frozen interface |
-| `backend/rasta/` | API, extractor, dispatcher lifecycle, store and guards | Priyanshu |
-| `frontend/` | Rider and dispatcher browsers | Priyanshu |
-| `benchmark/` | Synthetic audio, noise/telephony simulation and scoring | Himanshu |
-| `shared/rider_event.schema.json` | Frozen event contract | Both owners |
+| `gnani_client/` | Prisma STT + Timbre TTS clients | Shared, frozen interface |
+| `backend/rasta/` | API, extractor, desk lifecycle, store, guards | Priyanshu |
+| `frontend/` | Rider chit + dispatch slate | Priyanshu |
+| `benchmark/` | Synthetic noise/telephony grid + scoring | Himanshu |
+| `shared/rider_event.schema.json` | Frozen event contract | Both |
+| `docs/` | Architecture, deploy, security, evidence | Both |
 
-## Run locally
+---
 
-Use Python 3.11+ and Node 22. CI and the runtime use Python 3.12.
+## Quick start
+
+**Needs:** Python 3.11+ (CI uses 3.12), Node 22.
 
 ```bash
+git clone https://github.com/CodewithJha/rasta-voice.git
+cd rasta-voice
+
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-ci.lock
 pip install --no-deps -e ./gnani_client -e ./backend -e ./benchmark
+
 cp .env.example .env
+# set GNANI_API_KEY and a private DISPATCH_PASSCODE
+# LLM_PROVIDER=rules needs no LLM key
 ```
 
-If your environment already uses a SOCKS proxy and HTTPX reports that its
-optional SOCKS support is missing, install `httpx[socks]==0.28.1` in this
-virtual environment. Keep the existing proxy configuration. This optional
-network prerequisite is separate from the standard pinned CI environment.
-
-Set `GNANI_API_KEY` and a private `DISPATCH_PASSCODE` in `.env`.
-Real environment variables take precedence. Keep filled values out of git,
-URLs, recordings and screenshots. `LLM_PROVIDER=rules` needs no LLM key;
-optional Groq/Gemini configuration is in [EXTRACTOR.md](docs/EXTRACTOR.md).
-
-Start the API from the repository root:
+API (repo root):
 
 ```bash
 uvicorn rasta.main:app --reload --port 8000
 ```
 
-In a second terminal, start the web proxy:
+Web (second terminal):
 
 ```bash
 cd frontend
@@ -111,48 +140,26 @@ npm ci
 npm run dev
 ```
 
-Open Vite's printed localhost URL. Unlock the dispatch slate in the browser.
-**Speak a sample line** synthesizes invented rider speech, submits the actual
-audio to Prisma and fills the chit/slate. **Dispatch suno / Hear dispatch**
-requests a state-aware Timbre confirmation. Ack and Resolve update the stored
-record with optimistic versions and an audit trail.
+Open Vite's localhost URL → unlock the slate with the passcode → **Speak a sample line** (real Prisma) → **Hear dispatch** (real Timbre).
 
-A sample has two logical speech operations and a new confirmation has one.
-Configured server retries can increase outbound attempts. The budget and
-retry cap are operator settings, not a provider balance or billing quote.
-See [RUNBOOK.md](docs/RUNBOOK.md) before enabling a public sample.
+Without `GNANI_API_KEY`, speech routes return a clear `503`. Optional Groq/Gemini: see [EXTRACTOR.md](docs/EXTRACTOR.md) and `.env.example`.
 
-Uploads accept validated WAV, MP3, M4A, OGG and FLAC containers within the
-2 MB / 30-second limits in [UPLOADS.md](docs/UPLOADS.md). Noisy simulation
-additionally requires its supported PCM WAV format. Keep real consented field
-clips off the app host and out of git; the contest demo uses invented speech.
+Uploads: WAV / MP3 / M4A / OGG / FLAC within [2 MB / 30 s](docs/UPLOADS.md). Keep real field clips out of git.
 
-`GET /api/events` is authenticated and paginated. Events persist in SQLite
-with redaction, retention and explicit deletion. Free-host disk remains
-ephemeral; persistence across a process restart is not an off-site backup.
+---
 
-## Contract and accuracy
+## Live deployment
 
-`shared/rider_event.schema.json`, `backend/rasta/schema.py` and
-`frontend/src/types.ts` define the frozen `RiderEvent`. Lifecycle, actor,
-request and extractor-source metadata stay outside `event`.
-
-| Field | Meaning |
+| | |
 | --- | --- |
-| `intent` | `customer_unreachable`, `address_issue`, `item_missing`, `delay`, `accident_sos`, `other` |
-| `order_id` | Short invented token, or null; phone-like digit runs are excluded |
-| `eta_minutes` | Quoted minutes, or null |
-| `urgency` | `low`, `medium` or `high` |
-| `dispatch_action` | One instruction for the dispatcher |
-| `transcript` | Speech text, subject to privacy redaction |
-| `confidence` | Rule hit 0.5, unmatched 0.0; an LLM value is not calibrated safety evidence |
+| **Public URL** | https://rasta-voice-himanshu748.onrender.com |
+| **Region / plan** | Singapore · Render free |
+| **Speech** | Key configured privately; public speech enabled with a user-approved process-local allowance of 20; strict order recognition remains inconsistent |
+| **Status detail** | [docs/DEPLOY.md](docs/DEPLOY.md) |
 
-The 14 November context correction preserves 30/30 development and 24/24 seen
-tuning results. The locked holdout is **8/36 (22.22%)**, below the **0.8**
-acceptance target. No LLM success is inferred from a rule fallback. The paired
-report, frozen file hashes and confusion matrices are in
-[the rule evaluation evidence](docs/evidence/rules-context-eval-2026-11-14.md).
-Keep a person in charge of dispatch decisions and emergency action.
+Health and readiness are public. Desk reads need the passcode. Production docs are hidden on the host.
+
+---
 
 ## Verify
 
@@ -161,6 +168,7 @@ ruff check gnani_client backend benchmark
 mypy backend/rasta gnani_client benchmark
 pytest
 python scripts/check_frontend_types.py
+
 cd frontend
 npm run check
 npm run test
@@ -169,27 +177,21 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-CI enforces the 80% coverage floor, types/contracts, real keyless browser
-flows, load thresholds, secret/dependency/SAST checks and the production
-container build/scan. Test-only transports and labelled stored fixtures do
-not add an application mock mode. Live browser/smoke paths are opt-in and
-must use a bounded credit allowance. See [QUALITY.md](docs/QUALITY.md),
-[SUPPLY_CHAIN.md](docs/SUPPLY_CHAIN.md) and
-[the integration evidence](docs/evidence/integration-2026-11-14.md).
+CI requires ten checks on `main`: `python`, `web`, `contract`, `secret-scan`, `audit-python`, `audit-npm`, `sast`, `browser-smoke`, `container`, `load`. See [GOVERNANCE.md](docs/GOVERNANCE.md) and [SUPPLY_CHAIN.md](docs/SUPPLY_CHAIN.md).
+
+Intent eval:
+
+```bash
+python scripts/eval_intent.py --provider rules --sets gold tuning blind
+```
+
+---
 
 ## Benchmark evidence
 
-The following committed run is preserved as recorded. New extractor code does
-not retroactively alter its hypotheses or scores. Synthetic phone-channel
-processing is labelled separately from real field capture.
+Synthetic rider speech mixed with traffic / horn / wind / crowd / crosstalk, then 8 kHz μ-law telephone simulation. Not a real call corpus.
 
 <!-- benchmark:start -->
-
-Synthetic rider speech was mixed with traffic, horn, wind, crowd and crosstalk,
-then converted to simulated 8 kHz μ-law telephone audio. Five Prisma batch
-systems compare v2.5 and v3.0, v2.5 bias hints, v3.0 keyterms and v3.0 denoise.
-This is synthetic speech, not a real call corpus. Each system scores the same
-80 unique clips; the complete default grid has 400 model evaluations.
 
 | System | Raw WER | Raw CER | Normalized WER | Normalized CER | Intent accuracy | n |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -201,52 +203,43 @@ This is synthetic speech, not a real call corpus. Each system scores the same
 
 ![WER by system](benchmark/results/wer.svg)
 
-Run: **13 Nov 2026, 15:04 IST** (`2026-11-13T09:34:05.153014+00:00`).
-Grid: **8 utterances × 5 noises × 2 SNRs (0 and 10 dB) × 5 systems = 80 distinct
-files and 400 completed evaluations**. The bars are per-system mean **raw WER**;
-the table is copied from [scores.md](benchmark/results/scores.md).
-[The live summary](benchmark/results/scores.json) records 20 batch job IDs and
-links the per-evaluation audio/config hashes to [raw transcripts](benchmark/results/raw/).
-Batch responses did not return request IDs; the recorded job IDs are not REST request IDs.
-
-Normalization applies Unicode NFKC, case folding, punctuation/symbol removal,
-whitespace folding, decimal-digit normalization, English 0-199 and Roman Hindi
-0-30 number-word folding. It performs **no translation or script transliteration**. Between 58
-and 60 of 80 hypotheses per system are cross-script relative to the references;
-v3.0 used `format=codemix`. These descriptive WER results are **not a clean
-model ranking**, and rules intent accuracy also reflects extractor script
-coverage. Denoise is not uniformly better: raw WER falls for traffic, crowd and
-crosstalk, but rises for horn and wind. The mean raw WER difference from v3.0 to
-v3.0-key-denoise is 0.0169, while intent accuracy changes from 0.2250 to 0.2000.
-
-Reproduce with `python -m rasta_bench.run --limit 8 --credit-budget <cap> --credits-per-minute <verified-rate>`
-from the installed repository, with `GNANI_API_KEY` supplied privately. Preserve
-cache/checkpoints to resume; do not automatically repeat a charged run. The cap
-and rate are operator inputs, not a provider-reported balance. This run records
-a cap of 40 and rate of 1.0, with a resume-time estimated new-credit upper bound
-of 24.0533, excluding 40 previously cached evaluations. It does not establish an
-actual charge or remaining balance. Audio is gitignored: restore the exact
-matching WAVs or regenerate manifests with the pipeline before a new run;
-Timbre output is not bit-stable. This default-grid regeneration used u01–u08,
-so u08's crosstalk partner wraps to u01 rather than u09. To redraw only the
-figure, run `python -m rasta_bench.chart`; that command makes no API calls.
+Run: **13 Nov 2026**. Grid: **8 × 5 noises × 2 SNRs × 5 systems = 80 files / 400 evaluations**. Full notes in [benchmark/results/scores.md](benchmark/results/scores.md).
 
 <!-- benchmark:end -->
 
-Opt-in live API smoke: `python scripts/smoke.py --base-url http://127.0.0.1:8000` (needs `DISPATCH_PASSCODE` locally when the remote speech key is set; no-key health skips with zero speech calls; configured targets must have issues 20/21/22/26 deployed; add `--require-security-headers` for the public origin after 27).
+---
 
-## Operations and project policies
+## Honest release status
 
-- [Operator runbook](docs/RUNBOOK.md)
-- [Deployment instructions and public-origin status](docs/DEPLOY.md)
-- [Latency budgets and measured local baseline](docs/SLO.md)
-- [Governance and branch protection](docs/GOVERNANCE.md)
-- [Decision 1: real speech APIs](docs/adr/0001-real-speech-apis.md)
-- [Decision 2: frozen event envelope](docs/adr/0002-frozen-event-envelope.md)
-- [Decision 3: SQLite single-worker topology](docs/adr/0003-sqlite-single-worker.md)
-- [Decision 4: shared desk passcode](docs/adr/0004-shared-desk-passcode.md)
-- [MIT license](LICENSE), [changelog](CHANGELOG.md), [code of conduct](CODE_OF_CONDUCT.md)
+| Gate | State |
+| --- | --- |
+| Rules holdout ≥ 0.8 | Met (29/36) |
+| CI / supply-chain / branch protection | Met |
+| Public live speech smoke (order id) | A synthetic sample passed; another left the order unresolved. Reliable acceptance remains open |
+| Consented field recordings | Open |
+| Host rollback rehearsal | Open |
 
-Supply-chain checks and dependency-lock updates: [docs/SUPPLY_CHAIN.md](docs/SUPPLY_CHAIN.md).
+Source of truth: [PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md) · [SUBMISSION.md](docs/SUBMISSION.md).
 
-Type, coverage, unit and browser checks: [docs/QUALITY.md](docs/QUALITY.md).
+---
+
+## Docs map
+
+| Doc | Use when |
+| --- | --- |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Runtime topology |
+| [API.md](docs/API.md) | HTTP / WS contract |
+| [DEPLOY.md](docs/DEPLOY.md) | Render URL, env, pause policy |
+| [EXTRACTOR.md](docs/EXTRACTOR.md) | Rules / Groq / Gemini + holdout |
+| [SECURITY.md](docs/SECURITY.md) | Trust boundaries |
+| [RUNBOOK.md](docs/RUNBOOK.md) | Operator procedures |
+| [GOVERNANCE.md](docs/GOVERNANCE.md) | Owners, reviews, required checks |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | PR workflow |
+
+ADRs: [real speech APIs](docs/adr/0001-real-speech-apis.md) · [frozen envelope](docs/adr/0002-frozen-event-envelope.md) · [SQLite single worker](docs/adr/0003-sqlite-single-worker.md) · [desk passcode](docs/adr/0004-shared-desk-passcode.md).
+
+---
+
+## License
+
+[MIT](LICENSE) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Changelog](CHANGELOG.md)
