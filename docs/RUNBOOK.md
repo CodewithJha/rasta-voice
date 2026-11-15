@@ -11,8 +11,10 @@ These counters reset on restart and are not a provider balance/billing cap.
 
 A fresh noisy synthetic sample passed the unchanged expected intent/order-18
 checks, with Prisma request ID `01a1dded-6a57-7833-b8cd-688768beca3e`.
-It consumed two local units, leaving seven at 06:38 UTC. Authenticated desk,
-microphone, playback, live Playwright, field recordings and actual rollback
+It consumed two local units, leaving seven at 06:38 UTC. A later browser
+sample failed order 18 (`order a teen`, order null); its sample and spoken
+clarification played in the browser. Reliable strict live acceptance,
+authenticated desk, microphone, live Playwright, field recordings and rollback
 remain separate unverified gates. [SUBMISSION.md](SUBMISSION.md) is the current
 judge-facing packet and links the sanitized evidence and prior failure.
 

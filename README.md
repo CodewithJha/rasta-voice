@@ -13,7 +13,9 @@ controls. Every speech request uses the real Gnani APIs. Without
 **Current verification:** the free [public app](https://rasta-voice-himanshu748.onrender.com/)
 serves reviewed main `be7fffb`. Speech is enabled with a small process-local
 allowance. A fresh noisy sample passed `customer_unreachable`, order `18`
-and ETA 10 with a real Prisma request ID. Rules blind-holdout accuracy is
+and ETA 10 with a real Prisma request ID, but the subsequent browser sample
+left the order unresolved. Browser sample/reply playback completed; reliable
+order-18 live acceptance remains open. Rules blind-holdout accuracy is
 29/36 (0.806), meeting the 0.8 target. The [proposed clearer rider/dispatch UX](https://github.com/CodewithJha/rasta-voice/pull/107)
 has green CI and viewport evidence but still needs peer approval/deployment.
 

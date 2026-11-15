@@ -23,6 +23,23 @@ nominated LinkedIn or X post with the real Gnani AI tag and both
 `#GnaniAI` and `#GreatIndianAIInternshipChallenge` are required before final
 submission. This document and the drafts are not publication or a receipt.
 
+## Fields verified in the actual submission form
+
+The official Microsoft form was opened and read on 15 November. Its mandatory
+fields are full name, registered email, higher education institution, project
+URL and video URL. Team entries also have a teammate registered-email field.
+The project URL must include a **solution pitch no longer than one page**;
+[the one-page PDF pitch](PITCH.pdf) ([text version](PITCH.md)) is prepared for that purpose. Its video field
+explicitly requires a **2-3 minute working demo**. A separate optional field
+asks for a LinkedIn or X solution post tagging Gnani for bonus awards.
+The programme page still requests nominated public demo posts and both hashtags;
+prepare that evidence rather than interpreting an optional form field as a waiver.
+
+Do not guess the primary/teammate registered emails. No personal form fields
+were filled and Submit was not pressed. After this PR merges, the project URL
+can point directly to the public repository's `docs/PITCH.pdf`. The candidate
+pitch is currently on the PR branch; verify the chosen public URL before using it.
+
 ## Copy for the form
 
 **Title:** Rasta Voice: Hinglish delivery updates for riders and dispatchers
@@ -105,19 +122,41 @@ Sanitized [sample evidence](evidence/submission-live-sample-2026-11-15.json)
 and [public HTTP evidence](evidence/submission-public-http-2026-11-15.json)
 record the actual checks. Do not publish any secret or real customer data.
 
+## Subsequent real-browser check
+
+At 06:44 UTC the public browser triggered one more noisy synthetic sample,
+with no retry. Prisma request `01a1ddf3-5a42-780d-a70f-6ba9c0b6d699` returned
+`customer_unreachable` and ETA 10, but transcribed `order a teen`; its order
+was null. Event `9af450e5-cf7e-436b-8cb6-43c1b04fee9d` was shown in the
+actual rider UI. This browser take **fails the unchanged order-18 check**.
+After this sample and its reply, readiness reported four local call units
+remaining and three stored events; no additional speech request was triggered.
+The earlier API sample pass is a single observation, not reliable end-to-end
+acceptance. No sample was retried to obtain a passing screenshot.
+
+The returned sample played to completion in the browser (6.00 seconds). One
+additional real Timbre reply requested order confirmation instead of guessing:
+`Order number saaf nahi hua. Surakshit jagah rukiye aur dispatch se order ki pushti kijiye.`
+Its 5.52-second audio was played using the native controls. Playback evidence
+is the observed media duration/time/ended state with no media error, not a
+claim of human listening, microphone capture, a video or desk authentication.
+The browser sample plus reply used three logical operations. See the
+[sanitized browser evidence](evidence/submission-browser-2026-11-15.json).
+
 ## Final checklist
 
 | Gate | Status | Next action |
 | --- | --- | --- |
 | Protected reviewed main and free public host | Verified | Keep the current deployment until a reviewed replacement is ready |
-| Strict noisy sample response, order 18 | Passed on deployed main | Preserve the actual IDs and failure history above |
+| Strict noisy sample response, order 18 | API sample passed; subsequent browser sample failed | Keep both observations; reliable live acceptance remains open |
 | New rider UX | CI and viewport screenshots verified; not merged/deployed | CodewithJha reviews PR 107; merge only after approval/checks, then deploy and recheck |
 | Authenticated live desk and full smoke CLI | Not verified on this revision | Operator provides the existing passcode privately to the test environment, then verifies this actual sample in the desk |
-| Real microphone/WebSocket and browser playback | Not verified | Test with an explicitly consenting team member and invented details; verify actual audio playback |
+| Browser sample/reply playback | Native players completed; no media error | Keep the DOM/media-state evidence separate from a public video or human listening claim |
+| Real microphone/WebSocket | Not verified | Test with an explicitly consenting team member and invented details |
 | Live-provider Playwright | Not verified | Run its unchanged strict assertions with legitimate configured credentials and a bounded budget |
 | Consented field validation (#17) | `not_collected` | Collect the required lawful, explicitly consented clips and genuine responses; keep raw clips/identities outside git |
 | Actual rollback rehearsal | Not performed | Authorized operator uses the host dashboard; the connector has no rollback operation |
-| Working-app demo video | Not recorded or watched | Follow [demo-script.md](demo-script.md), publish a genuine working take and verify its URL |
+| Working-app demo video | Not recorded or watched | Record the required 2-3 minute take from [demo-script.md](demo-script.md), publish it and verify playback |
 | Nominated LinkedIn or X demo post | Not published/verified | Review [social-post.md](social-post.md), attach the actual video, select the real tag and verify both hashtags |
 | Final form and receipt | Not submitted/observed | Supply the verified video/post links, submit through the official form, then record its actual confirmation and time |
 

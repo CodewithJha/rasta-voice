@@ -1,6 +1,8 @@
-# Working-app demo plan
+# Working-app demo plans
 
-This is a planned take, not a completed recording or a measured 60-second run.
+The actual submission form requires a **2-3 minute working demo**. The
+60-second plan below is optional for the Demo Day Drop award, not a replacement.
+These are planned takes, not completed recordings or measured run times.
 Use only the actual working application and invented delivery details. Keep
 keys, desk passcodes and unrelated customer/user content out of the frame.
 Do not splice a different run's audio, transcript or result into a take.
@@ -27,7 +29,26 @@ Do not splice a different run's audio, transcript or result into a take.
 | Acknowledge | Ack | Acknowledge |
 | Resolve | Resolve | Mark resolved |
 
-## Planned 60-second take
+## Required 2-3 minute take
+
+Aim for 2 minutes 30 seconds. Time the actual recording; these windows are a
+shot plan, not measured provider latency. Use one sample and one reply, not
+a fresh paid call for every scene.
+
+| Time | Real screen/action | Narration focus |
+| --- | --- | --- |
+| 0:00-0:25 | Public app, rider controls | The rider's problem, target users and why Hinglish matters |
+| 0:25-0:45 | Trigger one synthetic noisy sample | Label synthetic audio; name Timbre synthesis and Prisma recognition |
+| 0:45-1:15 | Let the real request finish; play its returned audio | Read the actual transcript, intent, order and ETA; explain uncertainty honestly |
+| 1:15-1:45 | Show the same event in an already unlocked desk; acknowledge it | Dispatcher responsibilities, stored state and the audit trail; never expose the passcode |
+| 1:45-2:10 | Request the actual spoken confirmation and press Play | Explain that a reply is state-aware and does not falsely promise emergency assistance |
+| 2:10-2:30 | Resolve the event; return to the app | Team contributions, synthetic benchmark limits, code and app links |
+
+If a gate fails, show the honest limitation or stop. If the private desk cannot
+be unlocked, do not claim its live acknowledgement/resolution worked. A
+screenshot of CI's stored fixture cannot replace the live event in this video.
+
+## Optional 60-second award take
 
 | Time | Show | Say |
 | --- | --- | --- |
