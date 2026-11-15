@@ -5,6 +5,9 @@ from rasta.schema import Intent, RiderEvent
 UNCERTAIN_REPLY = (
     "Baat saaf nahi hui, surakshit jagah rukiye aur dispatch se pushti kijiye."
 )
+MISSING_ORDER_REPLY = (
+    "Order number saaf nahi hua. Surakshit jagah rukiye aur dispatch se order ki pushti kijiye."
+)
 ACCIDENT_REPLY = (
     "Kya aap theek hain, surakshit jagah rukiye aur turant dispatch se madad maangiye."
 )
@@ -64,6 +67,8 @@ def reply_text(
     # Matched rules use 0.5; lower-confidence classifications request review.
     if event.intent == Intent.other or event.confidence < 0.5:
         return UNCERTAIN_REPLY
+    if event.order_id is None:
+        return MISSING_ORDER_REPLY
     if event.intent == Intent.customer_unreachable:
         return "Gate ke paas rukiye; <pauses> dispatch se customer ko ek baar call karne ko kahiye."
     if event.intent == Intent.address_issue:
