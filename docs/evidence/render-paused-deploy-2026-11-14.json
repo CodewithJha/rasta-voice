@@ -1,0 +1,134 @@
+{
+  "checked_at": "2026-11-14T18:15:23.595467+00:00",
+  "origin": "https://rasta-voice-himanshu748.onrender.com",
+  "service_id": "srv-dbsa8sbrjlhs73dkv8o0",
+  "deploy_id": "dep-dbsa8t3rjlhs73dkvb1g",
+  "deployed_sha": "5facb5569b7aee0f29c06c19d01231aa7a785376",
+  "plan": "free",
+  "region": "singapore",
+  "auto_deploy": false,
+  "checks": [
+    {
+      "method": "GET",
+      "path": "",
+      "status": 200,
+      "request_id": "c3a0bd99-1b57-46ce-aa16-d2756ba60832",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "api/health",
+      "status": 200,
+      "request_id": "48aad8e6-5851-48c9-8f99-fdc7ba2f09dc",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "api/ready",
+      "status": 200,
+      "request_id": "b43d2fa6-fc29-4b24-b9fe-9e07f972dc66",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "docs",
+      "status": 404,
+      "request_id": "2ceeca10-d67a-4d41-96bc-de9509c6cd73",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "openapi.json",
+      "status": 404,
+      "request_id": "01fddd71-341f-4805-b72b-f4b5c04feb74",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "api/events",
+      "status": 401,
+      "request_id": "ac21fe6a-518d-4dbe-a9e3-917741a024e7",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "api/admin/usage",
+      "status": 401,
+      "request_id": "22476502-7f4b-4eb9-8703-24d81496ae66",
+      "security_headers": true
+    },
+    {
+      "method": "POST",
+      "path": "api/ingest/sample",
+      "status": 503,
+      "request_id": "3bc8364d-a499-4c16-ae66-2a1e2b23c65e",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "api/dispatch/csrf",
+      "status": 200,
+      "request_id": "194adf94-f90e-4844-b614-3398c1e16def",
+      "security_headers": true
+    },
+    {
+      "method": "POST",
+      "path": "api/dispatch/unlock",
+      "status": 200,
+      "signed_csrf": true
+    },
+    {
+      "method": "GET",
+      "path": "api/events",
+      "status": 200,
+      "request_id": "7fb4495d-9815-4739-b42c-baccd1ea20e3",
+      "security_headers": true
+    },
+    {
+      "method": "GET",
+      "path": "api/admin/usage",
+      "status": 200,
+      "request_id": "7fe57910-766a-4f9c-83af-0c76dd9492b6",
+      "security_headers": true
+    },
+    {
+      "method": "POST",
+      "path": "api/admin/wipe",
+      "status": 403,
+      "request_id": "8904b66a-6554-4a28-a34e-df601cb28066",
+      "security_headers": true
+    }
+  ],
+  "health": {
+    "ok": true,
+    "gnani_key_set": false,
+    "llm_provider": "rules"
+  },
+  "readiness": {
+    "ok": true,
+    "gnani_key_set": false,
+    "db_writable": true,
+    "rate_limit": {
+      "ok": true,
+      "per_ip_requests_per_minute": 10
+    },
+    "demo_credits_remaining": 0,
+    "demo_credits_exhausted": true,
+    "schema_version": 4,
+    "circuit_breaker": {
+      "gnani_stt": "closed",
+      "gnani_tts": "closed",
+      "llm": "closed"
+    },
+    "events_in_store": 0
+  },
+  "observed_gnani_calls": 0,
+  "live_speech": "not tested: no server key and speech budget is zero",
+  "rollback": "not rehearsed",
+  "field_recordings": "not collected",
+  "official_smoke": {
+    "exit_code": 0,
+    "result": "skipped: remote Gnani key is not set; no speech calls",
+    "speech_calls_upper_bound": 0
+  }
+}
