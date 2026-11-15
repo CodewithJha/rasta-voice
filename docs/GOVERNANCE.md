@@ -41,15 +41,13 @@ performed through it. No setting was changed by this documentation PR.
 Priyanshu inspected the classic protection rule during review of PR 50 on
 13 November 2026: PRs, one code-owner approval, stale-approval dismissal, all
 three checks and an up-to-date branch are required. Force pushes and deletion
-are disabled. Administrator enforcement (`enforce_admins`) is **false**, so
-administrators can bypass the rule. This is reported owner verification, not a
-settings change made by this PR. Keep issue 34 open until that bypass is disabled
-or both owners explicitly record acceptance of the limitation. This document
-does not accept it on their behalf.
+were disabled. Administrator enforcement (`enforce_admins`) was **false** at that
+time, allowing administrators to bypass the rule. This historical owner report
+required disabling that bypass or recording both owners' acceptance. The
+15 November record below resolves it by disabling the bypass.
 
 License and conduct changes require both owners' agreement. The MIT license
 and conduct policy are merged through PR 50; this update changes neither.
-The administrator-bypass limitation above remains unresolved on issue 34.
 
 ## Verification update: 15 November 2026
 
@@ -64,11 +62,20 @@ integration`, for upstream write operations and does not have administration
 access. Collaborator browser access still permits normal reviews and pull
 requests. Neither route grants permission to administer the protection rule.
 
-Priyanshu must enable administrator enforcement, add the expanded required
-check list, reopen the saved rule and record its actual settings here or on
-issue 34. Retain the existing review, stale-approval, up-to-date, force-push and
-deletion protections. The 13 November owner report remains the last verified
-settings record; this update does not claim that those settings were changed.
-Issue 34 remains open until the administrator-bypass requirement is resolved
-as described above. Live speech, field consent and rollback evidence retain
-their separate release gates.
+After merging PR 103, Priyanshu applied and re-read the classic `main` branch
+protection rule as repository owner. His
+[verification on issue 34](https://github.com/CodewithJha/rasta-voice/issues/34#issuecomment-6889687411)
+records the following saved settings:
+
+- A pull request, one approving review, code-owner review and dismissal of stale reviews.
+- An up-to-date branch and all ten required check names in the table above.
+- Administrator enforcement (`enforce_admins: true`).
+- Force pushes and branch deletion disabled.
+- Conversation resolution and linear history required.
+
+Priyanshu reports that the protection API returned these values after save.
+This is the repository owner's verification; Himanshu's integration still
+does not have administration access. It supersedes the 13 November settings
+record and resolves the administrator-bypass limitation without accepting a
+bypass. Live speech, field consent and rollback evidence retain their separate
+release gates; branch protection does not establish those results.
