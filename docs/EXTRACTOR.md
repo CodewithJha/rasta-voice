@@ -39,6 +39,22 @@ scored split of the selected provider (ids, labels, sources and
 latencies only; no keys or transcripts). Do not treat the 24/24
 tuning-holdout score as an independent result.
 
+## Spoken number grammar
+
+Order parsing accepts ordinary number literals, English tens/hundreds/thousands
+up to six digits, Roman Hindi literals through thirty (plus existing larger
+literals), and a sequence of up to six explicitly spoken digits. For example,
+`order one eight` means `18`, not the sum `9`; `order atharah` is also `18`.
+ETA parsing accepts number literals/cardinals but does not guess from consecutive
+units such as `one two minutes`. Invalid combinations, fractional identifiers,
+alternative order numbers and long spoken-digit sequences remain unresolved.
+`order a teen` still yields null; no ambiguous provider transcript is rewritten.
+
+These are grammar regressions outside the frozen intent holdouts. Intent rules,
+sample speech text, API schema, gold labels and the 0.8 acceptance threshold are
+unchanged. This does not establish improved independent intent accuracy or a
+passing live order-18 smoke.
+
 ## Providers
 
 `LLM_PROVIDER` selects the first hop:
