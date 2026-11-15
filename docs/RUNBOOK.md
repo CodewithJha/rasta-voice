@@ -73,7 +73,7 @@ local `.env`, never in browser build variables.
 | --- | --- |
 | GNANI_API_KEY | Empty; required for real speech |
 | GNANI_BASE_URL | https://api.vachana.ai |
-| LLM_PROVIDER | rules; optionally groq or gemini |
+| LLM_PROVIDER | rules (default, CI); set groq or gemini for a free-tier first hop |
 | GROQ_API_KEY | Empty; server-side Groq key |
 | GEMINI_API_KEY | Empty; server-side Gemini key |
 | LLM_MODEL | Empty; active-provider model override |
@@ -84,6 +84,8 @@ local `.env`, never in browser build variables.
 | LLM_TIMEOUT_SECONDS | Empty selects 4 seconds |
 | LLM_MAX_RETRIES | Empty selects 1 retry; allowed 0 or 1 |
 | LLM_RETRY_BACKOFF_SECONDS | Empty selects 0.25 seconds |
+| LLM_MIN_REQUEST_INTERVAL_SECONDS | Empty selects 4 seconds between LLM attempts; 0 disables pacing |
+| LLM_RETRY_AFTER_CAP_SECONDS | Empty selects 8 seconds as the cap for a Retry-After header |
 | EVENT_STORE_CAPACITY | 200 SQLite records; positive, at most 10000 |
 | RASTA_DB_PATH | data/rasta-events.sqlite; writable file, never :memory: in the app |
 | RASTA_EVENT_TTL_HOURS | 24 hours from created_at; 0 expires rows on the next list or sweep |

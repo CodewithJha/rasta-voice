@@ -143,10 +143,10 @@ holdout remains open.
 The original 24-line holdout was used to guide rule expansion, so it is
 kept as a tuning/regression set. The independent test is
 `intent_blind_holdout.jsonl` (36 lines, frozen in `440bcda` before it
-was scored). Rules accuracy there is 8/36 = 0.222 after the
-channel-bound contact fix (earlier official runs were 6/36). The 6/36
-figure stays as a regression floor, distinct from the 0.8 target. The
-measured numbers are in [docs/EXTRACTOR.md](../EXTRACTOR.md).
+was scored). Official rules scores on that file were 6/36, then 8/36
+after the channel-bound contact fix. The 6/36 figure stays as a
+regression floor, distinct from the 0.8 target. The measured numbers
+are in [docs/EXTRACTOR.md](../EXTRACTOR.md).
 
 ## Live refresh (14 Nov 2026)
 
@@ -155,6 +155,29 @@ and left unchanged. The default timeout stayed at 4 s. A live Gemini run
 on the frozen blind holdout at 9:30 PM IST scored 26/36 = 0.722
 end-to-end (24/26 = 0.923 on validated LLM answers; 10 HTTP 429
 fallbacks, counted as rules, never as LLM successes). A Groq key was
-not present. The 0.8 target is still unmet. Evidence:
+not present. The 0.8 target was still unmet at that point. Evidence:
 [docs/evidence/gemini-holdout-2026-11-14.md](../evidence/gemini-holdout-2026-11-14.md)
 and [docs/EXTRACTOR.md](../EXTRACTOR.md).
+
+## Rules v2 and live refresh (15 Nov 2026)
+
+Rules v2 was designed from the taxonomy plus gold and tuning only, with
+invented unit examples, then frozen before a one-shot official scoring
+of the holdout. Gold and tuning stayed 54/54. The official rules score
+is 29/36 = 0.806, which meets the 0.8 acceptance target. The strict
+xfail on that check was removed. The seven remaining misses were not
+used to add further needles.
+
+The same morning, paced live runs (4.0 s minimum interval, 4.0 s
+timeout, sibling vendor key unset) scored:
+
+- Groq `openai/gpt-oss-20b`, 9:45 AM IST: 35/36 = 0.972 end-to-end,
+  33/34 = 0.971 validated, two HTTP 429 fallbacks (both correct on
+  rules). Evidence:
+  [docs/evidence/groq-holdout-2026-11-15.md](../evidence/groq-holdout-2026-11-15.md)
+- Gemini `gemini-3.5-flash-lite`, 9:48 AM IST: 35/36 = 0.972
+  end-to-end and validated, no fallbacks. Evidence:
+  [docs/evidence/gemini-holdout-2026-11-15.md](../evidence/gemini-holdout-2026-11-15.md)
+
+Default `LLM_PROVIDER` and CI remain `rules`. Full numbers and the
+before/after history are in [docs/EXTRACTOR.md](../EXTRACTOR.md).

@@ -8,6 +8,8 @@ from rasta.settings import (
     DEFAULT_EVENT_STORE_CAPACITY,
     DEFAULT_GEMINI_MODEL,
     DEFAULT_GROQ_MODEL,
+    DEFAULT_LLM_MIN_REQUEST_INTERVAL_SECONDS,
+    DEFAULT_LLM_RETRY_AFTER_CAP_SECONDS,
     DEFAULT_LLM_TIMEOUT_SECONDS,
     DEFAULT_MAX_STREAMS,
     DEFAULT_RASTA_DB_PATH,
@@ -58,6 +60,8 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch):
     assert settings.llm_provider == "rules"
     assert settings.llm_timeout_seconds == DEFAULT_LLM_TIMEOUT_SECONDS
     assert settings.llm_max_retries == 1
+    assert settings.llm_min_request_interval_seconds == DEFAULT_LLM_MIN_REQUEST_INTERVAL_SECONDS
+    assert settings.llm_retry_after_cap_seconds == DEFAULT_LLM_RETRY_AFTER_CAP_SECONDS
     assert settings.connect_timeout_seconds == 5.0
     assert settings.stt_read_timeout_seconds == 15.0
     assert settings.tts_read_timeout_seconds == 20.0

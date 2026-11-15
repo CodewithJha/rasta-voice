@@ -16,6 +16,8 @@ import logging
 import threading
 import time
 from collections.abc import Callable
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from typing import Any
 
 import httpx
@@ -31,6 +33,8 @@ NO_RETRY_STATUS = frozenset({401, 403})
 _lock = threading.Lock()
 _client: httpx.Client | None = None
 _client_timeout: float | None = None
+_pace_lock = threading.Lock()
+_last_request_at: float | None = None
 
 
 def build_client(
@@ -81,6 +85,7 @@ def close_shared_client() -> None:
             _client.close()
         _client = None
         _client_timeout = None
+    reset_request_pacing()
 
 
 def resolve_client(
@@ -89,6 +94,60 @@ def resolve_client(
 ) -> httpx.Client:
     """Use the injected client, or the shared one."""
     return client if client is not None else get_shared_client(settings)
+
+
+
+def reset_request_pacing() -> None:
+    """Forget the last LLM request time. Tests use this to avoid leftover gaps."""
+    global _last_request_at
+    with _pace_lock:
+        _last_request_at = None
+
+
+def _pace_request(settings: Settings, sleeper: Callable[[float], None]) -> None:
+    """Wait until the configured minimum gap since the last LLM attempt has passed."""
+    interval = settings.llm_min_request_interval_seconds
+    if interval <= 0:
+        return
+    global _last_request_at
+    with _pace_lock:
+        now = time.monotonic()
+        last = _last_request_at
+        if last is not None:
+            remaining = interval - (now - last)
+            if remaining > 0:
+                sleeper(remaining)
+                now = time.monotonic()
+        _last_request_at = now
+
+
+def retry_delay_seconds(response: httpx.Response, settings: Settings, index: int) -> float:
+    """Return the sleep before the single retry, honouring Retry-After up to the cap."""
+    fallback = settings.llm_retry_backoff_seconds * (2**index)
+    cap = settings.llm_retry_after_cap_seconds
+    raw = response.headers.get("Retry-After")
+    if raw is None or not raw.strip():
+        return fallback
+    parsed = _parse_retry_after(raw.strip())
+    if parsed is None:
+        return fallback
+    return min(parsed, cap)
+
+
+def _parse_retry_after(raw: str) -> float | None:
+    try:
+        seconds = float(raw)
+    except ValueError:
+        try:
+            when = parsedate_to_datetime(raw)
+        except (TypeError, ValueError):
+            return None
+        if when.tzinfo is None:
+            when = when.replace(tzinfo=UTC)
+        seconds = (when - datetime.now(UTC)).total_seconds()
+    if seconds < 0 or not seconds == seconds or seconds == float("inf"):
+        return None
+    return seconds
 
 
 def request_with_retry(
@@ -136,6 +195,7 @@ def request_with_retry(
                         "The process is shutting down.", reason="shutting_down"
                     )
                 try:
+                    _pace_request(settings, sleeper)
                     started = True
                     response = client.request(method, url, **kwargs)
                 except httpx.TimeoutException as exc:
@@ -155,7 +215,7 @@ def request_with_retry(
                     record(success=False)
                     raise error
                 if status in RETRYABLE_STATUS and index < attempts - 1:
-                    delay = settings.llm_retry_backoff_seconds * (2**index)
+                    delay = retry_delay_seconds(response, settings, index)
                     log.warning("LLM HTTP %s, retrying once", status)
                     if delay > 0:
                         sleeper(delay)

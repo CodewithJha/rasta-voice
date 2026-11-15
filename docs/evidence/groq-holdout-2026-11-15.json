@@ -1,0 +1,377 @@
+{
+  "run_at": "2026-11-15T04:15:37.452857+00:00",
+  "split": "blind holdout",
+  "provider": "groq",
+  "model": "openai/gpt-oss-20b",
+  "timeout_seconds": 4.0,
+  "n": 36,
+  "intent_correct": 35,
+  "accuracy": 0.9722222222222222,
+  "order_correct": 33,
+  "eta_correct": 36,
+  "rules_used": 2,
+  "llm_successes": 34,
+  "llm_attempts": 36,
+  "fallback_reasons": {
+    "http_429": 2
+  },
+  "per_intent": {
+    "customer_unreachable": {
+      "correct": 6,
+      "total": 6
+    },
+    "address_issue": {
+      "correct": 6,
+      "total": 6
+    },
+    "item_missing": {
+      "correct": 6,
+      "total": 6
+    },
+    "delay": {
+      "correct": 6,
+      "total": 6
+    },
+    "accident_sos": {
+      "correct": 5,
+      "total": 6
+    },
+    "other": {
+      "correct": 6,
+      "total": 6
+    }
+  },
+  "rows": [
+    {
+      "id": "b01",
+      "gold": "customer_unreachable",
+      "predicted": "customer_unreachable",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 685.8
+    },
+    {
+      "id": "b02",
+      "gold": "customer_unreachable",
+      "predicted": "customer_unreachable",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 3856.3
+    },
+    {
+      "id": "b03",
+      "gold": "customer_unreachable",
+      "predicted": "customer_unreachable",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 4093.1
+    },
+    {
+      "id": "b04",
+      "gold": "customer_unreachable",
+      "predicted": "customer_unreachable",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 4066.2
+    },
+    {
+      "id": "b05",
+      "gold": "customer_unreachable",
+      "predicted": "customer_unreachable",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 3892.2
+    },
+    {
+      "id": "b06",
+      "gold": "customer_unreachable",
+      "predicted": "customer_unreachable",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 3928.8
+    },
+    {
+      "id": "b07",
+      "gold": "address_issue",
+      "predicted": "address_issue",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 4099.5
+    },
+    {
+      "id": "b08",
+      "gold": "address_issue",
+      "predicted": "address_issue",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 4412.6
+    },
+    {
+      "id": "b09",
+      "gold": "address_issue",
+      "predicted": "address_issue",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 4121.5
+    },
+    {
+      "id": "b10",
+      "gold": "address_issue",
+      "predicted": "address_issue",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 3437.4
+    },
+    {
+      "id": "b11",
+      "gold": "address_issue",
+      "predicted": "address_issue",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 4074.6
+    },
+    {
+      "id": "b12",
+      "gold": "address_issue",
+      "predicted": "address_issue",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 4074.6
+    },
+    {
+      "id": "b13",
+      "gold": "item_missing",
+      "predicted": "item_missing",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 4045.0
+    },
+    {
+      "id": "b14",
+      "gold": "item_missing",
+      "predicted": "item_missing",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 3787.5
+    },
+    {
+      "id": "b15",
+      "gold": "item_missing",
+      "predicted": "item_missing",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 3979.8
+    },
+    {
+      "id": "b16",
+      "gold": "item_missing",
+      "predicted": "item_missing",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 8149.3
+    },
+    {
+      "id": "b17",
+      "gold": "item_missing",
+      "predicted": "item_missing",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 3995.8
+    },
+    {
+      "id": "b18",
+      "gold": "item_missing",
+      "predicted": "item_missing",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 7799.9
+    },
+    {
+      "id": "b19",
+      "gold": "delay",
+      "predicted": "delay",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 8336.4
+    },
+    {
+      "id": "b20",
+      "gold": "delay",
+      "predicted": "delay",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 7834.7
+    },
+    {
+      "id": "b21",
+      "gold": "delay",
+      "predicted": "delay",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 8069.3
+    },
+    {
+      "id": "b22",
+      "gold": "delay",
+      "predicted": "delay",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 3975.2
+    },
+    {
+      "id": "b23",
+      "gold": "delay",
+      "predicted": "delay",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 4120.0
+    },
+    {
+      "id": "b24",
+      "gold": "delay",
+      "predicted": "delay",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 9107.9
+    },
+    {
+      "id": "b25",
+      "gold": "accident_sos",
+      "predicted": "accident_sos",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 9745.0
+    },
+    {
+      "id": "b26",
+      "gold": "accident_sos",
+      "predicted": "accident_sos",
+      "source": "rules",
+      "fallback_reason": "http_429",
+      "intent_ok": true,
+      "latency_ms": 7587.3
+    },
+    {
+      "id": "b27",
+      "gold": "accident_sos",
+      "predicted": "delay",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": false,
+      "latency_ms": 4451.9
+    },
+    {
+      "id": "b28",
+      "gold": "accident_sos",
+      "predicted": "accident_sos",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 4235.3
+    },
+    {
+      "id": "b29",
+      "gold": "accident_sos",
+      "predicted": "accident_sos",
+      "source": "rules",
+      "fallback_reason": "http_429",
+      "intent_ok": true,
+      "latency_ms": 7340.3
+    },
+    {
+      "id": "b30",
+      "gold": "accident_sos",
+      "predicted": "accident_sos",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 4480.4
+    },
+    {
+      "id": "b31",
+      "gold": "other",
+      "predicted": "other",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 8112.9
+    },
+    {
+      "id": "b32",
+      "gold": "other",
+      "predicted": "other",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 3726.5
+    },
+    {
+      "id": "b33",
+      "gold": "other",
+      "predicted": "other",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 8163.9
+    },
+    {
+      "id": "b34",
+      "gold": "other",
+      "predicted": "other",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 8084.4
+    },
+    {
+      "id": "b35",
+      "gold": "other",
+      "predicted": "other",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 8929.3
+    },
+    {
+      "id": "b36",
+      "gold": "other",
+      "predicted": "other",
+      "source": "llm",
+      "fallback_reason": null,
+      "intent_ok": true,
+      "latency_ms": 2878.3
+    }
+  ],
+  "latency_ms": {
+    "n": 36,
+    "mean": 5435.5,
+    "p50": 4120.7,
+    "min": 685.8,
+    "max": 9745.0
+  }
+}

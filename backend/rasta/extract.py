@@ -100,6 +100,8 @@ _STEM_NEEDLES = frozenset(
         "andar nahi ja",
         "nahi jaa paa",
         "address nahi mil",
+        "chot aay",
+        "takra",
     }
 )
 _NEGATIVE_PREFIX = re.compile(r"\b(?:no|not|without)\s+(?:any\s+)?$")
@@ -110,16 +112,22 @@ _NEGATIVE_SUFFIX = re.compile(
 )
 
 
-def _affirmed_keyword(text: str, needle: str) -> bool:
+def _affirmed_spans(text: str, needle: str) -> list[tuple[int, int]]:
+    """Return spans of ``needle`` that are not locally negated."""
     suffix = r"\w*" if needle in _STEM_NEEDLES else ""
     pattern = re.compile(r"(?<!\w)" + re.escape(needle) + suffix + r"(?!\w)")
+    spans: list[tuple[int, int]] = []
     for match in pattern.finditer(text):
         if _NEGATIVE_PREFIX.search(text[: match.start()]) is not None:
             continue
         if _NEGATIVE_SUFFIX.match(text[match.end() :]) is not None:
             continue
-        return True
-    return False
+        spans.append(match.span())
+    return spans
+
+
+def _affirmed_keyword(text: str, needle: str) -> bool:
+    return bool(_affirmed_spans(text, needle))
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,17 +173,46 @@ class _Rule:
 # customer contact. There is no clause splitting and no bag-of-words
 # check. Punctuation is normalised to spaces before matching, so a
 # comma must not change the result.
-_CHANNEL = r"(?:phone|mobile|call|line|number)"
+_CHANNEL = r"(?:phone|mobile|call|line|number|intercom|whatsapp|sms)"
 # Auxiliaries that may sit between a channel word and a failure verb.
 # This is a closed set, not an arbitrary token window, so a later phrase
 # cannot donate its channel word to an earlier failure.
 _AUX = r"(?:hai|hain|ho|aa|raha|rahi|rahe|kar|tha|thi|the)"
-_FILLED = rf"(?:\s+{_AUX}){{0,3}}"
+# Frequency or manner words that may sit between a channel and a status.
+# English adverbs are the -ly class; the list is otherwise closed.
+_FREQ = r"(?:baar(?:\s+baar)?|phir|again|still|always|[a-z]+ly)"
+_CASE_MARK = r"(?:se|ne|ka|ki|ko|ke|pe|par)"
+_FILLED = rf"(?:\s+(?:{_AUX}|{_FREQ}|{_CASE_MARK})){{0,3}}"
 _UTHA_FAIL = r"(?:nahi\s+utha\w*|utha(?:ya|ta|te)?\s+nahi)"
 
 _FAILED_CONTACT: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("channel_busy", re.compile(rf"\b{_CHANNEL}{_FILLED}\s+busy\b")),
     ("busy_channel", re.compile(rf"\bbusy{_FILLED}\s+{_CHANNEL}\b")),
+    ("channel_engaged", re.compile(rf"\b{_CHANNEL}{_FILLED}\s+engaged\b")),
+    ("engaged_channel", re.compile(rf"\bengaged{_FILLED}\s+{_CHANNEL}\b")),
+    (
+        "call_cut",
+        re.compile(
+            rf"\b(?:call|phone|mobile){_FILLED}\s+"
+            rf"(?:cut|disconnect(?:ed)?|dropped)\b"
+        ),
+    ),
+    (
+        "bell_no_response",
+        re.compile(
+            r"\b(?:doorbell|door\s*bell|bell|intercom)"
+            r"(?:\s+\w+){0,8}\s+(?:response|jawab)\s+nahi"
+            r"|\b(?:response|jawab)\s+nahi(?:\s+\w+){0,8}\s+"
+            r"(?:doorbell|door\s*bell|bell|intercom)\b"
+        ),
+    ),
+    (
+        "message_no_reply",
+        re.compile(
+            rf"\b(?:whatsapp|sms|message|msg){_FILLED}\s+"
+            rf"(?:reply|jawab|respond)\s+nahi"
+        ),
+    ),
     ("switched_off", re.compile(r"\bswi(?:tch|ch)(?:ed)?\s+off\b")),
     ("channel_off", re.compile(rf"\b{_CHANNEL}{_FILLED}\s+off\b")),
     (
@@ -316,45 +353,219 @@ def _is_failed_contact(haystack: str) -> bool:
     return True
 
 
+
+# Media or lesson content, not a place such as a training centre.
+_TRAINING_CONTENT = re.compile(
+    r"\b(?:(?:training|safety)\s+)?"
+    r"(?:video|tutorial|chapter|course|clip|movie|lecture|module)s?\b"
+)
+_CLAUSE_SPLIT = re.compile(r"[,.!?]")
+_SOS_MENTION = (
+    "accident",
+    "hadsa",
+    "sos",
+)
+_SOS_HARM = (
+    "gir gaya",
+    "gir gayi",
+    "takkar",
+    "takra",
+    "takrai",
+    "takraya",
+    "takrayi",
+    "palat gayi",
+    "palat gaya",
+    "palat gaye",
+    "chot lag",
+    "chot lagi",
+    "chot hai",
+    "chot aayi",
+    "chot aaya",
+    "injured",
+    "phisal gayi",
+    "phisal gaya",
+    "slide",
+    "skid",
+    "bleeding",
+    "khoon",
+    "ambulance",
+    "dard",
+)
+_HOSPITAL = re.compile(r"\bhospital\b")
+_HOSPITAL_CUE = re.compile(
+    r"\b(?:dard|chot|khoon|bleeding|madad|help|le jaana|le jana|ambulance)\b"
+)
+_ITEM_CONTEXT = re.compile(
+    r"\b(?:bill|invoice|package|packing|bag|items?|pieces?|cheezein|cheez|saman|sku)\b"
+)
+_COUNT_TOKEN = re.compile(
+    rf"\b{_NUMBER}\b",
+    re.IGNORECASE,
+)
+_QUANTITY_UNIT = r"(?:items?|pieces?|cheezein|cheez|saman|sku|packets?|packs?|boxes?)"
+_EXPECTED_COUNT_PREFIX = re.compile(
+    r"\b(?:bill|invoice)(?:\s+(?:pe|par|mein|me|has|says|lists|ke|mutabik|only|sirf)){0,4}\s*$"
+)
+_EXPECTED_COUNT_SUFFIX = re.compile(
+    rf"^\s*{_QUANTITY_UNIT}\s+(?:honi\s+thi|hone\s+the|chahiye\s+the|expected|ordered)\b"
+)
+_COUNT_UNIT_SUFFIX = re.compile(rf"^\s*{_QUANTITY_UNIT}\b")
+_RECEIVED_COUNT_PREFIX = re.compile(r"\b(?:sirf|only)\s*$")
+_RECEIVED_COUNT_SUFFIX = re.compile(
+    rf"^\s*(?:(?:{_QUANTITY_UNIT}\s+)?"
+    r"(?:(?:hi\s+)?(?:nikle|nikla|mila|mili)|hi\s+(?:hain|hai))"
+    rf"|{_QUANTITY_UNIT}\s+(?:hi\s+)?mile)\b"
+)
+_RAIN = ("barish", "barsaat", "rain")
+_SLOW = ("dheere", "slow", "atak")
+
+
+def _normalize_rules_text(text: str) -> str:
+    """Fold common romanisation variants before keyword matching."""
+    lowered = text.lower()
+    return re.sub(r"\bnahin\b", "nahi", lowered)
+
+
+def _clause_around(text: str, span: tuple[int, int]) -> str:
+    """Return the comma- or sentence-bounded clause that contains ``span``."""
+    start, end = span
+    left = 0
+    right = len(text)
+    for match in _CLAUSE_SPLIT.finditer(text):
+        if match.end() <= start:
+            left = match.end()
+        elif match.start() >= end:
+            right = match.start()
+            break
+    return text[left:right]
+
+
+def _is_training_content_mention(haystack: str, span: tuple[int, int]) -> bool:
+    """True when this accident mention refers to training or safety media."""
+    return _TRAINING_CONTENT.search(_clause_around(haystack, span)) is not None
+
+
+def _is_accident(haystack: str) -> bool:
+    """True for rider harm or an unqualified accident mention.
+
+    A mention of accident, hadsa, or sos inside a training or safety video,
+    module, or chapter is not enough; a harm keyword still wins. A real
+    accident near a training place is still SOS.
+    """
+    if any(_affirmed_keyword(haystack, needle) for needle in _SOS_HARM):
+        return True
+    if _HOSPITAL.search(haystack) and _HOSPITAL_CUE.search(haystack):
+        return True
+    mentions: list[tuple[int, int]] = []
+    for needle in _SOS_MENTION:
+        mentions.extend(_affirmed_spans(haystack, needle))
+    if not mentions:
+        return False
+    return any(
+        not _is_training_content_mention(haystack, span) for span in mentions
+    )
+
+
+def _order_id_span(text: str) -> tuple[int, int] | None:
+    """Span of the existing order-id match, when `_order_id` accepts it."""
+    match = _ORDER.search(text)
+    if match is None or _order_id(text) is None:
+        return None
+    return match.span()
+
+
+def _is_item_count_short(haystack: str) -> bool:
+    """Compare an expected item quantity with a smaller received quantity.
+
+    Number words, order identifiers and ETAs are not independent item counts.
+    A difference alone is not a shortage: bind the quantities to their roles.
+    """
+    if _ITEM_CONTEXT.search(haystack) is None:
+        return False
+    excluded = [match.span() for match in _ETA.finditer(haystack)]
+    order_span = _order_id_span(haystack)
+    if order_span is not None:
+        excluded.append(order_span)
+    expected: list[tuple[int, tuple[int, int]]] = []
+    received: list[tuple[int, tuple[int, int]]] = []
+    for token in _COUNT_TOKEN.finditer(haystack):
+        span = token.span()
+        if any(_spans_overlap(span, other) for other in excluded):
+            continue
+        before, after = haystack[:token.start()], haystack[token.end():]
+        if re.search(r"\d[.,]\s*$", before) or re.match(r"\s*[.,]\s*\d", after):
+            continue
+        parsed = _to_int(token.group(0))
+        if parsed is None:
+            continue
+        is_expected = bool((
+            _EXPECTED_COUNT_PREFIX.search(before) and _COUNT_UNIT_SUFFIX.match(after)
+        ) or _EXPECTED_COUNT_SUFFIX.match(after))
+        if is_expected:
+            expected.append((parsed, span))
+        limited_quantity = _RECEIVED_COUNT_PREFIX.search(before) and (
+            _COUNT_UNIT_SUFFIX.match(after)
+            or re.match(r"^\s*(?:(?:hain|hai)\s*)?(?:[,.;!?]|$)", after)
+        )
+        if not is_expected and (limited_quantity or _RECEIVED_COUNT_SUFFIX.match(after)):
+            received.append((parsed, span))
+    return any(
+        wanted > actual and expected_span != received_span
+        for wanted, expected_span in expected
+        for actual, received_span in received
+    )
+
+
+def _is_item_missing(haystack: str) -> bool:
+    keywords = (
+        "item missing",
+        "missing item",
+        "item nahi",
+        "saman nahi",
+        "saman hi nahi",
+        "saman kam",
+        "sku missing",
+        "quantity short",
+        "cheez kam",
+        "item kam",
+        "chhoot gaya",
+        "chhoot gayi",
+        "chhut gaya",
+        "chhut gayi",
+        "replace nahi mila",
+        "bag mein nahi mila",
+        "packing mein nahi mila",
+        "khali pack",
+        "khali packet",
+        "khali bag",
+        "khali box",
+        "empty pack",
+        "empty packet",
+        "empty bag",
+    )
+    if any(_affirmed_keyword(haystack, needle) for needle in keywords):
+        return True
+    return _is_item_count_short(haystack)
+
+
+def _is_rain_delay(haystack: str) -> bool:
+    return any(_affirmed_keyword(haystack, rain) for rain in _RAIN) and any(
+        _affirmed_keyword(haystack, slow) for slow in _SLOW
+    )
+
+
 # Needles are general Hinglish / transliterated English paraphrases a rider
 # would actually say, not memorised evaluation lines.
 _RULES: tuple[_Rule, ...] = (
     _Rule(
         Intent.accident_sos,
         Urgency.high,
-        any_of=(
-            "accident",
-            "hadsa",
-            "gir gaya",
-            "gir gayi",
-            "sos",
-            "takkar",
-            "palat gayi",
-            "palat gaya",
-            "palat gaye",
-            "chot lag",
-            "chot lagi",
-            "chot hai",
-            "injured",
-            "phisal gayi",
-            "phisal gaya",
-        ),
+        detect=_is_accident,
     ),
     _Rule(
         Intent.item_missing,
         Urgency.medium,
-        any_of=(
-            "item missing",
-            "missing item",
-            "item nahi",
-            "saman nahi",
-            "saman hi nahi",
-            "saman kam",
-            "sku missing",
-            "quantity short",
-            "cheez kam",
-            "item kam",
-        ),
+        detect=_is_item_missing,
     ),
     _Rule(
         Intent.customer_unreachable,
@@ -371,6 +582,8 @@ _RULES: tuple[_Rule, ...] = (
             "address galat",
             "location galat",
             "rasta band",
+            "rasta close",
+            "rasta closed",
             "rasta stuck",
             "entry closed",
             "entry close",
@@ -381,8 +594,32 @@ _RULES: tuple[_Rule, ...] = (
             "address nahi mil",
         ),
         all_groups=(
-            ("galat", "wrong"),
-            ("building", "society", "wing", "map", "pin", "gali"),
+            (
+                "galat",
+                "wrong",
+                "alag",
+                "dusra",
+                "dusre",
+                "match nahi",
+                "le aaya",
+                "le gaya",
+                "le gayi",
+            ),
+            (
+                "building",
+                "society",
+                "wing",
+                "map",
+                "pin",
+                "gali",
+                "tower",
+                "sector",
+                "block",
+                "plot",
+                "house",
+                "flat",
+                "landmark",
+            ),
         ),
     ),
     _Rule(
@@ -400,6 +637,7 @@ _RULES: tuple[_Rule, ...] = (
             "late",
             "delay",
             "traffic",
+            "bumper to bumper",
             "der ho",
             "der lag",
             "atak gaya",
@@ -411,7 +649,23 @@ _RULES: tuple[_Rule, ...] = (
             "extra lagenge",
             "minute extra",
         ),
-        all_groups=(("eta",), ("min", "minute", "minutes", "mint")),
+        all_groups=(
+            ("eta",),
+            ("min", "minute", "minutes", "mint"),
+        ),
+    ),
+    _Rule(
+        Intent.delay,
+        Urgency.low,
+        detect=_is_rain_delay,
+    ),
+    _Rule(
+        Intent.delay,
+        Urgency.low,
+        all_groups=(
+            ("lamba",),
+            ("wait", "queue", "minute lag", "min lag"),
+        ),
     ),
 )
 
@@ -431,6 +685,13 @@ def extract_event(
     return extract_event_with_source(transcript, provider, client=client).event
 
 
+# Reasons that may try the other free provider before rules. A missing
+# key, 401/403, invalid JSON, or an open breaker stays on this hop.
+_RETRYABLE_PROVIDER_REASONS = frozenset(
+    {"timeout", "connection_error", "http_429", *{f"http_{code}" for code in range(500, 600)}}
+)
+
+
 def extract_event_with_source(
     transcript: str,
     provider: str | None = None,
@@ -444,13 +705,34 @@ def extract_event_with_source(
     name = _provider_name(provider)
     if name == "rules":
         return ExtractResult(_by_rules(transcript), "rules", None)
-    try:
-        event = _by_llm(transcript, name, client=client)
-    except LlmError as exc:
-        # Never log the transcript, the prompt, the raw model text, or the key.
-        log.warning("llm extractor fell back to rules (%s)", exc.reason)
-        return ExtractResult(_by_rules(transcript), "rules", exc.reason)
-    return ExtractResult(event, "llm", None)
+    last_error: LlmError | None = None
+    for hop in _provider_hops(name):
+        try:
+            event = _by_llm(transcript, hop, client=client)
+        except LlmError as exc:
+            # Never log the transcript, the prompt, the raw model text, or the key.
+            last_error = exc
+            if hop == name and exc.reason == "missing_api_key":
+                break
+            if exc.reason in _RETRYABLE_PROVIDER_REASONS:
+                continue
+            break
+        else:
+            return ExtractResult(event, "llm", None)
+    reason = last_error.reason if last_error is not None else "unknown_provider"
+    log.warning("llm extractor fell back to rules (%s)", reason)
+    return ExtractResult(_by_rules(transcript), "rules", reason)
+
+
+def _provider_hops(name: str) -> tuple[str, ...]:
+    """Selected provider first, then the other free provider if its key is set."""
+    if name not in {"groq", "gemini"}:
+        return (name,)
+    other = "gemini" if name == "groq" else "groq"
+    settings = get_settings()
+    if settings.key_for(other):
+        return (name, other)
+    return (name,)
 
 
 def _provider_name(provider: str | None) -> str:
@@ -471,7 +753,7 @@ def _by_llm(
 
 
 def _by_rules(transcript: str) -> RiderEvent:
-    haystack = transcript.lower()
+    haystack = _normalize_rules_text(transcript)
     intent = Intent.other
     urgency = Urgency.low
     confidence = 0.0
