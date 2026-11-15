@@ -22,15 +22,40 @@ interface SimulateEnvelope {
 // server mix. This issue ships the upload / REST sample path as the demo
 // dirt; Talk and Stream a sample line stay a clean mic.
 
-export function initRider(root: HTMLElement): void {
+export function initRider(root: HTMLElement): { isBusy: () => boolean } {
   const chit = document.createElement("section");
   chit.className = "chit";
   chit.setAttribute("aria-labelledby", "rider-title");
 
-  const sticker = document.createElement("p");
-  sticker.className = "sticker";
-  sticker.textContent = t("rider.sticker");
-
+  const intro = document.createElement("div");
+  intro.className = "page-intro";
+  const pageTitle = document.createElement("h1");
+  pageTitle.tabIndex = -1;
+  const lede = document.createElement("p");
+  intro.append(pageTitle, lede);
+  const steps = document.createElement("ol");
+  steps.className = "workflow-steps";
+  const stepLabels = ["rider.stepRecord", "rider.stepCheck", "rider.stepReply"] as const;
+  for (const [index, key] of stepLabels.entries()) {
+    const item = document.createElement("li");
+    const number = document.createElement("span");
+    number.textContent = String(index + 1);
+    number.setAttribute("aria-hidden", "true");
+    const text = document.createElement("span");
+    text.dataset.stepLabel = key;
+    item.append(number, text);
+    steps.append(item);
+  }
+  const availability = document.createElement("p");
+  availability.className = "speech-availability";
+  availability.setAttribute("role", "status");
+  availability.setAttribute("aria-live", "polite");
+  const availabilityText = document.createElement("span");
+  const checkAgain = document.createElement("button");
+  checkAgain.type = "button";
+  checkAgain.className = "text-button";
+  checkAgain.hidden = true;
+  availability.append(availabilityText, checkAgain);
   const title = document.createElement("h2");
   title.id = "rider-title";
   title.textContent = t("rider.title");
@@ -89,7 +114,7 @@ export function initRider(root: HTMLElement): void {
   restSample.className = "ghost";
   restSample.textContent = t("rider.sample");
 
-  row.append(fileLabel, send, restSample);
+  row.append(fileLabel, send);
   form.append(row);
 
   const live = document.createElement("div");
@@ -106,7 +131,9 @@ export function initRider(root: HTMLElement): void {
   streamSample.className = "ghost";
   streamSample.textContent = t("rider.streamSample");
 
-  live.append(talk, streamSample);
+  const recordHint = document.createElement("p");
+  recordHint.className = "record-hint";
+  live.append(talk, recordHint);
 
   const micHint = document.createElement("p");
   micHint.className = "rider-mic-hint";
@@ -114,7 +141,9 @@ export function initRider(root: HTMLElement): void {
 
   const out = document.createElement("div");
   out.className = "chit-out";
-  out.tabIndex = 0;
+  out.tabIndex = -1;
+  out.setAttribute("role", "status");
+  out.setAttribute("aria-live", "polite");
   out.dataset.mode = "waiting";
   out.textContent = t("rider.waiting");
 
@@ -154,13 +183,65 @@ export function initRider(root: HTMLElement): void {
   fine.className = "fine";
   fine.textContent = t("rider.fine");
 
-  chit.append(sticker, title, hint, mix, form, live, micHint, out, players, fine);
-  root.append(chit);
+  const alternatives = document.createElement("div");
+  alternatives.className = "capture-alternatives";
+  const tools = document.createElement("details");
+  tools.className = "audio-tools";
+  const toolsSummary = document.createElement("summary");
+  tools.append(toolsSummary, mix, form, streamSample);
+  alternatives.append(restSample, tools);
+  const result = document.createElement("section");
+  result.className = "delivery-result";
+  result.setAttribute("aria-labelledby", "result-title");
+  const resultTitle = document.createElement("h2");
+  resultTitle.id = "result-title";
+  const sent = document.createElement("p");
+  sent.className = "sent-note";
+  sent.hidden = true;
+  const deskLink = document.createElement("a");
+  deskLink.href = "#dispatch";
+  deskLink.className = "dispatch-link";
+  deskLink.hidden = true;
+  result.append(resultTitle, sent, out, players, deskLink);
+  chit.append(title, hint, live, micHint, alternatives);
+  root.append(intro, steps, availability, chit, result, fine);
 
   let condition: LineCondition = "clean";
   let lastEventId: string | undefined;
   let lastShown: IngestResult | undefined;
   let busy = false;
+  let speechBlocked = false;
+  let checking = true;
+  let availabilityKey: "rider.checking" | "rider.availabilityUnknown" | "error.missingKey" | "error.paused" | "error.budget" | undefined = "rider.checking";
+
+  const paintAvailability = (): void => {
+    availability.hidden = !availabilityKey;
+    availabilityText.textContent = availabilityKey ? t(availabilityKey) : "";
+    checkAgain.textContent = t("rider.checkAgain");
+    checkAgain.hidden = checking || !availabilityKey;
+    checkAgain.disabled = busy;
+  };
+  const refreshAvailability = async (): Promise<void> => {
+    checking = true;
+    setBusy(busy);
+    paintAvailability();
+    try {
+      const { response, text } = await fetchWithTimeout("/api/ready");
+      if (!response.ok) throw new Error("readiness unavailable");
+      const body = JSON.parse(text) as Record<string, unknown>;
+      if (typeof body.gnani_key_set !== "boolean" || typeof body.demo_credits_remaining !== "number") throw new Error("invalid readiness");
+      speechBlocked = !body.gnani_key_set || body.demo_credits_remaining <= 0 || body.demo_credits_exhausted === true;
+      availabilityKey = !body.gnani_key_set ? "error.missingKey" : speechBlocked ? "error.budget" : undefined;
+    } catch {
+      availabilityKey = "rider.availabilityUnknown";
+      // A failed refresh cannot clear a known block. The server still enforces admission.
+    } finally {
+      checking = false;
+      setBusy(busy);
+      paintAvailability();
+    }
+  };
+  checkAgain.addEventListener("click", () => { void refreshAvailability(); });
 
   const applyCondition = (value: LineCondition): void => {
     condition = value;
@@ -193,21 +274,30 @@ export function initRider(root: HTMLElement): void {
     });
   }
 
-  const mic = new MicSession(out, talk, live, () => setBusy(false), rememberIngest);
+  const mic = new MicSession(out, talk, live, () => { setBusy(false); void refreshAvailability(); }, rememberIngest);
 
   const setBusy = (value: boolean): void => {
     busy = value;
-    send.disabled = value;
-    restSample.disabled = value;
-    streamSample.disabled = value;
-    talk.disabled = value && !mic.recording;
-    hear.disabled = value || !lastEventId;
+    send.disabled = value || speechBlocked || checking || !file.files?.length;
+    restSample.disabled = value || speechBlocked || checking;
+    streamSample.disabled = value || speechBlocked || checking;
+    talk.disabled = (value || speechBlocked || checking) && !mic.recording;
+    hear.disabled = value || speechBlocked || checking || !lastEventId;
+    checkAgain.disabled = value;
+    chit.setAttribute("aria-busy", String(value));
   };
 
   function rememberIngest(ingest: IngestResult): void {
     lastEventId = ingest.id;
     lastShown = ingest;
-    hear.disabled = busy || !lastEventId;
+    hear.disabled = busy || speechBlocked || !lastEventId;
+    sent.hidden = false;
+    deskLink.hidden = false;
+    players.hidden = false;
+    replyAudio.removeAttribute("src");
+    replyAudio.hidden = true;
+    replyText.hidden = true;
+    out.focus({ preventScroll: true });
   }
 
   const refreshMicHint = (): void => {
@@ -234,7 +324,17 @@ export function initRider(root: HTMLElement): void {
   };
 
   const paintLabels = (): void => {
-    sticker.textContent = t("rider.sticker");
+    pageTitle.textContent = t("rider.pageTitle");
+    lede.textContent = t("mast.lede");
+    for (const label of Array.from(steps.querySelectorAll<HTMLElement>("[data-step-label]"))) {
+      label.textContent = t(label.dataset.stepLabel as typeof stepLabels[number]);
+    }
+    recordHint.textContent = t("rider.recordHint");
+    toolsSummary.textContent = t("rider.tools");
+    resultTitle.textContent = t("rider.resultTitle");
+    sent.textContent = t("rider.sent");
+    deskLink.textContent = t("rider.viewDispatch");
+    paintAvailability();
     title.textContent = t("rider.title");
     hint.textContent = t("rider.hint");
     mix.setAttribute("aria-label", t("rider.mixGroup"));
@@ -289,11 +389,28 @@ export function initRider(root: HTMLElement): void {
   };
 
   paintLabels();
+  setBusy(false);
   onLocaleChange(paintLabels);
+  void refreshAvailability();
+  file.addEventListener("change", () => { paintLabels(); setBusy(busy); });
+  // Keep success-only controls out of the empty state; never show a fake result.
+  const syncResultState = (): void => {
+    const mode = out.dataset.mode ?? "waiting";
+    const hasResult = mode === "result";
+    sent.hidden = !hasResult;
+    deskLink.hidden = !hasResult;
+    players.hidden = !lastEventId;
+    for (const [index, item] of Array.from(steps.children).entries()) {
+      if (index === (hasResult ? 2 : mode === "pending" ? 1 : 0)) item.setAttribute("aria-current", "step");
+      else item.removeAttribute("aria-current");
+    }
+  };
+  new MutationObserver(syncResultState).observe(out, { attributes: true, attributeFilter: ["data-mode"] });
+  syncResultState();
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (busy || mic.recording) return;
+    if (busy || mic.recording || speechBlocked || checking) return;
     const picked = file.files?.[0];
     if (!picked) {
       out.dataset.mode = "pick";
@@ -311,7 +428,7 @@ export function initRider(root: HTMLElement): void {
   });
 
   restSample.addEventListener("click", () => {
-    if (busy || mic.recording) return;
+    if (busy || mic.recording || speechBlocked || checking) return;
     void withBusy(restSample, () =>
       post(`/api/ingest/sample?condition=${condition}`, { method: "POST" }, out, {
         onIngest: rememberIngest,
@@ -325,13 +442,18 @@ export function initRider(root: HTMLElement): void {
       mic.stop();
       return;
     }
-    if (busy) return;
+    if (busy || speechBlocked || checking) return;
     setBusy(true);
-    void mic.start();
+    void mic.start().catch((error: unknown) => {
+      out.dataset.mode = "error";
+      out.textContent = describeNetworkError(error);
+      mic.stop();
+      setBusy(false);
+    });
   });
 
   streamSample.addEventListener("click", () => {
-    if (busy || mic.recording) return;
+    if (busy || mic.recording || speechBlocked || checking) return;
     setBusy(true);
     live.dataset.state = "live";
     out.dataset.mode = "pending";
@@ -345,7 +467,7 @@ export function initRider(root: HTMLElement): void {
   });
 
   hear.addEventListener("click", () => {
-    if (busy || !lastEventId) return;
+    if (busy || speechBlocked || checking || !lastEventId) return;
     void withBusy(hear, () => postReply(`/api/reply/${lastEventId}`, out, replyAudio, replyText));
   });
 
@@ -359,8 +481,10 @@ export function initRider(root: HTMLElement): void {
     } finally {
       button.textContent = label;
       setBusy(false);
+      void refreshAvailability();
     }
   }
+  return { isBusy: () => busy };
 }
 
 class MicSession {

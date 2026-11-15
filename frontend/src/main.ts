@@ -4,79 +4,55 @@ import { initRider } from "./rider";
 import "./styles.css";
 
 const app = document.querySelector("#app");
-if (!app) {
-  throw new Error("missing #app");
-}
-
+if (!app) throw new Error("missing #app");
 initLocale();
-
 app.innerHTML = `
+  <a class="skip-link" href="#main">Skip to content</a>
   <div class="app-banner" hidden role="status" aria-live="polite"></div>
-  <p class="wall" aria-hidden="true">Rasta</p>
-  <header class="mast">
-    <div class="mast-row">
-      <p class="kicker" data-i18n="mast.kicker"></p>
-      <div class="locale-toggle" role="group" data-i18n-aria="locale.toggle"></div>
-    </div>
-    <h1>Rasta Voice</h1>
-    <p class="lede" data-i18n="mast.lede"></p>
+  <header class="app-header">
+    <a class="brand" href="#rider">Rasta Voice</a>
+    <nav class="view-nav" aria-label="Workspace">
+      <a href="#rider" data-view="rider"></a>
+      <a href="#dispatch" data-view="dispatch"></a>
+    </nav>
+    <div class="locale-toggle" role="group"></div>
   </header>
-  <div class="layout">
+  <main id="main" class="workspace">
     <div id="rider-root"></div>
-    <div id="dispatch-root"></div>
-  </div>
-  <p class="colophon" data-i18n="colophon"></p>
+    <div id="dispatch-root" hidden></div>
+  </main>
+  <footer class="colophon"></footer>
 `;
-
-const banner = app.querySelector(".app-banner");
-const toggle = app.querySelector(".locale-toggle");
-const kicker = app.querySelector(".kicker");
-const lede = app.querySelector(".lede");
-const colophon = app.querySelector(".colophon");
-const rider = document.querySelector("#rider-root");
-const dispatch = document.querySelector("#dispatch-root");
-if (
-  !(banner instanceof HTMLElement) ||
-  !(toggle instanceof HTMLElement) ||
-  !(kicker instanceof HTMLElement) ||
-  !(lede instanceof HTMLElement) ||
-  !(colophon instanceof HTMLElement) ||
-  !(rider instanceof HTMLElement) ||
-  !(dispatch instanceof HTMLElement)
-) {
-  throw new Error("missing roots");
-}
+const banner = app.querySelector<HTMLElement>(".app-banner")!;
+const toggle = app.querySelector<HTMLElement>(".locale-toggle")!;
+const colophon = app.querySelector<HTMLElement>(".colophon")!;
+const rider = app.querySelector<HTMLElement>("#rider-root")!;
+const dispatch = app.querySelector<HTMLElement>("#dispatch-root")!;
+const links = Array.from(app.querySelectorAll<HTMLAnchorElement>("[data-view]"));
+let currentView = "rider";
+let dispatchStarted = false;
+const riderController = initRider(rider);
 
 const paintMast = (): void => {
-  kicker.textContent = t("mast.kicker");
-  lede.textContent = t("mast.lede");
   colophon.textContent = t("colophon");
   toggle.setAttribute("aria-label", t("locale.toggle"));
   for (const button of Array.from(toggle.querySelectorAll("button"))) {
-    const locale = button.getAttribute("data-locale");
-    if (locale === "en" || locale === "hi-en") {
-      button.textContent = locale === "en" ? t("locale.en") : t("locale.hi");
-      button.setAttribute("aria-pressed", String(locale === getLocale()));
-    }
+    const locale = button.dataset.locale;
+    button.textContent = locale === "en" ? t("locale.en") : t("locale.hi");
+    button.setAttribute("aria-pressed", String(locale === getLocale()));
   }
+  for (const link of links) link.textContent = t(link.dataset.view === "rider" ? "nav.rider" : "nav.dispatch");
 };
-
-const addLocaleButton = (locale: Locale): void => {
+for (const locale of ["hi-en", "en"] as Locale[]) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "locale-btn";
   button.dataset.locale = locale;
-  button.addEventListener("click", () => {
-    setLocale(locale);
-  });
+  button.addEventListener("click", () => setLocale(locale));
   toggle.append(button);
-};
-
-addLocaleButton("hi-en");
-addLocaleButton("en");
+}
 paintMast();
 onLocaleChange(paintMast);
-
 const showBanner = (message: string): void => {
   banner.replaceChildren();
   const text = document.createElement("p");
@@ -84,28 +60,41 @@ const showBanner = (message: string): void => {
   const dismiss = document.createElement("button");
   dismiss.type = "button";
   dismiss.textContent = t("banner.dismiss");
-  dismiss.addEventListener("click", () => {
-    banner.hidden = true;
-    banner.replaceChildren();
-  });
+  dismiss.addEventListener("click", () => { banner.hidden = true; });
   banner.append(text, dismiss);
   banner.hidden = false;
 };
-
+const selectView = (focus = false): void => {
+  const next = location.hash === "#dispatch" ? "dispatch" : "rider";
+  if (next !== currentView && riderController.isBusy()) {
+    history.replaceState(null, "", `#${currentView}`);
+    showBanner(t("nav.finishRecording"));
+    return;
+  }
+  currentView = next;
+  rider.hidden = next !== "rider";
+  dispatch.hidden = next !== "dispatch";
+  const alreadyStarted = dispatchStarted;
+  if (next === "dispatch" && !dispatchStarted) {
+    dispatchStarted = true;
+    initDispatch(dispatch);
+  }
+  for (const link of links) {
+    if (link.dataset.view === next) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
+  if (alreadyStarted) window.dispatchEvent(new CustomEvent("rasta:view", { detail: next }));
+  if (focus) (next === "rider" ? rider : dispatch).querySelector<HTMLElement>("h1, h2")?.focus();
+};
+window.addEventListener("hashchange", () => selectView(true));
+selectView();
 window.addEventListener("error", (event) => {
   event.preventDefault();
   showBanner(event.message || t("banner.runtime"));
 });
 window.addEventListener("unhandledrejection", (event) => {
   event.preventDefault();
-  const reason = event.reason;
-  const message =
-    reason instanceof Error ? reason.message : typeof reason === "string" ? reason : t("banner.runtime");
-  showBanner(message || t("banner.runtime"));
+  const reason: unknown = event.reason;
+  showBanner(reason instanceof Error ? reason.message : t("banner.runtime"));
 });
-window.addEventListener("offline", () => {
-  showBanner(t("error.offline"));
-});
-
-initRider(rider);
-initDispatch(dispatch);
+window.addEventListener("offline", () => showBanner(t("error.offline")));

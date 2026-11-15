@@ -22,11 +22,11 @@ describe("i18n catalogue", () => {
   it("switches chrome and interpolates, without rewriting a transcript", () => {
     const spoken = "Customer 18 unreachable at gate 4";
     setLocale("hi-en");
-    expect(t("rider.sample")).toBe("Ek sample line bolo");
+    expect(t("rider.sample")).toBe("Sample try karo");
     expect(t("desk.failed", { status: 500 })).toBe("Desk fail ho gaya (500).");
     setLocale("en");
-    expect(t("rider.sample")).toBe("Speak a sample line");
-    expect(t("error.missingKey")).toBe("The key is not set on the server.");
+    expect(t("rider.sample")).toBe("Try a sample");
+    expect(t("error.missingKey")).toBe("Speech is unavailable. The operator needs to configure the speech service.");
     expect(spoken).toBe("Customer 18 unreachable at gate 4");
     setLocale("hi-en");
   });
