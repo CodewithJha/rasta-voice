@@ -398,13 +398,22 @@ _HOSPITAL_CUE = re.compile(
 _ITEM_CONTEXT = re.compile(
     r"\b(?:bill|invoice|package|packing|bag|items?|pieces?|cheezein|cheez|saman|sku)\b"
 )
-# Full cardinal via the existing number grammar (not one word at a time).
-_COUNT_PHRASE = re.compile(rf"\b{_NUMBER}\b", re.IGNORECASE)
-_QUANTITY_ANCHOR = re.compile(
-    r"\b(?:bill|invoice|package|packing|bag|items?|pieces?|cheezein|cheez|saman|sku|"
-    r"sirf|only|nikle|nikla|honi\s+thi|hone\s+the)\b"
-    r"|\bhi\s+(?:hain|hai|mil|nikle)\b",
+_COUNT_TOKEN = re.compile(
+    rf"\b{_NUMBER}\b",
     re.IGNORECASE,
+)
+_QUANTITY_UNIT = r"(?:items?|pieces?|cheezein|cheez|saman|sku|packets?|packs?|boxes?)"
+_EXPECTED_COUNT_PREFIX = re.compile(
+    r"\b(?:bill|invoice)(?:\s+(?:pe|par|mein|me|has|says|lists|ke|mutabik|only|sirf)){0,4}\s*$"
+)
+_EXPECTED_COUNT_SUFFIX = re.compile(
+    rf"^\s*{_QUANTITY_UNIT}\s+(?:honi\s+thi|hone\s+the|chahiye\s+the|expected|ordered)\b"
+)
+_COUNT_UNIT_SUFFIX = re.compile(rf"^\s*{_QUANTITY_UNIT}\b")
+_RECEIVED_COUNT_PREFIX = re.compile(r"\b(?:sirf|only)\s*$")
+_RECEIVED_COUNT_SUFFIX = re.compile(
+    rf"^\s*(?:{_QUANTITY_UNIT}\s+)?"
+    r"(?:(?:hi\s+)?(?:nikle|nikla|mile|mila|mili)|hi\s+(?:hain|hai))\b"
 )
 _RAIN = ("barish", "barsaat", "rain")
 _SLOW = ("dheere", "slow", "atak")
@@ -464,41 +473,45 @@ def _order_id_span(text: str) -> tuple[int, int] | None:
     return match.span()
 
 
-def _eta_span(text: str) -> tuple[int, int] | None:
-    """Span of the existing ETA match, when `_eta` accepts it."""
-    match = _ETA.search(text)
-    if match is None or _eta(text) is None:
-        return None
-    return match.span()
-
-
-def _is_bound_item_quantity(text: str, span: tuple[int, int]) -> bool:
-    """True when this cardinal sits with an item/pack noun or shortage cue."""
-    return _QUANTITY_ANCHOR.search(_clause_around(text, span)) is not None
-
-
 def _is_item_count_short(haystack: str) -> bool:
-    """True when a bill or pack line states two different item counts."""
+    """Compare an expected item quantity with a smaller received quantity.
+
+    Number words, order identifiers and ETAs are not independent item counts.
+    A difference alone is not a shortage: bind the quantities to their roles.
+    """
     if _ITEM_CONTEXT.search(haystack) is None:
         return False
-    if re.search(
-        r"\b(?:sirf|only|honi thi|hone the|nikle|nikla)\b"
-        r"|\bhi\s+(?:hain|hai|mil|nikle)\b",
-        haystack,
-    ) is None:
-        return False
-    excluded = [span for span in (_order_id_span(haystack), _eta_span(haystack)) if span]
-    values: set[int] = set()
-    for token in _COUNT_PHRASE.finditer(haystack):
+    excluded = [match.span() for match in _ETA.finditer(haystack)]
+    order_span = _order_id_span(haystack)
+    if order_span is not None:
+        excluded.append(order_span)
+    expected: list[tuple[int, tuple[int, int]]] = []
+    received: list[tuple[int, tuple[int, int]]] = []
+    for token in _COUNT_TOKEN.finditer(haystack):
         span = token.span()
-        if any(_spans_overlap(span, skip) for skip in excluded):
+        if any(_spans_overlap(span, other) for other in excluded):
             continue
-        if not _is_bound_item_quantity(haystack, span):
+        before, after = haystack[:token.start()], haystack[token.end():]
+        if re.search(r"\d[.,]\s*$", before) or re.match(r"\s*[.,]\s*\d", after):
             continue
-        parsed = _to_int(token.group(1))
-        if parsed is not None:
-            values.add(parsed)
-    return len(values) >= 2
+        parsed = _to_int(token.group(0))
+        if parsed is None:
+            continue
+        if (
+            _EXPECTED_COUNT_PREFIX.search(before) and _COUNT_UNIT_SUFFIX.match(after)
+        ) or _EXPECTED_COUNT_SUFFIX.match(after):
+            expected.append((parsed, span))
+        limited_quantity = _RECEIVED_COUNT_PREFIX.search(before) and (
+            _COUNT_UNIT_SUFFIX.match(after)
+            or re.match(r"^\s*(?:(?:hain|hai)\s*)?(?:[,.;!?]|$)", after)
+        )
+        if limited_quantity or _RECEIVED_COUNT_SUFFIX.match(after):
+            received.append((parsed, span))
+    return any(
+        wanted > actual and expected_span != received_span
+        for wanted, expected_span in expected
+        for actual, received_span in received
+    )
 
 
 def _is_item_missing(haystack: str) -> bool:
