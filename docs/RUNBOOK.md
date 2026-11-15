@@ -1,10 +1,15 @@
 # Operator runbook
 
-Checked against main `618147a` on 13 November 2026. The non-root production
-image, deployment instructions, SQLite store, desk passcode, readiness, request
-logs and upstream resilience are merged. The public URL is still unpublished
-in [DEPLOY.md](DEPLOY.md); deployment and rollback are not verified by this
-document. Issues 25, 26, 27 and 28 remain follow-up work at this checkpoint.
+Checked against deployed main `5facb5569b7aee0f29c06c19d01231aa7a785376`
+on 15 November 2026 IST. The non-root image, dispatcher lifecycle, API envelope,
+privacy controls, security headers, SQLite store and upstream resilience are
+merged. The actual free Render origin and sanitized public checks are recorded
+in [DEPLOY.md](DEPLOY.md). Real Prisma/Timbre calls succeeded, but strict noisy
+sample acceptance failed because the order number was unresolved. Public
+speech is paused with the key retained and a zero admission budget. PRs 95-99
+are pending peer review and are not deployed. Rollback, microphone capture and
+browser audio playback remain unverified; a valid returned WAV is not playback
+evidence. See the [live record](evidence/render-live-smoke-2026-11-14.json).
 See [architecture](ARCHITECTURE.md), [security](SECURITY.md) and
 [decisions](adr/0001-real-speech-apis.md).
 
@@ -15,7 +20,7 @@ Use Python 3.11+ and Node 22. From the repository root:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements-dev.txt
+pip install -r requirements-ci.lock
 cp .env.example .env
 uvicorn rasta.main:app --host 127.0.0.1 --port 8000 --workers 1
 ```
@@ -80,6 +85,8 @@ local `.env`, never in browser build variables.
 | LLM_RETRY_BACKOFF_SECONDS | Empty selects 0.25 seconds |
 | EVENT_STORE_CAPACITY | 200 SQLite records; positive, at most 10000 |
 | RASTA_DB_PATH | data/rasta-events.sqlite; writable file, never :memory: in the app |
+| RASTA_EVENT_TTL_HOURS | 24 hours from created_at; 0 expires rows on the next list or sweep |
+| RASTA_EVENT_TTL_SWEEP_SECONDS | 60 seconds between retention sweeps, also run at boot |
 | RASTA_MAX_STREAMS | 2 concurrent streams per process |
 | RASTA_STREAM_SESSION_SECONDS | 900 seconds |
 | RASTA_STREAM_IDLE_SECONDS | 60 seconds |
@@ -93,6 +100,7 @@ local `.env`, never in browser build variables.
 | DISPATCH_PASSCODE | Empty locally; desk routes fail closed; required in production |
 | DISPATCH_UNLOCK_MAX_FAILURES | 5 failed attempts |
 | DISPATCH_UNLOCK_WINDOW_SECONDS | 600 seconds |
+| SOS_ACK_SECONDS | 60 seconds before an unacknowledged accident is escalated |
 | RASTA_LOG_LINE_MAX_BYTES | 4096 bytes per JSON log line |
 | RASTA_ENV | development; production enables required-secret checks |
 | RASTA_ALLOWED_HOSTS | Empty locally; required in production; image uses localhost,127.0.0.1,*.hf.space |
@@ -128,8 +136,8 @@ that every future setting is implemented because it appears in an issue.
 
 ## Production boot and topology
 
-Follow [DEPLOY.md](DEPLOY.md) for the free Hugging Face Docker Space and the
-Render free-service backup. The root Dockerfile builds the frontend, installs
+Follow [DEPLOY.md](DEPLOY.md) for the verified free Render service and the
+general Hugging Face Docker Space setup. The root Dockerfile builds the frontend, installs
 locked runtime dependencies and runs as non-root. Its entrypoint uses one
 uvicorn worker and port 7860 (or the host's PORT). Production requires a desk
 passcode and allowed hosts. Put keys and the passcode in host secrets, never
@@ -137,9 +145,11 @@ in a Docker build argument or frontend bundle. Set limits before opening traffic
 
 Check health, readiness, missing-credential rejection and the built frontend on
 the actual HTTPS origin. Record its URL, exact deployed revision and limits.
-Issue 24's configured live smoke also requires the consistent error envelope
-(26), and the strict header check requires issue 27. A keyless skip is not a
-successful public speech test. Do not report those checks as complete yet.
+The deployed envelope, signed CSRF unlock, desk authentication and public
+response headers have been checked. The strict issue 24 live sample failed
+order-number acceptance. A keyless skip, successful provider HTTP status or
+healthy database does not make that sample pass. Keep speech paused until the
+remaining acceptance checks are met and an operator chooses a bounded budget.
 
 Run exactly one worker and one replica. SQLite is file-backed and survives a
 process restart on the same disk. Stream slots, reply cache, rate limits,
@@ -153,7 +163,9 @@ can erase SQLite; no durable-host or off-site-backup guarantee is made.
 
 A missing Gnani key returns 503. A zero or exhausted local speech budget also
 returns 503; per-IP and concurrency rejection can return 429. Upstream Gnani
-credit failure is surfaced as 502 with upstream status 402. The upstream
+credit failure is surfaced as HTTP 503 `upstream_out_of_credit` with upstream
+status 402. Upstream rate limiting maps to HTTP 429 `upstream_rate_limited`;
+other provider failures map to HTTP 502 `upstream_error`. The upstream
 resilience layer may also report a structured timeout or circuit-open code.
 Inspect the actual route response, not only the liveness status. Readiness
 reports the local reservation budget, not Gnani's account balance, and stays
@@ -183,20 +195,25 @@ reports the local reservation budget, not Gnani's account balance, and stays
 Record UTC time, deployed revision, route, HTTP status and sanitized upstream
 status. Capture `/api/ready`, response `X-Request-ID` and recent redacted JSON
 logs with the same request ID. Readiness includes the store schema version,
-event count, breaker states and local budget. The usage dashboard/endpoint is
-issue 25 at this checkpoint; include it only after that implementation lands.
+event count, breaker states and local budget. Capture authenticated
+`GET /api/admin/usage` for the measured local reservations and request counters;
+these are not the provider's account balance or invoice.
 Never paste authorization headers, passcodes, signed URLs, raw audio or customer
 transcripts into public issues. Desk events and database exports require
 credentials but can contain transcripts: keep all incident examples synthetic
-and inspect logs before sharing them. Privacy retention/deletion is still issue 28.
+and inspect logs before sharing them. Retention, record deletion and replay
+cleanup are merged; a database export can still contain protected transcripts.
 
 ## Rollback
 
 Keep the last verified deployed commit and configuration revision before every
-release. Once a host exists, pause traffic, preserve any recoverable database,
+release. On the actual host, pause speech, preserve any recoverable database,
 select the previous verified image tag or deploy the exact previous main commit
-through that host, and restore compatible configuration. No release tag/image
-or deployed rollback target exists today; do not invent `v0.1.0`. Read any future
+through that host, and restore compatible configuration. The recorded paused
+Render deployment is a known source/configuration checkpoint, not a verified
+rollback exercise or a release tag. Do not invent `v0.1.0`. Keep the speech
+budget at zero during every restart; reverting to a key-enabled deploy must not
+silently restore its previous nonzero budget. Read any future
 SQLite migration's downgrade guidance before reverting code; do not run an old
 binary against an incompatible database. Restart one worker, run cheap checks,
 then a budgeted synthetic smoke check before reopening traffic. Record outcome.
@@ -230,5 +247,5 @@ backups and public restore drills remain issue 35.
 [load checks](../loadtest/README.md), [quality gates](QUALITY.md) and
 [supply-chain checks](SUPPLY_CHAIN.md) describe merged tooling. SLO measurements
 are revision-specific local evidence, not public-host or live-speech results.
-API contract documentation is still issue 26. The governance record retains
+[API contracts](API.md) document the merged envelope and routes. The governance record retains
 the administrator-bypass limitation; this PR does not accept it for either owner.

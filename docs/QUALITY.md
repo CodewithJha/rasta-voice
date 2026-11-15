@@ -1,9 +1,13 @@
 # Quality gates
 
-This issue 32 contract builds on the supply-chain checks from PR 52. It changes
-no application behavior or frozen event meaning. The Python source changes are
-annotations: a float accumulator, typed task/report lists and a TypedDict for
-the reply payload that is already constructed by the route.
+Checked on 15 November 2026 IST against merged main `5facb55` and the
+independently checked pending PR 99 head `cd71328`. Python, frontend, contract,
+keyless browser, load, secret, dependency, SAST and production-container checks
+all pass on that head. The combined local candidate with PRs 95/96/97/99 has
+1,920 passing Python tests, one live-provider test skip, one strict accuracy
+expected failure and 91.01% production coverage. It is not merged or deployed.
+The strict public live sample still fails order-number acceptance; the
+[deployment record](DEPLOY.md) gives the actual outcome and limitations.
 
 ## Python
 
@@ -54,15 +58,17 @@ npx playwright install --with-deps chromium
 npm run test:e2e
 ```
 
-`check` keeps the existing three Node regressions. `check:tests` also type-checks
-test/config code. Vitest runs six pure record/parser/cursor cases without a DOM.
-No i18n/Lighthouse catalogue or budget has landed from issue 30, so neither is
-invented here.
+`check` runs source type checking and four Node regressions. `check:tests` also
+type-checks test/config code. Vitest runs 23 cases, including the i18n catalogue,
+record/parser/cursor, CSRF, reply presentation, API errors and timeout behavior.
+These are unit checks, not browser or audio-listening evidence. The optional
+[frontend performance budgets](../frontend/lighthouse-budget.json) describe the separate
+Lighthouse check; it is not a required PR gate.
 
 ## Real key-less browser path
 
-The Playwright config starts a fresh one-worker FastAPI process and the built
-frontend via Vite preview at http://127.0.0.1:4173, proxying API requests to 8000.
+The Playwright config builds the frontend and starts a fresh one-worker
+FastAPI process serving those assets directly at http://127.0.0.1:8000.
 Existing servers are never reused. The key-less default explicitly empties
 GNANI_API_KEY in the server environment, even if a shell or ignored .env has a
 key, and selects the rules extractor. A no-key HTTP 503 is the real route's
@@ -76,8 +82,11 @@ not certify color contrast, every visual detail, audio listening or field
 accuracy. Key-less screenshots are kept as a short-lived CI artifact; traces
 and automatic live screenshots are disabled.
 
-The browser-smoke job always runs without secrets. Unlock/ack cases explicitly
-skip pending issues 20/25. The live browser test skips without an explicit opt-in.
+The browser-smoke job always runs without provider secrets. Eight keyless cases
+exercise viewports, keyboard controls, language, CSP, the signed unlock
+challenge and the real Ack/Resolve workflow. A synthetic per-run fixture gives
+the desk a stored event; it does not fabricate speech. The single live browser
+test skips without an explicit opt-in.
 If Chromium cannot launch in a constrained local workspace, run these same
 commands on a normal developer machine or use the CI browser-smoke result;
 do not report the local launch error as an application regression.
@@ -98,11 +107,11 @@ and after refresh. Retries are zero. Never paste the key in the command itself
 or upload traces. A failed upstream call remains a failure; it does not switch
 to canned output. The live path is not claimed as passed by a key-less CI run.
 
-Issue 24's deployed API smoke script does not exist yet and is not replaced by
-this browser suite. Its public URL, passcode/error/readiness/header checks must
-follow issues 13/20/21/22/26/27. Keep issue 32 open until live verification and
-that dependency are recorded. Both owners must agree to this .github contract
-before merge; add browser-smoke to required branch checks after a green run.
+Issue 24's [API smoke script](../scripts/smoke.py) is merged and remains
+separate. Actual public health, passcode/CSRF/error/header checks passed; the
+configured noisy sample failed the order-18 assertion. Keep issue 32 open
+until its live browser acceptance is verified. Required branch-check settings
+are an owner action, not something a workflow file can enforce on its own.
 
 
 ## Dispatcher workflow browser regression
