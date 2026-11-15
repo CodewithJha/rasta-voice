@@ -289,17 +289,6 @@ def _positive_int(name: str, default: int, maximum: int) -> int:
     return value
 
 
-
-def _non_negative_bounded_float(name: str, default: float, maximum: float) -> float:
-    """Parse a finite float in ``0..maximum``. Zero disables the feature."""
-    value = _non_negative_float(name, default)
-    if value > maximum:
-        raise SettingsError(
-            f"{name} must be between 0 and {maximum}, got {value!r}"
-        )
-    return value
-
-
 def _bounded_float(name: str, default: float, maximum: float) -> float:
     """Parse a positive finite float no greater than ``maximum``."""
     value = _positive_float(name, default)
