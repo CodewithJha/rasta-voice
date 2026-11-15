@@ -252,10 +252,8 @@ def _mount_static(application: FastAPI) -> None:
     from fastapi.staticfiles import StaticFiles
 
     settings = get_settings()
-    candidates = []
-    if settings.static_dir:
-        candidates.append(Path(settings.static_dir))
-    candidates.append(Path("frontend/dist"))
+    # An explicit host path must not silently select an unrelated local build.
+    candidates = [Path(settings.static_dir)] if settings.static_dir else [Path("frontend/dist")]
     for path in candidates:
         if path.is_dir() and (path / "index.html").is_file():
             application.mount("/", StaticFiles(directory=path, html=True), name="ui")

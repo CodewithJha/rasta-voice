@@ -187,3 +187,47 @@ def test_benchmark_corpus_is_readable_without_writing():
         pytest.skip("benchmark corpus is not in this checkout")
     assert len(rows) >= 40
     assert {row.intent for row in rows} == INTENTS
+
+
+def test_eval_scores_record_latency_and_source():
+    gold = load_gold_rows(GOLD_PATH)[:2]
+    report = evaluate_rows(gold, name="gold-sample", provider="rules")
+    assert len(report.scores) == 2
+    assert all(scored.source == "rules" for scored in report.scores)
+    assert all(scored.latency_ms is not None and scored.latency_ms >= 0 for scored in report.scores)
+
+
+def test_eval_intent_cli_can_limit_sets_and_write_evidence(tmp_path, capsys):
+    import sys
+
+    root = Path(__file__).resolve().parents[2]
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    from scripts.eval_intent import evidence_payload, main
+
+    out = tmp_path / "evidence.json"
+    assert main(["--sets", "gold", "--write-evidence", str(out)]) == 0
+    captured = capsys.readouterr().out
+    assert "=== rules ===" in captured
+    assert "dev (gold)" in captured
+    assert "blind holdout" not in captured
+    assert out.is_file()
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["provider"] == "rules"
+    assert payload["model"] == "rules"
+    assert payload["n"] >= 20
+    assert payload["intent_correct"] == payload["n"]
+    assert "rows" in payload and len(payload["rows"]) == payload["n"]
+    blob = json.dumps(payload)
+    assert "GEMINI_API_KEY" not in blob
+    assert "GROQ_API_KEY" not in blob
+    assert "api_key" not in blob.lower()
+    assert "timeout_seconds" in payload
+    sample = evidence_payload(
+        evaluate_rows(load_gold_rows(GOLD_PATH)[:1], name="one", provider="rules"),
+        provider="rules",
+        model="rules",
+        timeout_seconds=4.0,
+    )
+    assert sample["rows"][0]["id"]
+    assert "text" not in sample["rows"][0]

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -85,6 +86,7 @@ class RowScore:
     intent_ok: bool
     order_ok: bool
     eta_ok: bool
+    latency_ms: float | None = None
 
 
 @dataclass(slots=True)
@@ -102,6 +104,7 @@ class EvalReport:
     llm_calls: int = 0
     llm_successes: int = 0
     rules_used: int = 0
+    scores: list[RowScore] = field(default_factory=list)
 
     @property
     def accuracy(self) -> float:
@@ -198,6 +201,7 @@ def evaluate_rows(
         if scored.eta_ok:
             report.eta_correct += 1
         report.per_intent[row.intent] = (correct, total)
+        report.scores.append(scored)
         key = (row.intent, scored.predicted)
         report.confusion[key] = report.confusion.get(key, 0) + 1
         if scored.source == "llm":
@@ -211,6 +215,7 @@ def evaluate_rows(
 
 
 def _predict_row(row: GoldRow, provider: str) -> RowScore:
+    started = time.perf_counter()
     result = extract_event_with_source(row.text, provider=provider)
     predicted = result.event.intent.value
     return RowScore(
@@ -223,6 +228,7 @@ def _predict_row(row: GoldRow, provider: str) -> RowScore:
         intent_ok=predicted == row.intent,
         order_ok=result.event.order_id == row.order_id,
         eta_ok=result.event.eta_minutes == row.eta_minutes,
+        latency_ms=(time.perf_counter() - started) * 1000,
     )
 
 

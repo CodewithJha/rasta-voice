@@ -1,6 +1,7 @@
 """Free-tier LLM extractor surface.
 
-Model ids below were checked on 12 Nov 2026. Groq and Gemini retire ids;
+Model ids below were checked on 12 Nov 2026 and re-checked on 14 Nov 2026.
+Groq and Gemini retire ids;
 override them with ``GROQ_MODEL`` / ``GEMINI_MODEL`` or ``LLM_MODEL`` if a
 default stops working. HTTP is plain ``httpx``; there is no vendor SDK.
 """
@@ -32,10 +33,10 @@ from rasta.settings import (
 
 # Re-exported so a reviewer (and issue 02) can find the ids at the top of
 # this file, with the date they were checked.
-# Groq: openai/gpt-oss-20b, checked 12 Nov 2026 (llama-3.1-8b-instant left
-# the free and developer tiers on 16 Aug 2026).
-# Gemini: gemini-3.5-flash-lite, checked 12 Nov 2026 (Google's recommended
-# free-tier Flash-Lite for new work).
+# Groq: openai/gpt-oss-20b, checked 12 Nov 2026 and re-checked 14 Nov 2026
+# (llama-3.1-8b-instant left the free and developer tiers on 16 Aug 2026).
+# Gemini: gemini-3.5-flash-lite, checked 12 Nov 2026 and re-checked 14 Nov 2026
+# (Google's recommended free-tier Flash-Lite for new work).
 GROQ_MODEL = DEFAULT_GROQ_MODEL
 GEMINI_MODEL = DEFAULT_GEMINI_MODEL
 GROQ_BASE_URL = DEFAULT_GROQ_BASE_URL
