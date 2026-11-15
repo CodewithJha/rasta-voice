@@ -1,0 +1,87 @@
+{
+  "checked_at": "2026-11-15T06:37:46.954005+00:00",
+  "origin": "https://rasta-voice-himanshu748.onrender.com",
+  "deployed_sha": "be7fffb2db4f7b59dcab1f9dc236627dfbcbb708",
+  "deploy_id": "dep-dbsknsuk1f9s739is77g",
+  "scope": "One public synthetic noisy sample; no desk authentication, microphone, or browser playback claim.",
+  "client_retries": 0,
+  "configured_server_retries": 0,
+  "sample_operation_upper_bound": 2,
+  "provider_balance": "not inspected",
+  "readiness_before": {
+    "ok": true,
+    "gnani_key_set": true,
+    "db_writable": true,
+    "rate_limit": {
+      "ok": true,
+      "per_ip_requests_per_minute": 2
+    },
+    "demo_credits_remaining": 9,
+    "demo_credits_exhausted": false,
+    "schema_version": 4,
+    "circuit_breaker": {
+      "gnani_stt": "closed",
+      "gnani_tts": "closed",
+      "llm": "closed"
+    },
+    "events_in_store": 1
+  },
+  "response": {
+    "http_status": 200,
+    "request_id": "6301fe2b-2a13-4413-a5e3-5155b7bfd9d4"
+  },
+  "sample": {
+    "condition": "noisy",
+    "event_id": "6c008768-9cf6-4a00-9995-8e89e9de66d0",
+    "created_at": "2026-11-15T06:38:06.709029+00:00",
+    "stt": {
+      "model": "prisma-v3.0",
+      "request_id": "01a1dded-6a57-7833-b8cd-688768beca3e",
+      "detected_language_code": null,
+      "processing_time": 0.22565412521362305,
+      "audio_seconds": 6.48
+    },
+    "event": {
+      "intent": "customer_unreachable",
+      "order_id": "18",
+      "eta_minutes": 10,
+      "urgency": "high",
+      "dispatch_action": "Call the customer once from dispatch, then log the attempt.",
+      "transcript": "bhaiya, gate band hai aur customer phone nahi utha raha. order eighteen pe main das minute se khada hoon.",
+      "confidence": 0.5
+    },
+    "extractor_source": "rules"
+  },
+  "sample_audio": {
+    "bytes": 103724,
+    "seconds": 6.48,
+    "sha256": "2e148ae888b8171f04fa9362d90546d04a9ed7c0a21a9e871708c3af327142bf"
+  },
+  "strict_sample_checks": {
+    "noisy": true,
+    "real_stt_request_id": true,
+    "nonempty_transcript": true,
+    "intent": true,
+    "order": true
+  },
+  "strict_sample_status": "passed",
+  "readiness_after": {
+    "ok": true,
+    "gnani_key_set": true,
+    "db_writable": true,
+    "rate_limit": {
+      "ok": true,
+      "per_ip_requests_per_minute": 2
+    },
+    "demo_credits_remaining": 7,
+    "demo_credits_exhausted": false,
+    "schema_version": 4,
+    "circuit_breaker": {
+      "gnani_stt": "closed",
+      "gnani_tts": "closed",
+      "llm": "closed"
+    },
+    "events_in_store": 2
+  },
+  "completed_at": "2026-11-15T06:38:07.189742+00:00"
+}

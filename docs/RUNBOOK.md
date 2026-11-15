@@ -1,18 +1,26 @@
 # Operator runbook
 
-Checked against deployed main `3707b40b7af2d58c982f1959fda41e9bf2e1547c`
-on 15 November 2026 IST. The non-root image, dispatcher lifecycle, API envelope,
-privacy controls, security headers, SQLite store and upstream resilience are
-merged. The actual free Render origin and sanitized public checks are recorded
-in [DEPLOY.md](DEPLOY.md). Real Prisma/Timbre calls succeeded, but strict noisy
-sample acceptance failed because the order number was unresolved. Public
-speech is paused with the key retained and a zero admission budget. PRs 95-99
-are peer-reviewed, merged and deployed. The [new paused-host checks](evidence/render-merged-deploy-2026-11-15.json)
-are distinct from the earlier real speech run. Rollback, microphone capture and
-browser audio playback remain unverified; a valid returned WAV is not playback
-evidence. See the [live record](evidence/render-live-smoke-2026-11-14.json).
-See [architecture](ARCHITECTURE.md), [security](SECURITY.md) and
-[decisions](adr/0001-real-speech-apis.md).
+## Current checkpoint, 15 November 2026 at 06:38 UTC
+
+The free Render app at https://rasta-voice-himanshu748.onrender.com/ serves
+reviewed main `be7fffb2db4f7b59dcab1f9dc236627dfbcbb708`, deploy
+`dep-dbsknsuk1f9s739is77g`. Speech was enabled at the user's request with
+12 call units per 86,400-second process window, retries zero, two requests
+per IP per minute and concurrency one. Automatic deployment remains off.
+These counters reset on restart and are not a provider balance/billing cap.
+
+A fresh noisy synthetic sample passed the unchanged expected intent/order-18
+checks, with Prisma request ID `01a1dded-6a57-7833-b8cd-688768beca3e`.
+It consumed two local units, leaving seven at 06:38 UTC. Authenticated desk,
+microphone, playback, live Playwright, field recordings and actual rollback
+remain separate unverified gates. [SUBMISSION.md](SUBMISSION.md) is the current
+judge-facing packet and links the sanitized evidence and prior failure.
+
+PRs 101/104 meet the strict 29/36 rules target; #2 is closed. PRs 105/106 close
+#34/#33. The owner verified all ten required checks and administrator
+protection enforcement. PR 107's redesigned UX passes all ten CI checks but
+still needs independent code-owner review and is not deployed. Its isolated
+keyless browser screenshots are not live-provider evidence.
 
 ## Boot locally
 

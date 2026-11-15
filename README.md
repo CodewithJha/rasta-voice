@@ -10,14 +10,18 @@ acknowledgement and resolution, a SQLite event store, and bounded public speech
 controls. Every speech request uses the real Gnani APIs. Without
 `GNANI_API_KEY`, speech routes return a clear `503` error.
 
-**Release evidence is still incomplete:** live public speech, consented field
-recordings, timed demo read-through, playable public video/posts and final form
-submission require verification. Rules accuracy is also below the issue 2
-holdout target. Read [production readiness](docs/PRODUCTION_READINESS.md) and
-[the submission checklist](docs/SUBMISSION.md) before making release claims.
-The [public Render deployment](docs/DEPLOY.md) has a privately configured Gnani
-key and recorded real STT/TTS results. Its strict noisy-sample smoke failed the
-order-number check, so public speech is paused pending that acceptance check.
+**Current verification:** the free [public app](https://rasta-voice-himanshu748.onrender.com/)
+serves reviewed main `be7fffb`. Speech is enabled with a small process-local
+allowance. A fresh noisy sample passed `customer_unreachable`, order `18`
+and ETA 10 with a real Prisma request ID. Rules blind-holdout accuracy is
+29/36 (0.806), meeting the 0.8 target. The [proposed clearer rider/dispatch UX](https://github.com/CodewithJha/rasta-voice/pull/107)
+has green CI and viewport evidence but still needs peer approval/deployment.
+
+**Submission is not complete:** final authenticated live workflow,
+microphone/playback, consented field validation, a playable public demo video,
+a nominated post and the form receipt remain unverified. Read the current
+[submission packet](docs/SUBMISSION.md) and [readiness register](docs/PRODUCTION_READINESS.md).
+Earlier failed samples and dated audits remain in the evidence history.
 
 Built for Gnani AI's Great Indian AI Internship Challenge, targeting Noise
 Canceller. The committed speech benchmark is synthetic. It is not evidence

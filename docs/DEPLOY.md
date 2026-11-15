@@ -2,7 +2,29 @@
 
 Public URL: https://rasta-voice-himanshu748.onrender.com
 
-## Current merged deployment, 15 November 2026 IST
+## Current checkpoint, 15 November 2026 at 06:38 UTC
+
+The free Render app at https://rasta-voice-himanshu748.onrender.com/ serves
+reviewed main `be7fffb2db4f7b59dcab1f9dc236627dfbcbb708`, deploy
+`dep-dbsknsuk1f9s739is77g`. Speech was enabled at the user's request with
+12 call units per 86,400-second process window, retries zero, two requests
+per IP per minute and concurrency one. Automatic deployment remains off.
+These counters reset on restart and are not a provider balance/billing cap.
+
+A fresh noisy synthetic sample passed the unchanged expected intent/order-18
+checks, with Prisma request ID `01a1dded-6a57-7833-b8cd-688768beca3e`.
+It consumed two local units, leaving seven at 06:38 UTC. Authenticated desk,
+microphone, playback, live Playwright, field recordings and actual rollback
+remain separate unverified gates. [SUBMISSION.md](SUBMISSION.md) is the current
+judge-facing packet and links the sanitized evidence and prior failure.
+
+PRs 101/104 meet the strict 29/36 rules target; #2 is closed. PRs 105/106 close
+#34/#33. The owner verified all ten required checks and administrator
+protection enforcement. PR 107's redesigned UX passes all ten CI checks but
+still needs independent code-owner review and is not deployed. Its isolated
+keyless browser screenshots are not live-provider evidence.
+
+## Historical merged deployment, 15 November 2026 IST (superseded)
 
 CodewithJha reviewed and merged PRs 95-99. Their integrated main revision
 `3707b40b7af2d58c982f1959fda41e9bf2e1547c` is now live on the same free

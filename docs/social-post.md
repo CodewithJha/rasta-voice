@@ -1,47 +1,59 @@
-# Social-post drafts
+# Demo-post drafts
 
-Drafts only. Priyanshu should review the app claims and supply issue 18's public
-working-application video before publication. Attach the video to each nominated
-post or add its verified public link and recheck the compose counter. A photo
-alone does not satisfy the video requirement. No deployed URL exists yet;
-add a verified live desk URL only after issue 13 lands. Do not claim final scores.
+Drafts only. No post or video URL has been verified. Use the real working-app
+video before publishing and nominate one actual LinkedIn or X post in the
+submission. Either platform is allowed by the current programme page; posting
+both is optional. Select the actual Gnani AI account/company tag in the
+composer, and retain both required hashtags. The deadline is 15 November 2026
+at 18:00 IST. The programme page is the current authority:
+https://www.gnani.ai/internship
 
-## X
+## X draft
 
-```
-Rasta Voice: Hinglish help for riders in traffic, powered by Gnani Prisma + Timbre. Target: Noise Canceller.
-Synthetic audio; no real customer calls.
-https://github.com/CodewithJha/rasta-voice
+```text
+Rasta Voice turns a rider's Hinglish delivery update into a dispatch task, with Gnani Prisma transcription and Timbre spoken replies.
+Synthetic demo audio, real API calls.
 @GnaniAi #GnaniAI #GreatIndianAIInternshipChallenge
 ```
 
-Character count: **244**, computed with Python `len(post.strip())`, including
-spaces and newlines. X's compose counter is authoritative; check again when
-attaching/linking the video or adding a live URL. Select the real @GnaniAi account.
+Attach the actual working-app video. The compose counter is authoritative;
+check it again after adding any link or media. The public app is
+https://rasta-voice-himanshu748.onrender.com/ and the source is
+https://github.com/CodewithJha/rasta-voice . Choose links that fit rather than
+asserting an unverified final character count. Do not publish a placeholder
+video URL or claim a score not demonstrated in the take.
 
-## LinkedIn
+## LinkedIn draft
 
-```
-Riders in traffic need to make themselves understood. Rasta Voice explores that problem for Hinglish speech using Gnani Prisma for transcription and Timbre for spoken confirmations.
+```text
+A rider says the customer is unreachable. Dispatch needs the order number,
+the delay and a clear next action.
 
-Our rider demo compares clean audio with controlled synthetic traffic noise and shows an intent, order token, ETA and suggested dispatch action. We are aiming for Noise Canceller. These controlled examples do not establish field accuracy; the complete live benchmark is still pending.
+We built Rasta Voice for that Hinglish workflow. Gnani Prisma transcribes
+the update, a validated extractor builds a delivery event, and Gnani Timbre
+generates a spoken confirmation. Dispatchers can acknowledge and resolve
+updates behind an authenticated desk.
 
-The audio is synthetic; there are no real customer calls.
+The attached demo uses synthetic audio and real API calls. Our controlled
+noise experiments are not evidence from customer calls or a carrier network.
 
-Built with Gnani AI: https://www.linkedin.com/company/gnani-ai
+Built by Himanshu Kumar and Priyanshu Jha with Gnani AI.
+App: https://rasta-voice-himanshu748.onrender.com/
 Code: https://github.com/CodewithJha/rasta-voice
 
 #GnaniAI #GreatIndianAIInternshipChallenge
 ```
 
-Word count: **88**. In the composer, select the Gnani AI company
-mention at the company URL above; plain text alone is not a company tag. Attach
-or link the verified public working-app video. Keep the synthetic-data statement.
+Select Gnani AI's real company mention rather than leaving plain text only.
+Attach the genuine video, watch it after publishing, then copy the actual
+public post URL into the form. No paid promotion or engagement exchange.
 
-Publishing remains pending. Add actual public links here and pass the video and
-nominated post links to issues 18 and 16. This draft does not complete issue 15.
+## Publication record
 
-- [ ] Priyanshu reviewed the app claims and provided a public working-app video.
-- [ ] Video attached/linked to each nominated post; both hashtags and real Gnani tags checked.
-- [ ] Posted on X by 14 Nov 2026, 18:00 IST. Link:
-- [ ] Posted on LinkedIn by the same deadline. Link:
+| Required evidence | Verified state |
+| --- | --- |
+| Working-app video URL and playback | Not recorded |
+| Nominated post URL, real Gnani tag and both hashtags | Not recorded |
+| Final form confirmation and time | Not observed |
+
+Record only the actual URLs and receipt after those actions succeed.
