@@ -681,11 +681,46 @@ def test_rules_v2_generalisable_phrases(text, intent):
         "package mein only three items hain, sab sahi mila, order nine",
         "bag mein char items hain aur teen extra chutney sachets bhi hain, "
         "sab complete hai, order 9",
+        "bill mein only twenty five items hain, order 9 complete hai",
+        "bill pe only twenty five items hain, sab mil gaya, order nine",
+        "package mein only thirty two items hain, order 9 complete hai",
     ],
 )
 def test_item_count_does_not_fire_without_a_shortage_or_on_order_ids(text):
     event = extract_event(text, provider="rules")
     assert event.intent.value != "item_missing"
+
+
+@pytest.mark.parametrize(
+    ("text", "intent"),
+    [
+        (
+            "invoice pe only three items hain, order 9, four minutes late",
+            "delay",
+        ),
+        (
+            "bill mein only five items hain, order 9, das minute late",
+            "delay",
+        ),
+        (
+            "bill pe twenty five items likhe hain, bag mein sirf twenty two nikle, "
+            "order 9",
+            "item_missing",
+        ),
+        (
+            "invoice pe thirty items likhe hain, packing mein sirf twenty eight nikle, "
+            "order 9",
+            "item_missing",
+        ),
+        (
+            "box ke andar bill pe char items hain, haath mein teen hi hain, order 9",
+            "item_missing",
+        ),
+    ],
+)
+def test_item_count_binds_full_cardinals_and_skips_eta(text, intent):
+    event = extract_event(text, provider="rules")
+    assert event.intent.value == intent
 
 
 @pytest.mark.parametrize(

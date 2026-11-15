@@ -398,8 +398,12 @@ _HOSPITAL_CUE = re.compile(
 _ITEM_CONTEXT = re.compile(
     r"\b(?:bill|invoice|package|packing|bag|items?|pieces?|cheezein|cheez|saman|sku)\b"
 )
-_COUNT_TOKEN = re.compile(
-    r"\b(?:\d{1,6}|" + "|".join(sorted([*_ONES, *_TENS], key=len, reverse=True)) + r")\b",
+# Full cardinal via the existing number grammar (not one word at a time).
+_COUNT_PHRASE = re.compile(rf"\b{_NUMBER}\b", re.IGNORECASE)
+_QUANTITY_ANCHOR = re.compile(
+    r"\b(?:bill|invoice|package|packing|bag|items?|pieces?|cheezein|cheez|saman|sku|"
+    r"sirf|only|nikle|nikla|honi\s+thi|hone\s+the)\b"
+    r"|\bhi\s+(?:hain|hai|mil|nikle)\b",
     re.IGNORECASE,
 )
 _RAIN = ("barish", "barsaat", "rain")
@@ -460,6 +464,19 @@ def _order_id_span(text: str) -> tuple[int, int] | None:
     return match.span()
 
 
+def _eta_span(text: str) -> tuple[int, int] | None:
+    """Span of the existing ETA match, when `_eta` accepts it."""
+    match = _ETA.search(text)
+    if match is None or _eta(text) is None:
+        return None
+    return match.span()
+
+
+def _is_bound_item_quantity(text: str, span: tuple[int, int]) -> bool:
+    """True when this cardinal sits with an item/pack noun or shortage cue."""
+    return _QUANTITY_ANCHOR.search(_clause_around(text, span)) is not None
+
+
 def _is_item_count_short(haystack: str) -> bool:
     """True when a bill or pack line states two different item counts."""
     if _ITEM_CONTEXT.search(haystack) is None:
@@ -470,12 +487,15 @@ def _is_item_count_short(haystack: str) -> bool:
         haystack,
     ) is None:
         return False
-    excluded = _order_id_span(haystack)
+    excluded = [span for span in (_order_id_span(haystack), _eta_span(haystack)) if span]
     values: set[int] = set()
-    for token in _COUNT_TOKEN.finditer(haystack):
-        if excluded is not None and _spans_overlap(token.span(), excluded):
+    for token in _COUNT_PHRASE.finditer(haystack):
+        span = token.span()
+        if any(_spans_overlap(span, skip) for skip in excluded):
             continue
-        parsed = _to_int(token.group(0))
+        if not _is_bound_item_quantity(haystack, span):
+            continue
+        parsed = _to_int(token.group(1))
         if parsed is not None:
             values.add(parsed)
     return len(values) >= 2
