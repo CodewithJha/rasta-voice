@@ -412,8 +412,9 @@ _EXPECTED_COUNT_SUFFIX = re.compile(
 _COUNT_UNIT_SUFFIX = re.compile(rf"^\s*{_QUANTITY_UNIT}\b")
 _RECEIVED_COUNT_PREFIX = re.compile(r"\b(?:sirf|only)\s*$")
 _RECEIVED_COUNT_SUFFIX = re.compile(
-    rf"^\s*(?:{_QUANTITY_UNIT}\s+)?"
-    r"(?:(?:hi\s+)?(?:nikle|nikla|mile|mila|mili)|hi\s+(?:hain|hai))\b"
+    rf"^\s*(?:(?:{_QUANTITY_UNIT}\s+)?"
+    r"(?:(?:hi\s+)?(?:nikle|nikla|mila|mili)|hi\s+(?:hain|hai))"
+    rf"|{_QUANTITY_UNIT}\s+(?:hi\s+)?mile)\b"
 )
 _RAIN = ("barish", "barsaat", "rain")
 _SLOW = ("dheere", "slow", "atak")
@@ -497,15 +498,16 @@ def _is_item_count_short(haystack: str) -> bool:
         parsed = _to_int(token.group(0))
         if parsed is None:
             continue
-        if (
+        is_expected = bool((
             _EXPECTED_COUNT_PREFIX.search(before) and _COUNT_UNIT_SUFFIX.match(after)
-        ) or _EXPECTED_COUNT_SUFFIX.match(after):
+        ) or _EXPECTED_COUNT_SUFFIX.match(after))
+        if is_expected:
             expected.append((parsed, span))
         limited_quantity = _RECEIVED_COUNT_PREFIX.search(before) and (
             _COUNT_UNIT_SUFFIX.match(after)
             or re.match(r"^\s*(?:(?:hain|hai)\s*)?(?:[,.;!?]|$)", after)
         )
-        if limited_quantity or _RECEIVED_COUNT_SUFFIX.match(after):
+        if not is_expected and (limited_quantity or _RECEIVED_COUNT_SUFFIX.match(after)):
             received.append((parsed, span))
     return any(
         wanted > actual and expected_span != received_span
