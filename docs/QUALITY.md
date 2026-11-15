@@ -1,11 +1,11 @@
 # Quality gates
 
-Checked on 15 November 2026 IST against merged main `5facb55` and the
-independently checked pending PR 99 head `cd71328`. Python, frontend, contract,
+Checked on 15 November 2026 IST against reviewed, merged main `3707b40`.
+PRs 95-99 are integrated and deployed. Python, frontend, contract,
 keyless browser, load, secret, dependency, SAST and production-container checks
-all pass on that head. The combined local candidate with PRs 95/96/97/99 has
+all pass on that exact main revision. Its fresh local checkout has
 1,920 passing Python tests, one live-provider test skip, one strict accuracy
-expected failure and 91.01% production coverage. It is not merged or deployed.
+expected failure and 91.01% production coverage. The deployed host stays paused.
 The strict public live sample still fails order-number acceptance; the
 [deployment record](DEPLOY.md) gives the actual outcome and limitations.
 
