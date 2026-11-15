@@ -1,23 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 160" role="img" aria-labelledby="rasta-logo-title rasta-logo-desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 128" role="img" aria-labelledby="rasta-logo-title rasta-logo-desc">
   <title id="rasta-logo-title">Rasta Voice</title>
-  <desc id="rasta-logo-desc">Wordmark and mark for Rasta Voice, a Hinglish dispatch copilot for delivery riders.</desc>
+  <desc id="rasta-logo-desc">Rasta Voice wordmark with a contained radio-signal mark.</desc>
   <defs>
-    <linearGradient id="mark-fill" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#c45c26"/>
-      <stop offset="100%" stop-color="#8a3414"/>
+    <linearGradient id="rv-mark" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#d46a2f"/>
+      <stop offset="1" stop-color="#9a3d16"/>
     </linearGradient>
-    <clipPath id="mark-clip">
-      <rect x="12" y="28" width="104" height="104" rx="24"/>
-    </clipPath>
   </defs>
-  <rect x="12" y="28" width="104" height="104" rx="24" fill="url(#mark-fill)"/>
-  <g clip-path="url(#mark-clip)" fill="none" stroke="#f7f1e8" stroke-linecap="round">
-    <circle cx="52" cy="80" r="11" fill="#f7f1e8" stroke="none"/>
-    <path d="M66 64a26 26 0 0 1 0 32" stroke-width="5"/>
-    <path d="M74 54a40 40 0 0 1 0 52" stroke-width="4.5" opacity="0.85"/>
-    <path d="M82 44a54 54 0 0 1 0 72" stroke-width="4" opacity="0.55"/>
-  </g>
-  <text x="144" y="86" font-family="Georgia, 'Times New Roman', serif" font-size="58" font-weight="700" fill="#1c1917" letter-spacing="-0.5">Rasta</text>
-  <text x="318" y="86" font-family="Georgia, 'Times New Roman', serif" font-size="58" font-weight="400" fill="#c45c26" letter-spacing="-0.5">Voice</text>
-  <text x="144" y="118" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14" font-weight="500" fill="#57534e" letter-spacing="0.2em">HINGLISH DISPATCH COPILOT</text>
+  <rect x="16" y="16" width="96" height="96" rx="22" fill="url(#rv-mark)"/>
+  <circle cx="46" cy="64" r="10" fill="#f7f1e8"/>
+  <path d="M60 48c10 8 10 24 0 32" fill="none" stroke="#f7f1e8" stroke-width="5" stroke-linecap="round"/>
+  <path d="M72 38c16 12 16 40 0 52" fill="none" stroke="#f7f1e8" stroke-width="4.5" stroke-linecap="round" opacity="0.8"/>
+  <path d="M84 28c22 16 22 56 0 72" fill="none" stroke="#f7f1e8" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+  <text x="132" y="62" font-family="ui-serif, Georgia, 'Times New Roman', serif" font-size="44" font-weight="700" fill="#1c1917">Rasta</text>
+  <text x="262" y="62" font-family="ui-serif, Georgia, 'Times New Roman', serif" font-size="44" font-weight="400" fill="#c45c26">Voice</text>
+  <text x="132" y="92" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="600" fill="#78716c" letter-spacing="0.18em">HINGLISH DISPATCH COPILOT</text>
 </svg>

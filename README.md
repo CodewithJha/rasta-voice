@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/readme/logo.svg" alt="Rasta Voice" width="420"/>
+  <img src="docs/assets/readme/logo.svg" alt="Rasta Voice" width="480"/>
 </p>
 
 <p align="center">
