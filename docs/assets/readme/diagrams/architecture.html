@@ -58,7 +58,15 @@
     <p class="eyebrow">Architecture · Rasta Voice</p>
     <h1>How a rider call becomes a desk ticket</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 960 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="rasta-arch-title rasta-arch-desc">
+      <!--
+        Grid (centers):
+        PUBLIC x=140 | API x=440 | PROVIDERS x=820
+        Row A y=140: Rider, FastAPI, Prisma
+        Row B y=276: Extractor
+        Row C y=380: Desk, SQLite
+        Row D y=484: Confirm, Reply, Timbre
+      -->
+      <svg viewBox="0 0 960 580" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="rasta-arch-title rasta-arch-desc">
         <title id="rasta-arch-title">Rasta Voice runtime architecture</title>
         <desc id="rasta-arch-desc">Rider audio enters FastAPI, Prisma transcribes, the extractor validates a RiderEvent into SQLite, the dispatch slate polls it, and Timbre speaks a state-aware confirmation.</desc>
         <defs>
@@ -74,78 +82,79 @@
         <rect width="100%" height="100%" fill="url(#dots)" opacity="0.55"/>
 
         <!-- Zones -->
-        <rect x="40" y="48" width="200" height="464" rx="8" fill="rgba(28,25,23,0.02)" stroke="rgba(28,25,23,0.10)" stroke-width="0.8"/>
-        <rect x="36" y="44" width="72" height="18" rx="2" fill="#f7f1e8"/>
-        <text x="44" y="57" font-family="Geist Mono, ui-monospace, monospace" font-size="11" font-weight="500" fill="#57534e" letter-spacing="0.12em">PUBLIC</text>
+        <rect x="40" y="40" width="200" height="488" rx="8" fill="rgba(28,25,23,0.02)" stroke="rgba(28,25,23,0.10)" stroke-width="0.8"/>
+        <rect x="36" y="36" width="72" height="18" rx="2" fill="#f7f1e8"/>
+        <text x="44" y="49" font-family="Geist Mono, ui-monospace, monospace" font-size="11" font-weight="500" fill="#57534e" letter-spacing="0.12em">PUBLIC</text>
 
-        <rect x="280" y="48" width="400" height="464" rx="8" fill="rgba(28,25,23,0.02)" stroke="rgba(28,25,23,0.10)" stroke-width="0.8"/>
-        <rect x="276" y="44" width="92" height="18" rx="2" fill="#f7f1e8"/>
-        <text x="284" y="57" font-family="Geist Mono, ui-monospace, monospace" font-size="11" font-weight="500" fill="#57534e" letter-spacing="0.12em">API HOST</text>
+        <rect x="280" y="40" width="320" height="488" rx="8" fill="rgba(28,25,23,0.02)" stroke="rgba(28,25,23,0.10)" stroke-width="0.8"/>
+        <rect x="276" y="36" width="92" height="18" rx="2" fill="#f7f1e8"/>
+        <text x="284" y="49" font-family="Geist Mono, ui-monospace, monospace" font-size="11" font-weight="500" fill="#57534e" letter-spacing="0.12em">API HOST</text>
 
-        <rect x="720" y="48" width="200" height="464" rx="8" fill="rgba(28,25,23,0.02)" stroke="rgba(28,25,23,0.10)" stroke-width="0.8"/>
-        <rect x="716" y="44" width="108" height="18" rx="2" fill="#f7f1e8"/>
-        <text x="724" y="57" font-family="Geist Mono, ui-monospace, monospace" font-size="11" font-weight="500" fill="#57534e" letter-spacing="0.12em">PROVIDERS</text>
+        <rect x="720" y="40" width="200" height="488" rx="8" fill="rgba(28,25,23,0.02)" stroke="rgba(28,25,23,0.10)" stroke-width="0.8"/>
+        <rect x="716" y="36" width="108" height="18" rx="2" fill="#f7f1e8"/>
+        <text x="724" y="49" font-family="Geist Mono, ui-monospace, monospace" font-size="11" font-weight="500" fill="#57534e" letter-spacing="0.12em">PROVIDERS</text>
 
-        <!-- Arrows (before nodes) -->
-        <!-- rider -> api -->
-        <path d="M 220,140 H 300" fill="none" stroke="#1d4ed8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
-        <rect x="232" y="122" width="56" height="16" fill="#f7f1e8"/>
-        <text x="260" y="134" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#1d4ed8">UPLOAD</text>
+        <!-- Arrows first (behind nodes). All ports land on box edges. -->
+        <!-- Rider → FastAPI -->
+        <path d="M 220,140 H 320" fill="none" stroke="#1d4ed8" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="244" y="124" width="52" height="14" fill="#f7f1e8"/>
+        <text x="270" y="135" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#1d4ed8">UPLOAD</text>
 
-        <!-- api -> prisma -->
-        <path d="M 560,140 H 620 Q 628,140 628,148 V 168" fill="none" stroke="#1d4ed8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
-        <rect x="568" y="122" width="40" height="16" fill="#f7f1e8"/>
-        <text x="588" y="134" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#1d4ed8">STT</text>
+        <!-- FastAPI → Prisma (straight into left edge) -->
+        <path d="M 560,140 H 740" fill="none" stroke="#1d4ed8" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="628" y="124" width="36" height="14" fill="#f7f1e8"/>
+        <text x="646" y="135" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#1d4ed8">STT</text>
 
-        <!-- prisma -> extract -->
-        <path d="M 720,220 H 700 Q 692,220 692,228 V 268 Q 692,276 684,276 H 560" fill="none" stroke="#57534e" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="640" y="258" width="64" height="16" fill="#f7f1e8"/>
-        <text x="672" y="270" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#57534e">TEXT</text>
+        <!-- Prisma → Extractor (down then left into right edge) -->
+        <path d="M 820,172 V 276 H 560" fill="none" stroke="#57534e" stroke-width="1.4" marker-end="url(#arrow)"/>
+        <rect x="780" y="212" width="40" height="14" fill="#f7f1e8"/>
+        <text x="800" y="223" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#57534e">TEXT</text>
 
-        <!-- extract -> store (accent path) -->
-        <path d="M 400,308 V 348" fill="none" stroke="#c45c26" stroke-width="1.6" marker-end="url(#arrow-accent)"/>
-        <rect x="348" y="318" width="56" height="16" fill="#f7f1e8"/>
-        <text x="376" y="330" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#c45c26">EVENT</text>
+        <!-- Extractor → SQLite -->
+        <path d="M 440,308 V 348" fill="none" stroke="#c45c26" stroke-width="1.8" marker-end="url(#arrow-accent)"/>
+        <rect x="412" y="318" width="48" height="14" fill="#f7f1e8"/>
+        <text x="436" y="329" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#c45c26">EVENT</text>
 
-        <!-- store -> desk poll -->
-        <path d="M 320,400 H 220" fill="none" stroke="#57534e" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="248" y="382" width="40" height="16" fill="#f7f1e8"/>
-        <text x="268" y="394" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#57534e">POLL</text>
+        <!-- SQLite → Desk (POLL) -->
+        <path d="M 320,380 H 220" fill="none" stroke="#57534e" stroke-width="1.4" marker-end="url(#arrow)"/>
+        <rect x="248" y="364" width="40" height="14" fill="#f7f1e8"/>
+        <text x="268" y="375" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#57534e">POLL</text>
 
-        <!-- desk ack back -->
-        <path d="M 140,340 V 300 Q 140,292 148,292 H 300" fill="none" stroke="#57534e" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
-        <rect x="176" y="274" width="40" height="16" fill="#f7f1e8"/>
-        <text x="196" y="286" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#57534e">ACK</text>
+        <!-- Desk → FastAPI (ACK) via public/API gutter -->
+        <path d="M 220,380 H 260 V 140 H 320" fill="none" stroke="#57534e" stroke-width="1.3" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="242" y="248" width="36" height="14" fill="#f7f1e8"/>
+        <text x="260" y="259" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#57534e">ACK</text>
 
-        <!-- rider hear -> reply -> timbre -->
-        <path d="M 220,460 H 300" fill="none" stroke="#1d4ed8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
-        <rect x="236" y="442" width="40" height="16" fill="#f7f1e8"/>
-        <text x="256" y="454" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#1d4ed8">HEAR</text>
+        <!-- Confirm → Reply -->
+        <path d="M 220,484 H 320" fill="none" stroke="#1d4ed8" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="244" y="468" width="40" height="14" fill="#f7f1e8"/>
+        <text x="264" y="479" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#1d4ed8">HEAR</text>
 
-        <path d="M 560,460 H 620 Q 628,460 628,452 V 412" fill="none" stroke="#1d4ed8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
-        <rect x="568" y="442" width="40" height="16" fill="#f7f1e8"/>
-        <text x="588" y="454" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#1d4ed8">TTS</text>
+        <!-- Reply → Timbre -->
+        <path d="M 560,484 H 740" fill="none" stroke="#1d4ed8" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="628" y="468" width="36" height="14" fill="#f7f1e8"/>
+        <text x="646" y="479" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#1d4ed8">TTS</text>
 
-        <!-- Nodes: public -->
+        <!-- PUBLIC nodes -->
         <rect x="60" y="108" width="160" height="64" rx="6" fill="#f7f1e8" stroke="#1c1917" stroke-width="1.4"/>
         <rect x="60" y="108" width="52" height="16" rx="2" fill="#1c1917"/>
         <text x="68" y="120" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#f7f1e8">RIDER</text>
         <text x="76" y="144" font-family="Geist, system-ui, sans-serif" font-size="15" font-weight="600" fill="#1c1917">Rider chit</text>
         <text x="76" y="162" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">mic · upload · sample</text>
 
-        <rect x="60" y="308" width="160" height="64" rx="6" fill="#f7f1e8" stroke="#1c1917" stroke-width="1.4"/>
-        <rect x="60" y="308" width="44" height="16" rx="2" fill="#1c1917"/>
-        <text x="68" y="320" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#f7f1e8">DESK</text>
-        <text x="76" y="344" font-family="Geist, system-ui, sans-serif" font-size="15" font-weight="600" fill="#1c1917">Dispatch slate</text>
-        <text x="76" y="362" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">ack · resolve · CSRF</text>
+        <rect x="60" y="348" width="160" height="64" rx="6" fill="#f7f1e8" stroke="#1c1917" stroke-width="1.4"/>
+        <rect x="60" y="348" width="44" height="16" rx="2" fill="#1c1917"/>
+        <text x="68" y="360" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#f7f1e8">DESK</text>
+        <text x="76" y="384" font-family="Geist, system-ui, sans-serif" font-size="15" font-weight="600" fill="#1c1917">Dispatch slate</text>
+        <text x="76" y="402" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">ack · resolve · CSRF</text>
 
-        <rect x="60" y="428" width="160" height="64" rx="6" fill="#f7f1e8" stroke="#1c1917" stroke-width="1.4"/>
-        <rect x="60" y="428" width="56" height="16" rx="2" fill="#1c1917"/>
-        <text x="68" y="440" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#f7f1e8">AUDIO</text>
-        <text x="76" y="464" font-family="Geist, system-ui, sans-serif" font-size="15" font-weight="600" fill="#1c1917">Confirmation</text>
-        <text x="76" y="482" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">state-aware reply</text>
+        <rect x="60" y="452" width="160" height="64" rx="6" fill="#f7f1e8" stroke="#1c1917" stroke-width="1.4"/>
+        <rect x="60" y="452" width="56" height="16" rx="2" fill="#1c1917"/>
+        <text x="68" y="464" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#f7f1e8">AUDIO</text>
+        <text x="76" y="488" font-family="Geist, system-ui, sans-serif" font-size="15" font-weight="600" fill="#1c1917">Confirmation</text>
+        <text x="76" y="506" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">state-aware reply</text>
 
-        <!-- Nodes: API -->
+        <!-- API nodes -->
         <rect x="320" y="108" width="240" height="64" rx="6" fill="#f7f1e8" stroke="#1c1917" stroke-width="1.4"/>
         <rect x="320" y="108" width="56" height="16" rx="2" fill="#1c1917"/>
         <text x="328" y="120" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#f7f1e8">EDGE</text>
@@ -158,43 +167,43 @@
         <text x="336" y="280" font-family="Geist, system-ui, sans-serif" font-size="15" font-weight="600" fill="#1c1917">Extractor</text>
         <text x="336" y="298" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">rules · groq · gemini</text>
 
-        <rect x="320" y="368" width="240" height="64" rx="6" fill="#f7f1e8" stroke="#1c1917" stroke-width="1.4"/>
-        <rect x="320" y="368" width="56" height="16" rx="2" fill="#1c1917"/>
-        <text x="328" y="380" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#f7f1e8">STORE</text>
-        <text x="336" y="404" font-family="Geist, system-ui, sans-serif" font-size="15" font-weight="600" fill="#1c1917">SQLite events</text>
-        <text x="336" y="422" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">redact · retain · delete</text>
+        <rect x="320" y="348" width="240" height="64" rx="6" fill="#f7f1e8" stroke="#1c1917" stroke-width="1.4"/>
+        <rect x="320" y="348" width="56" height="16" rx="2" fill="#1c1917"/>
+        <text x="328" y="360" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#f7f1e8">STORE</text>
+        <text x="336" y="384" font-family="Geist, system-ui, sans-serif" font-size="15" font-weight="600" fill="#1c1917">SQLite events</text>
+        <text x="336" y="402" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">redact · retain · delete</text>
 
-        <rect x="320" y="428" width="240" height="64" rx="6" fill="#f7f1e8" stroke="#1c1917" stroke-width="1.4"/>
-        <rect x="320" y="428" width="56" height="16" rx="2" fill="#1c1917"/>
-        <text x="328" y="440" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#f7f1e8">REPLY</text>
-        <text x="336" y="464" font-family="Geist, system-ui, sans-serif" font-size="15" font-weight="600" fill="#1c1917">Reply route</text>
-        <text x="336" y="482" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">template · cache · Timbre</text>
+        <rect x="320" y="452" width="240" height="64" rx="6" fill="#f7f1e8" stroke="#1c1917" stroke-width="1.4"/>
+        <rect x="320" y="452" width="56" height="16" rx="2" fill="#1c1917"/>
+        <text x="328" y="464" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#f7f1e8">REPLY</text>
+        <text x="336" y="488" font-family="Geist, system-ui, sans-serif" font-size="15" font-weight="600" fill="#1c1917">Reply route</text>
+        <text x="336" y="506" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">template · cache · Timbre</text>
 
         <!-- Providers -->
-        <rect x="740" y="176" width="160" height="64" rx="6" fill="#f7f1e8" stroke="rgba(28,25,23,0.35)" stroke-width="1.2" stroke-dasharray="4,3"/>
-        <rect x="740" y="176" width="56" height="16" rx="2" fill="#57534e"/>
-        <text x="748" y="188" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#f7f1e8">STT</text>
-        <text x="756" y="212" font-family="Geist, system-ui, sans-serif" font-size="15" font-weight="600" fill="#1c1917">Gnani Prisma</text>
-        <text x="756" y="230" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">v3 · transliterate</text>
+        <rect x="740" y="108" width="160" height="64" rx="6" fill="#f7f1e8" stroke="rgba(28,25,23,0.35)" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <rect x="740" y="108" width="56" height="16" rx="2" fill="#57534e"/>
+        <text x="748" y="120" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#f7f1e8">STT</text>
+        <text x="756" y="144" font-family="Geist, system-ui, sans-serif" font-size="15" font-weight="600" fill="#1c1917">Gnani Prisma</text>
+        <text x="756" y="162" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">v3 · transliterate</text>
 
-        <rect x="740" y="348" width="160" height="64" rx="6" fill="#f7f1e8" stroke="rgba(28,25,23,0.35)" stroke-width="1.2" stroke-dasharray="4,3"/>
-        <rect x="740" y="348" width="56" height="16" rx="2" fill="#57534e"/>
-        <text x="748" y="360" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#f7f1e8">TTS</text>
-        <text x="756" y="384" font-family="Geist, system-ui, sans-serif" font-size="15" font-weight="600" fill="#1c1917">Gnani Timbre</text>
-        <text x="756" y="402" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">Shivani · hi-en</text>
+        <rect x="740" y="452" width="160" height="64" rx="6" fill="#f7f1e8" stroke="rgba(28,25,23,0.35)" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <rect x="740" y="452" width="56" height="16" rx="2" fill="#57534e"/>
+        <text x="748" y="464" font-family="Geist Mono, ui-monospace, monospace" font-size="10" font-weight="500" fill="#f7f1e8">TTS</text>
+        <text x="756" y="488" font-family="Geist, system-ui, sans-serif" font-size="15" font-weight="600" fill="#1c1917">Gnani Timbre</text>
+        <text x="756" y="506" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">Shivani · hi-en</text>
 
         <!-- Legend -->
-        <line x1="40" y1="528" x2="920" y2="528" stroke="rgba(28,25,23,0.12)" stroke-width="1"/>
-        <rect x="40" y="540" width="14" height="10" rx="2" fill="rgba(196,92,38,0.08)" stroke="#c45c26" stroke-width="1.4"/>
-        <text x="62" y="549" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">extractor (focal)</text>
-        <rect x="220" y="540" width="14" height="10" rx="2" fill="#f7f1e8" stroke="#1c1917" stroke-width="1.2"/>
-        <text x="242" y="549" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">app surface</text>
-        <rect x="380" y="540" width="14" height="10" rx="2" fill="#f7f1e8" stroke="rgba(28,25,23,0.35)" stroke-width="1.2" stroke-dasharray="3,2"/>
-        <text x="402" y="549" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">external speech API</text>
-        <line x1="580" y1="545" x2="610" y2="545" stroke="#1d4ed8" stroke-width="1.4" marker-end="url(#arrow-link)"/>
-        <text x="620" y="549" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">provider call</text>
-        <line x1="760" y1="545" x2="790" y2="545" stroke="#c45c26" stroke-width="1.6" marker-end="url(#arrow-accent)"/>
-        <text x="800" y="549" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">validated event</text>
+        <line x1="40" y1="544" x2="920" y2="544" stroke="rgba(28,25,23,0.12)" stroke-width="1"/>
+        <rect x="40" y="554" width="14" height="10" rx="2" fill="rgba(196,92,38,0.08)" stroke="#c45c26" stroke-width="1.4"/>
+        <text x="62" y="563" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">extractor (focal)</text>
+        <rect x="220" y="554" width="14" height="10" rx="2" fill="#f7f1e8" stroke="#1c1917" stroke-width="1.2"/>
+        <text x="242" y="563" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">app surface</text>
+        <rect x="380" y="554" width="14" height="10" rx="2" fill="#f7f1e8" stroke="rgba(28,25,23,0.35)" stroke-width="1.2" stroke-dasharray="3,2"/>
+        <text x="402" y="563" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">external speech API</text>
+        <line x1="580" y1="559" x2="610" y2="559" stroke="#1d4ed8" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <text x="620" y="563" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">provider call</text>
+        <line x1="760" y1="559" x2="790" y2="559" stroke="#c45c26" stroke-width="1.6" marker-end="url(#arrow-accent)"/>
+        <text x="800" y="563" font-family="Geist Mono, ui-monospace, monospace" font-size="11" fill="#57534e">validated event</text>
       </svg>
     </div>
   </div>
