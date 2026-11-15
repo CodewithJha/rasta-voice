@@ -128,6 +128,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--provider",
         default="rules",
+        type=lambda value: value.strip().lower(),
+        choices=("rules", "groq", "gemini"),
         help="rules (default), groq, or gemini. LLM paths skip when the key is missing.",
     )
     parser.add_argument(
@@ -154,6 +156,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     sets = args.sets
+    # Reject impossible runs before any provider call or evidence overwrite.
+    if args.enforce_target and sets is not None and "blind" not in sets:
+        parser.error("--enforce-target requires the blind split")
+    provider = args.provider
+    if provider != "rules":
+        settings = get_settings()
+        if sets is not None and not any(name in _SET_PATHS for name in sets):
+            parser.error("the selected provider requires gold, tuning, or blind")
+        if args.write_evidence and not settings.key_for(provider):
+            parser.error("cannot write provider evidence without its configured key")
 
     print("=== rules ===")
     last_report = None
@@ -161,7 +173,9 @@ def main(argv: list[str] | None = None) -> int:
         last_report = _run("dev (gold)", GOLD_PATH, "rules")
         print()
     if _wanted(sets, "tuning"):
-        last_report = _run("tuning holdout (seen during rule expansion)", TUNING_HOLDOUT_PATH, "rules")
+        last_report = _run(
+            "tuning holdout (seen during rule expansion)", TUNING_HOLDOUT_PATH, "rules",
+        )
         print()
     blind = None
     if _wanted(sets, "blind"):
@@ -178,7 +192,6 @@ def main(argv: list[str] | None = None) -> int:
                 provider="rules",
             )
             print(format_report(last_report))
-    provider = args.provider.strip().lower()
     if provider != "rules":
         settings = get_settings()
         key = settings.key_for(provider)
