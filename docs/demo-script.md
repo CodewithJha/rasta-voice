@@ -1,85 +1,80 @@
-# 60-second demo script
+# Working-app demo plans
 
-Script and shot list only. The recording, public post and official form
-are issue 18, using the copy in issue 15. There is no committed live
-`scores.json`, so this script never states a WER.
+The actual submission form requires a **2-3 minute working demo**. The
+60-second plan below is optional for the Demo Day Drop award, not a replacement.
+These are planned takes, not completed recordings or measured run times.
+Use only the actual working application and invented delivery details. Keep
+keys, desk passcodes and unrelated customer/user content out of the frame.
+Do not splice a different run's audio, transcript or result into a take.
 
-The clock is a planned working-app take, not a spoken-only read-through.
-Spoken lines are measured at 130 words/min (52 words, 24 s). Wait and
-play windows are budgets, not a live timed run: no speech credits were
-spent for this script. The sample line is 19 words (~8.8 s) and the
-Timbre confirmation is 14 words (~6.5 s) at that same rate, rounded up
-to 10 s and 8 s so short pauses still fit. If a provider wait or a clip
-overruns its window, stop the take and use the backup take.
+## Before recording
 
-The chit does not autoplay. **Speak a sample line** and **Hear dispatch**
-only reveal the native players. You must click **Play** under **What
-Prisma heard** and under **Sun lo — the Timbre confirmation**.
+1. Confirm the approved deployed revision in [SUBMISSION.md](SUBMISSION.md).
+   PR 107's new UI is not public until reviewed, merged and deployed. Do not
+   describe its screenshots as the live application.
+2. Confirm `/api/ready` reports a configured key, writable database and at
+   least three available local call units. This is not the provider balance.
+3. Open a second app window and unlock Dispatch with the existing private
+   passcode before filming. Do not expose the passcode field or devtools.
+4. Use the locale actually shown in the take. English names below have these
+   version-specific equivalents:
 
-## Beats
+| Action | Deployed main `be7fffb` | PR 107 candidate, only after deploy |
+| --- | --- | --- |
+| Synthetic noisy sample | Noisy line, then Speak a sample line | Upload or test audio, Add road noise, then Try a sample |
+| Rider result | Chit with transcript and facts | Your delivery update |
+| Submitted sample playback | Native player under What Prisma heard | Native player under Submitted audio |
+| Spoken reply request | Hear dispatch | Hear reply |
+| Dispatcher | Dispatch slate on the same page | Dispatch navigation, Delivery updates |
+| Acknowledge | Ack | Acknowledge |
+| Resolve | Resolve | Mark resolved |
 
-| Clock | Duration | Basis | On screen | Said |
-| --- | --- | --- | --- | --- |
-| 0–6 s | 6 s | 13 words at 130 wpm | The rider chit, night page. Do not tour the desk chrome. | This is Rasta Voice: Hinglish help for a rider on a noisy line. |
-| 6–8 s | 2 s | 4 words at 130 wpm, plus the two clicks | Click **Noisy line**, then **Speak a sample line**. | This audio is synthetic. |
-| 8–16 s | 8 s | Budgeted wait (Timbre, then Prisma) | Keep the chit in frame. Wait until **What Prisma heard** and the transcript appear. If this wait passes 8 s, stop the take. | (silence) |
-| 16–26 s | 10 s | Budgeted play (19-word sample ≈ 8.8 s at 130 wpm, rounded up) | Click **Play** on the native controls under **What Prisma heard**. Let the clip play. Do not skip this click. | (silence) |
-| 26–30 s | 4 s | 6 words at 130 wpm | Frame the **Dispatch slate** row: `customer unreachable`, `order 18`, `HIGH`, and the dispatch action. | Slate: customer unreachable, order 18, HIGH. |
-| 30–31 s | 1 s | Click | Click **Hear dispatch** on the chit. That is a third, uncached Timbre call. | (silence) |
-| 31–37 s | 6 s | Budgeted wait (one Timbre call) | Wait until the player under **Sun lo — the Timbre confirmation** is visible. If this wait passes 6 s, stop the take. | (silence) |
-| 37–45 s | 8 s | Budgeted play (14-word confirmation ≈ 6.5 s at 130 wpm, rounded up) | Click **Play** on that native player. Let the confirmation finish. Do not skip this click. | (silence) |
-| 45–52 s | 7 s | 13 words at 130 wpm | Stay on the same noisy sample: the 8 kHz audio Prisma received, and its transcript. Do not open a chart or the README. | I will not quote a WER. Prisma's transcript is here, word for word. |
-| 52–60 s | 8 s | 16 words at 130 wpm | The page again, chit and slate both visible, no terminal or `.env`. | Noise Canceller entry, mixed Hinglish. Gnani AI, Great Indian AI Internship Challenge. No real customer calls. |
+## Required 2-3 minute take
 
-Total planned take: 60 s (24 s spoken, 3 s of clicks, 14 s of budgeted waits, 18 s of budgeted playback).
+Aim for 2 minutes 30 seconds. Time the actual recording; these windows are a
+shot plan, not measured provider latency. Use one sample and one reply, not
+a fresh paid call for every scene.
 
-The 26–30 s spoken slate matches the current rules extractor and Timbre
-template for this sample line (`customer_unreachable`, order `18`, urgency
-`HIGH`, and the "call the customer once from dispatch" action). If a live
-Prisma transcript changes the intent, say what the slate actually shows.
-Do not invent a field.
+| Time | Real screen/action | Narration focus |
+| --- | --- | --- |
+| 0:00-0:25 | Public app, rider controls | The rider's problem, target users and why Hinglish matters |
+| 0:25-0:45 | Trigger one synthetic noisy sample | Label synthetic audio; name Timbre synthesis and Prisma recognition |
+| 0:45-1:15 | Let the real request finish; play its returned audio | Read the actual transcript, intent, order and ETA; explain uncertainty honestly |
+| 1:15-1:45 | Show the same event in an already unlocked desk; acknowledge it | Dispatcher responsibilities, stored state and the audit trail; never expose the passcode |
+| 1:45-2:10 | Request the actual spoken confirmation and press Play | Explain that a reply is state-aware and does not falsely promise emergency assistance |
+| 2:10-2:30 | Resolve the event; return to the app | Team contributions, synthetic benchmark limits, code and app links |
 
-## Shot list
+If a gate fails, show the honest limitation or stop. If the private desk cannot
+be unlocked, do not claim its live acknowledgement/resolution worked. A
+screenshot of CI's stored fixture cannot replace the live event in this video.
 
-Himanshu, or anyone else recording, should be able to follow this without
-having seen a walkthrough.
+## Optional 60-second award take
 
-1. From the repository root, with `GNANI_API_KEY` already in the ignored
-   `.env` (not in the shell history you will film), run
-   `uvicorn rasta.main:app --host 127.0.0.1 --port 8000 --workers 1`.
-   `LLM_PROVIDER=rules` is enough. In a second terminal, from `frontend/`,
-   run `npm ci` if needed, then `npm run dev`.
-2. Open only the Vite URL printed in that terminal, usually
-   `http://127.0.0.1:5173/`. Close any editor, terminal, or tab that could
-   show a key, a `.env` file, or a real phone number.
-3. Start the first beat tight on the rider chit (page title **Rasta Voice**,
-   night-coloured ticket). The desk may be visible later; do not describe
-   its chrome in the opening seconds.
-4. Click **Noisy line**, then **Speak a sample line**, and say "This audio
-   is synthetic." Wait until the chit shows the clip and transcript under
-   **What Prisma heard**. This REST sample spends two live speech calls
-   (Timbre, then Prisma). If the request returns 503 or 402, or if this
-   wait passes 8 s, stop the take; do not play a stand-in recording or
-   type a fake transcript.
-5. Click **Play** on the native controls under **What Prisma heard**. The
-   chit does not autoplay. Let the clip run in this 10 s window. If it is
-   still going at 26 s, stop the take.
-6. Frame the **Dispatch slate** row that just arrived: intent
-   `customer unreachable`, `order 18`, `HIGH`, and the dispatch action.
-   Click **Hear dispatch** on the chit. Wait until the player under
-   **Sun lo — the Timbre confirmation** appears. If that wait passes 6 s,
-   stop the take.
-7. Click **Play** on that confirmation player. It also does not autoplay.
-   Let the confirmation finish in the 8 s window. If it overruns, stop
-   the take. Do not cut in a successful reply from a different run.
-8. Stay on that same chit result. Point at the noisy 8 kHz audio the API
-   returned and at Prisma's transcript next to it. Do not open
-   `README.md`, `benchmark/results/`, or any chart. The scored table is
-   not in the repository yet.
-9. Widen to the full page (chit and slate). End on "No real customer
-   calls."
-10. Have a second take ready if the first sample is slow, a clip runs
-    long, or the slate lags.
+| Time | Show | Say |
+| --- | --- | --- |
+| 0-8 s | Rider screen, primary action in frame | Rasta Voice helps delivery riders explain a problem in Hinglish and gives dispatch a clear update. |
+| 8-12 s | Select the noisy synthetic sample and activate it once | This example is synthetic. Timbre generates the audio and Prisma transcribes it. |
+| 12-25 s | Actual request completes; play the returned sample using its native audio controls | Let the actual audio play. Provider wait time is variable; this window is a plan, not a latency claim. |
+| 25-36 s | Actual transcript and fields, then the matching event in the unlocked dispatcher window | Read only what the actual result says. For a passing standard sample: customer unreachable, order eighteen, ten-minute delay. |
+| 36-49 s | Request the spoken reply once, then press Play on its native audio control | Timbre gives a spoken confirmation. Do not claim that requesting audio automatically played it. |
+| 49-57 s | Acknowledge the same synthetic event, then resolve it | Dispatch can take responsibility and close the update. |
+| 57-60 s | App and project name | Built with Gnani Prisma and Timbre. |
 
-Pass this shot list to issue 18 for the actual recording and to issue 15
-for the post. This file is not a completed contest submission.
+This sample costs two logical speech operations; the separate reply costs one
+more. With the verified zero-retry configuration, the intended upper bound is
+three provider attempts. No retakes or speech retries should happen silently.
+The local admission counter may also include other users' operations.
+
+Time the real take. If waits or playback overrun 60 seconds, use an honest
+longer demo or make a new explicitly budgeted take. Do not speed up audio,
+hide a failed request or state that an incomplete take passed. If the order
+is unresolved, show the clarification behavior and record the limitation;
+the strict order-18 acceptance gate still fails that take.
+
+## After recording
+
+Watch the entire saved video. Verify audio playback, transcript, event and
+dispatch actions belong to the same run. Check the frame for secrets. Upload
+it to a public location you control and open its actual URL signed out to
+verify playback. Paste the verified URL into the nominated post and final
+form. A script, generated concept or keyless screenshot is not the video.

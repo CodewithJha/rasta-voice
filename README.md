@@ -25,6 +25,13 @@
 
 ---
 
+## Product demonstration
+
+[Watch the 2:02 walkthrough](https://github.com/user-attachments/assets/c9136446-2a79-42f0-90ba-6dbdc7293b03) · [One-page pitch](docs/PITCH.pdf) · [Published LinkedIn post](https://www.linkedin.com/feed/update/urn:li:activity:7527676685782159360/)
+
+The walkthrough uses an illustrative synthetic rider message and real Gnani responses.
+[Final submission handoff](docs/FINAL_SUBMISSION_HANDOFF.md) contains the actual links; Priyanshu will complete the official team form.
+
 ## What it is
 
 **Rasta Voice** turns a noisy Hinglish rider utterance into a frozen `RiderEvent` for a human dispatcher, then speaks a Timbre confirmation that respects desk acknowledgement state.
@@ -147,7 +154,7 @@ Uploads: WAV / MP3 / M4A / OGG / FLAC within [2 MB / 30 s](docs/UPLOADS.md). Kee
 | --- | --- |
 | **Public URL** | https://rasta-voice-himanshu748.onrender.com |
 | **Region / plan** | Singapore · Render free |
-| **Speech** | Key configured privately; public speech **paused** (`RASTA_DEMO_SPEECH_BUDGET=0`) until the strict order-number smoke is recovered |
+| **Speech** | Key configured privately; public speech enabled with a user-approved process-local allowance of 20; strict order recognition remains inconsistent |
 | **Status detail** | [docs/DEPLOY.md](docs/DEPLOY.md) |
 
 Health and readiness are public. Desk reads need the passcode. Production docs are hidden on the host.
@@ -186,6 +193,8 @@ Synthetic rider speech mixed with traffic / horn / wind / crowd / crosstalk, the
 
 <!-- benchmark:start -->
 
+Controlled synthetic audio; these scores do not establish real customer-call accuracy.
+
 | System | Raw WER | Raw CER | Normalized WER | Normalized CER | Intent accuracy | n |
 | --- | --- | --- | --- | --- | --- | --- |
 | v25 | 0.8429 | 0.8123 | 0.8012 | 0.8107 | 0.0000 | 80 |
@@ -208,7 +217,7 @@ Run: **13 Nov 2026**. Grid: **8 × 5 noises × 2 SNRs × 5 systems = 80 files / 
 | --- | --- |
 | Rules holdout ≥ 0.8 | Met (29/36) |
 | CI / supply-chain / branch protection | Met |
-| Public live speech smoke (order id) | Failed historically — speech paused |
+| Public live speech smoke (order id) | A synthetic sample passed; another left the order unresolved. Reliable acceptance remains open |
 | Consented field recordings | Open |
 | Host rollback rehearsal | Open |
 
