@@ -18,7 +18,8 @@ export function initDispatch(root: HTMLElement): void {
   slate.className = "slate";
   slate.setAttribute("aria-labelledby", "dispatch-title");
 
-  const title = document.createElement("h2");
+  const title = document.createElement("h1");
+  title.tabIndex = -1;
   title.id = "dispatch-title";
 
   const status = document.createElement("p");
@@ -375,13 +376,14 @@ export function initDispatch(root: HTMLElement): void {
   };
 
   const tick = async (): Promise<void> => {
+    if (root.hidden) return;
     const outcome = await pull();
     if (outcome === "ok") {
       delay = POLL_INTERVAL_MS;
     } else {
       delay = nextBackoff(delay);
     }
-    schedule(delay);
+    if (!root.hidden) schedule(delay);
   };
 
   const unlockDesk = async (passcode: string): Promise<void> => {
@@ -445,11 +447,20 @@ export function initDispatch(root: HTMLElement): void {
     ingestLocal(record);
   });
 
+  window.addEventListener("rasta:view", () => {
+    if (root.hidden) {
+      window.clearTimeout(timer);
+      inflight?.abort();
+    } else {
+      void tick();
+      void pullUsage();
+    }
+  });
   void tick();
   void pullUsage();
   window.clearInterval(usageTimer);
   usageTimer = window.setInterval(() => {
-    void pullUsage();
+    if (!root.hidden) void pullUsage();
   }, USAGE_INTERVAL_MS);
 }
 

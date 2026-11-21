@@ -4,6 +4,8 @@ test("built UI obeys real CSP, loads its worklet, and blocks external scripts", 
   const response = await page.goto("/");
   expect(response?.headers()["content-security-policy"]).toContain("script-src 'self'");
   await expect(page.locator("#rider-title")).toBeVisible();
+  await expect(page.locator("#dispatch-root")).toBeHidden();
+  await page.getByRole("link", { name: "Dispatch", exact: true }).click();
   await expect(page.locator("#dispatch-title")).toBeVisible();
   await page.evaluate(async () => {
     const context = new AudioContext();
